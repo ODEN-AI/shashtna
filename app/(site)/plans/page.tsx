@@ -45,7 +45,7 @@ export default function PlansPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    loadPackages();
+    void loadPackages();
   }, []);
 
   async function loadPackages() {
@@ -69,7 +69,15 @@ export default function PlansPage() {
         );
       }
 
-      setPackages(data.packages ?? []);
+      const activePackages: PackageData[] = Array.isArray(
+        data.packages
+      )
+        ? data.packages.filter(
+            (pkg: PackageData) => pkg.isActive === true
+          )
+        : [];
+
+      setPackages(activePackages);
     } catch (error) {
       console.error("Plans page error:", error);
 
@@ -132,8 +140,8 @@ export default function PlansPage() {
 
             <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-500 dark:text-slate-400 sm:text-lg">
               {isArabic
-                ? "كل الباقات المعروضة هنا تُدار من لوحة شاشتنا وتقدر تتابع اشتراكك من حسابك."
-                : "All plans are managed through your Shashtna account, with easy subscription tracking."}
+                ? "كل الباقات المعروضة هنا هي الباقات المنشورة من لوحة شاشتنا وتكدر تتابع اشتراكك من حسابك."
+                : "Only plans published from the Shashtna admin panel are displayed here, and you can track your subscription from your account."}
             </p>
           </div>
         </div>
@@ -171,20 +179,20 @@ export default function PlansPage() {
 
             <h2 className="mt-4 text-xl font-black">
               {isArabic
-                ? "لا توجد باقات حالياً"
-                : "No plans available"}
+                ? "لا توجد باقات منشورة حالياً"
+                : "No published plans available"}
             </h2>
 
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
               {isArabic
-                ? "راح تظهر الباقات هنا بعد تفعيلها من لوحة الإدارة."
-                : "Plans will appear here once they are activated from the admin panel."}
+                ? "راح تظهر الباقات هنا بعد تفعيلها ونشرها من لوحة الإدارة."
+                : "Plans will appear here once they are activated and published from the admin panel."}
             </p>
           </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-3">
             {packages.map((pkg) => {
-              const featured = pkg.slug === "star10";
+              const featured = false;
 
               return (
                 <article
@@ -195,12 +203,10 @@ export default function PlansPage() {
                       : "border-slate-200 dark:border-slate-800"
                   }`}
                 >
-                  {/* Featured top line */}
                   {featured && (
                     <div className="absolute left-0 right-0 top-0 z-30 h-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500" />
                   )}
 
-                  {/* Featured badge */}
                   {featured && (
                     <div className="absolute right-5 top-5 z-40 inline-flex items-center gap-2 rounded-full border border-white/20 bg-blue-600/90 px-3 py-1.5 text-[11px] font-black text-white shadow-lg shadow-blue-900/20 backdrop-blur-xl">
                       <Sparkles size={13} />
@@ -229,19 +235,13 @@ export default function PlansPage() {
                       </div>
                     )}
 
-                    {/* Overall image gradient */}
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/10 to-transparent" />
 
-                    {/* Subtle bottom glow */}
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-blue-500/10 to-transparent" />
 
-                    {/* =================================================
-                        GLASS OVERLAY
-                        ================================================= */}
                     <div className="absolute inset-x-4 bottom-4 z-20">
                       <div className="overflow-hidden rounded-[22px] border border-white/15 bg-slate-950/35 shadow-[0_15px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl">
                         <div className="relative px-4 py-4 sm:px-5 sm:py-5">
-                          {/* Glass shine */}
                           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.10] via-transparent to-transparent" />
 
                           <div className="relative">
@@ -388,7 +388,6 @@ export default function PlansPage() {
                       />
                     </button>
 
-                    {/* Notes */}
                     {pkg.notes && (
                       <p className="mt-4 text-center text-xs leading-6 text-slate-400">
                         {pkg.notes}

@@ -156,7 +156,7 @@ export default function DashboardPage() {
                 }
                 value={
                   isArabic
-                    ? "مفتوح 24/7"
+                    ? "متوفر يوميًا من 10 صباحًا إلى 11 مساءً"
                     : "Daily, 10 AM – 11 PM"
                 }
                 iconClass="bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400"

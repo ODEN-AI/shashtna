@@ -12,75 +12,24 @@ import {
   Tv2,
   Zap,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { useLanguage } from "./components/LanguageProvider";
 
-const plans = [
-  {
-    nameAr: "الباقة الأساسية",
-    nameEn: "Basic Plan",
-    durationAr: "شهر واحد",
-    durationEn: "1 month",
-    price: "10,000",
-    descriptionAr:
-      "خيار مناسب للتجربة والاشتراك الشهري.",
-    descriptionEn:
-      "A simple option for trying the service with a monthly subscription.",
-    featuresAr: [
-      "اشتراك لمدة شهر",
-      "دعم فني",
-      "تفعيل سريع",
-    ],
-    featuresEn: [
-      "1-month subscription",
-      "Technical support",
-      "Fast activation",
-    ],
-  },
-  {
-    nameAr: "الباقة المميزة",
-    nameEn: "Premium Plan",
-    durationAr: "3 أشهر",
-    durationEn: "3 months",
-    price: "25,000",
-    descriptionAr:
-      "خيار متوازن لمن يريد اشتراكاً لفترة أطول.",
-    descriptionEn:
-      "A balanced option for those who want a longer subscription.",
-    featuresAr: [
-      "اشتراك لمدة 3 أشهر",
-      "دعم فني",
-      "تفعيل سريع",
-    ],
-    featuresEn: [
-      "3-month subscription",
-      "Technical support",
-      "Fast activation",
-    ],
-    featured: true,
-  },
-  {
-    nameAr: "الباقة السنوية",
-    nameEn: "Annual Plan",
-    durationAr: "12 شهر",
-    durationEn: "12 months",
-    price: "80,000",
-    descriptionAr:
-      "لمن يريد راحة أكبر واشتراكاً لفترة طويلة.",
-    descriptionEn:
-      "For those who want more convenience with a long-term subscription.",
-    featuresAr: [
-      "اشتراك لمدة سنة",
-      "دعم فني",
-      "تفعيل سريع",
-    ],
-    featuresEn: [
-      "1-year subscription",
-      "Technical support",
-      "Fast activation",
-    ],
-  },
-];
+type PopularPackage = {
+  id: number;
+  name: string;
+  slug: string;
+  price: number;
+  durationMonths: number;
+  durationLabel: string;
+  description: string;
+  specifications: string;
+  notes: string | null;
+  imageUrl: string | null;
+  isActive: boolean;
+  salesCount: number;
+};
 
 const steps = [
   {
@@ -112,9 +61,79 @@ const steps = [
   },
 ];
 
+function formatPrice(price: number) {
+  return new Intl.NumberFormat("ar-IQ").format(price);
+}
+
 export default function HomePage() {
   const { language } = useLanguage();
   const isArabic = language === "ar";
+
+  const [popularPackages, setPopularPackages] =
+    useState<PopularPackage[]>([]);
+
+  const [packagesLoading, setPackagesLoading] =
+    useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPopularPackages() {
+      try {
+        setPackagesLoading(true);
+
+        const response = await fetch(
+          "/api/popular-packages",
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        const data =
+          (await response.json()) as {
+            success?: boolean;
+            packages?: PopularPackage[];
+          };
+
+        if (
+          !response.ok ||
+          !data.success
+        ) {
+          throw new Error(
+            "Failed to load popular packages."
+          );
+        }
+
+        if (!cancelled) {
+          setPopularPackages(
+            Array.isArray(data.packages)
+              ? data.packages
+              : []
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Homepage popular packages error:",
+          error
+        );
+
+        if (!cancelled) {
+          setPopularPackages([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setPackagesLoading(false);
+        }
+      }
+    }
+
+    void loadPopularPackages();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <main
@@ -126,7 +145,6 @@ export default function HomePage() {
           ===================================================== */}
 
       <section className="relative isolate overflow-hidden bg-white transition-colors duration-500 dark:bg-[#070b14]">
-        {/* Euclid background */}
         <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute -right-56 -top-56 h-[620px] w-[620px] rounded-full bg-blue-500/[0.10] blur-[110px] dark:bg-blue-500/[0.08]" />
 
@@ -143,7 +161,8 @@ export default function HomePage() {
             style={{
               backgroundImage:
                 "linear-gradient(to right, rgba(15,23,42,0.025) 1px, transparent 1px), linear-gradient(to bottom, rgba(15,23,42,0.025) 1px, transparent 1px)",
-              backgroundSize: "44px 44px",
+              backgroundSize:
+                "44px 44px",
               maskImage:
                 "linear-gradient(to bottom, black 0%, transparent 78%)",
               WebkitMaskImage:
@@ -153,7 +172,6 @@ export default function HomePage() {
         </div>
 
         <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-5 pb-20 pt-12 sm:pt-16 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pb-28 lg:pt-20">
-          {/* Hero text */}
           <div className="relative z-10">
             <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-blue-200/70 bg-white/70 px-4 py-2 text-xs font-black text-blue-700 shadow-sm backdrop-blur-xl dark:border-blue-400/20 dark:bg-blue-500/[0.08] dark:text-blue-400">
               <Sparkles size={14} />
@@ -195,7 +213,9 @@ export default function HomePage() {
                 <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
                 <span className="relative">
-                  {isArabic ? "استكشف الباقات" : "Explore plans"}
+                  {isArabic
+                    ? "استكشف الباقات"
+                    : "Explore plans"}
                 </span>
 
                 <ArrowLeft
@@ -212,11 +232,12 @@ export default function HomePage() {
                 href="/register"
                 className="group flex items-center justify-center gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-7 py-4 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:bg-blue-50/80 hover:text-blue-700 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-blue-500/40 dark:hover:bg-slate-800"
               >
-                {isArabic ? "إنشاء حساب" : "Create account"}
+                {isArabic
+                  ? "إنشاء حساب"
+                  : "Create account"}
               </Link>
             </div>
 
-            {/* Trust line */}
             <div className="mt-10 flex flex-wrap gap-x-8 gap-y-4">
               <TrustItem
                 icon={<ShieldCheck size={17} />}
@@ -247,29 +268,22 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Hero visual */}
           <div className="relative mx-auto w-full max-w-xl lg:max-w-[580px]">
-            {/* Outer glow */}
             <div className="absolute inset-8 rounded-[48px] bg-blue-500/[0.18] blur-3xl dark:bg-blue-500/[0.09]" />
 
-            {/* Geometric ring */}
             <div className="pointer-events-none absolute -right-10 -top-10 hidden h-40 w-40 rounded-full border border-blue-300/40 sm:block dark:border-blue-400/10" />
 
             <div className="pointer-events-none absolute -bottom-12 -left-10 hidden h-36 w-36 rounded-full border border-cyan-300/40 sm:block dark:border-cyan-400/10" />
 
-            {/* TV shell */}
             <div className="euclid-surface relative rounded-[34px] border border-white/80 bg-white/[0.62] p-3 shadow-[0_30px_80px_rgba(15,23,42,0.15)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-slate-900/[0.50] dark:shadow-[0_30px_80px_rgba(0,0,0,0.38)]">
               <div className="relative overflow-hidden rounded-[27px] border border-white/[0.12] bg-slate-950 shadow-inner">
-                {/* Screen */}
                 <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-[#07152f] via-[#123d8f] to-[#22c7e8]">
-                  {/* Screen glow */}
                   <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
 
                   <div className="absolute -bottom-24 -left-10 h-72 w-72 rounded-full bg-blue-400/25 blur-3xl" />
 
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_20%,rgba(255,255,255,0.24),transparent_28%),linear-gradient(125deg,transparent_20%,rgba(255,255,255,0.05)_52%,transparent_70%)]" />
 
-                  {/* Geometric arcs */}
                   <div className="absolute right-[-8%] top-[-12%] h-[78%] w-[55%] rounded-full border border-white/10" />
 
                   <div className="absolute right-[4%] top-[-2%] h-[58%] w-[42%] rounded-full border border-cyan-200/10" />
@@ -319,7 +333,6 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* TV base */}
                 <div className="flex items-center justify-between border-t border-white/[0.05] bg-slate-900 px-5 py-4">
                   <div>
                     <div className="text-xs font-black text-white">
@@ -336,13 +349,14 @@ export default function HomePage() {
                   </div>
 
                   <div className="rounded-xl border border-emerald-300/10 bg-emerald-400/10 px-3 py-2 text-[10px] font-black text-emerald-300">
-                    {isArabic ? "نشط" : "ACTIVE"}
+                    {isArabic
+                      ? "نشط"
+                      : "ACTIVE"}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Floating status card */}
             <div className="euclid-glass absolute -bottom-6 -left-3 rounded-2xl p-4 shadow-2xl sm:-left-8">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/[0.10] dark:text-emerald-400">
@@ -367,7 +381,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Hero bottom fade */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-50/80 to-transparent dark:from-[#0b1120] dark:to-transparent" />
       </section>
 
@@ -422,7 +435,7 @@ export default function HomePage() {
       </section>
 
       {/* =====================================================
-          PLANS
+          POPULAR PLANS
           ===================================================== */}
 
       <section className="relative overflow-hidden bg-white transition-colors duration-500 dark:bg-[#070b14]">
@@ -435,131 +448,225 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
           <div className="mx-auto max-w-2xl text-center">
             <span className="inline-flex rounded-full border border-blue-200/70 bg-blue-50/70 px-3 py-1.5 text-[10px] font-black tracking-[0.2em] text-blue-600 dark:border-blue-400/10 dark:bg-blue-500/[0.06] dark:text-blue-400">
-              {isArabic ? "باقاتنا" : "OUR PLANS"}
+              {isArabic
+                ? "الأكثر مبيعًا"
+                : "BEST SELLERS"}
             </span>
 
             <h2 className="mt-5 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl dark:text-white">
               {isArabic
-                ? "اختر الباقة المناسبة لك"
-                : "Choose the right plan for you"}
+                ? "الباقات الأكثر طلبًا"
+                : "Our most popular plans"}
             </h2>
 
             <p className="mt-4 text-sm leading-7 text-slate-500 sm:text-base dark:text-slate-400">
               {isArabic
-                ? "باقات واضحة بدون تعقيد، حتى تعرف بالضبط شنو تختار قبل ما تشترك."
-                : "Clear plans with no unnecessary complexity, so you know exactly what you are choosing."}
+                ? "هذي أكثر الباقات مبيعًا حسب الاشتراكات المسجلة عندنا."
+                : "These are our best-selling plans based on recorded subscriptions."}
             </p>
           </div>
 
-          <div className="mt-14 grid gap-5 lg:grid-cols-3">
-            {plans.map((plan) => {
-              const planName = isArabic
-                ? plan.nameAr
-                : plan.nameEn;
-
-              return (
-                <div
-                  key={plan.nameEn}
-                  className={`euclid-surface group relative overflow-hidden rounded-[28px] border p-7 ${
-                    plan.featured
-                      ? "border-blue-400/70 bg-gradient-to-b from-blue-50/90 via-white to-white shadow-[0_20px_60px_rgba(37,99,235,0.12)] dark:border-blue-500/50 dark:from-blue-950/50 dark:via-slate-900 dark:to-slate-900 dark:shadow-[0_20px_60px_rgba(30,64,175,0.18)]"
-                      : "border-slate-200/80 bg-white/75 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60"
-                  }`}
-                >
-                  {/* Decorative glow */}
+          {packagesLoading ? (
+            <div className="mt-14 grid gap-5 lg:grid-cols-3">
+              {[1, 2, 3].map(
+                (item) => (
                   <div
-                    className={`pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full blur-3xl ${
-                      plan.featured
-                        ? "bg-blue-400/20"
-                        : "bg-cyan-400/10"
-                    }`}
+                    key={item}
+                    className="h-[430px] animate-pulse rounded-[28px] border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900"
                   />
+                )
+              )}
+            </div>
+          ) : popularPackages.length === 0 ? (
+            <div className="mx-auto mt-14 max-w-2xl rounded-[28px] border border-slate-200 bg-slate-50 p-10 text-center dark:border-slate-800 dark:bg-slate-900">
+              <Tv2
+                size={32}
+                className="mx-auto text-slate-400"
+              />
 
-                  {plan.featured && (
-                    <div className="absolute -top-0 right-6 rounded-b-xl bg-blue-600 px-4 py-2 text-[10px] font-black text-white shadow-lg shadow-blue-600/20">
-                      {isArabic
-                        ? "الأكثر طلباً"
-                        : "MOST POPULAR"}
-                    </div>
-                  )}
+              <h3 className="mt-4 text-lg font-black text-slate-900 dark:text-white">
+                {isArabic
+                  ? "ماكو باقات مبيعاتها متاحة حاليًا"
+                  : "No popular plans available yet"}
+              </h3>
 
-                  <div className="relative flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-black text-slate-950 dark:text-white">
-                        {planName}
-                      </h3>
+              <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-400">
+                {isArabic
+                  ? "تكدر تشوف جميع الباقات المنشورة من صفحة الباقات."
+                  : "You can view all published plans from the plans page."}
+              </p>
 
-                      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                        {isArabic
-                          ? plan.durationAr
-                          : plan.durationEn}
-                      </p>
-                    </div>
+              <Link
+                href="/plans"
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3.5 text-sm font-black text-white transition hover:bg-blue-700"
+              >
+                {isArabic
+                  ? "عرض كل الباقات"
+                  : "View all plans"}
 
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50/80 text-blue-600 shadow-sm dark:border-blue-500/10 dark:bg-blue-500/[0.09] dark:text-blue-400">
-                      <Tv2 size={21} />
-                    </div>
-                  </div>
+                <ArrowLeft
+                  size={17}
+                  className={
+                    isArabic
+                      ? ""
+                      : "rotate-180"
+                  }
+                />
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-14 grid gap-5 lg:grid-cols-3">
+              {popularPackages.map(
+                (plan, index) => {
+                  const isFeatured =
+                    index === 0;
 
-                  <div className="relative mt-8">
-                    <span className="text-3xl font-black text-slate-950 dark:text-white">
-                      {plan.price}
-                    </span>
-
-                    <span
-                      className={`${isArabic ? "mr-2" : "ml-2"} text-xs font-bold text-slate-400`}
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`euclid-surface group relative overflow-hidden rounded-[28px] border p-7 ${
+                        isFeatured
+                          ? "border-blue-400/70 bg-gradient-to-b from-blue-50/90 via-white to-white shadow-[0_20px_60px_rgba(37,99,235,0.12)] dark:border-blue-500/50 dark:from-blue-950/50 dark:via-slate-900 dark:to-slate-900 dark:shadow-[0_20px_60px_rgba(30,64,175,0.18)]"
+                          : "border-slate-200/80 bg-white/75 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60"
+                      }`}
                     >
-                      IQD
-                    </span>
-                  </div>
-
-                  <p className="relative mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                    {isArabic
-                      ? plan.descriptionAr
-                      : plan.descriptionEn}
-                  </p>
-
-                  <div className="my-6 h-px bg-slate-100 dark:bg-slate-800" />
-
-                  <div className="relative space-y-3">
-                    {(isArabic
-                      ? plan.featuresAr
-                      : plan.featuresEn
-                    ).map((feature) => (
                       <div
-                        key={feature}
-                        className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300"
-                      >
-                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/[0.10] dark:text-blue-400">
-                          <Check size={13} />
+                        className={`pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full blur-3xl ${
+                          isFeatured
+                            ? "bg-blue-400/20"
+                            : "bg-cyan-400/10"
+                        }`}
+                      />
+
+                      {isFeatured && (
+                        <div className="absolute -top-0 right-6 rounded-b-xl bg-blue-600 px-4 py-2 text-[10px] font-black text-white shadow-lg shadow-blue-600/20">
+                          {isArabic
+                            ? "الأكثر مبيعًا"
+                            : "BEST SELLER"}
+                        </div>
+                      )}
+
+                      <div className="relative flex items-start justify-between">
+                        <div>
+                          <h3 className="text-lg font-black text-slate-950 dark:text-white">
+                            {plan.name}
+                          </h3>
+
+                          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                            {plan.durationLabel}
+                          </p>
                         </div>
 
-                        {feature}
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50/80 text-blue-600 shadow-sm dark:border-blue-500/10 dark:bg-blue-500/[0.09] dark:text-blue-400">
+                          <Tv2 size={21} />
+                        </div>
                       </div>
-                    ))}
-                  </div>
 
-                  <Link
-                    href="/plans"
-                    className={`relative mt-8 flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black transition-all duration-300 hover:-translate-y-0.5 ${
-                      plan.featured
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:shadow-blue-600/30"
-                        : "border border-slate-200 bg-white/80 text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-blue-500/40 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                    }`}
-                  >
-                    {isArabic ? "عرض الباقة" : "View plan"}
+                      <div className="relative mt-8">
+                        <span className="text-3xl font-black text-slate-950 dark:text-white">
+                          {formatPrice(
+                            plan.price
+                          )}
+                        </span>
 
-                    <ChevronLeft
-                      size={16}
-                      className={`transition-transform duration-300 group-hover:-translate-x-0.5 ${
-                        isArabic ? "" : "rotate-180"
-                      }`}
-                    />
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
+                        <span
+                          className={`${
+                            isArabic
+                              ? "mr-2"
+                              : "ml-2"
+                          } text-xs font-bold text-slate-400`}
+                        >
+                          IQD
+                        </span>
+                      </div>
+
+                      <p className="relative mt-3 line-clamp-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        {plan.description}
+                      </p>
+
+                      <div className="my-6 h-px bg-slate-100 dark:bg-slate-800" />
+
+                      <div className="relative space-y-3">
+                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/[0.10] dark:text-blue-400">
+                            <Check size={13} />
+                          </div>
+
+                          {isArabic
+                            ? `مدة الاشتراك: ${plan.durationLabel}`
+                            : `Duration: ${plan.durationLabel}`}
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/[0.10] dark:text-blue-400">
+                            <Zap size={13} />
+                          </div>
+
+                          {isArabic
+                            ? "تفعيل بعد إتمام الطلب"
+                            : "Activation after placing your request"}
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/[0.10] dark:text-blue-400">
+                            <ShieldCheck size={13} />
+                          </div>
+
+                          {isArabic
+                            ? "دعم ومتابعة من حسابك"
+                            : "Support and account tracking"}
+                        </div>
+                      </div>
+
+                      <Link
+                        href={`/plans`}
+                        className={`relative mt-8 flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black transition-all duration-300 hover:-translate-y-0.5 ${
+                          isFeatured
+                            ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:shadow-blue-600/30"
+                            : "border border-slate-200 bg-white/80 text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-blue-500/40 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                        }`}
+                      >
+                        {isArabic
+                          ? "عرض الباقة"
+                          : "View plan"}
+
+                        <ChevronLeft
+                          size={16}
+                          className={`transition-transform duration-300 ${
+                            isArabic
+                              ? "group-hover:-translate-x-0.5"
+                              : "rotate-180 group-hover:translate-x-0.5"
+                          }`}
+                        />
+                      </Link>
+                    </div>
+                  );
+                }
+              )}
+            </div>
+          )}
+
+          {popularPackages.length > 0 && (
+            <div className="mt-8 text-center">
+              <Link
+                href="/plans"
+                className="group inline-flex items-center gap-2 text-sm font-black text-blue-600 transition hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                {isArabic
+                  ? "شوف كل الباقات"
+                  : "View all plans"}
+
+                <ArrowLeft
+                  size={16}
+                  className={`transition-transform duration-300 ${
+                    isArabic
+                      ? "group-hover:-translate-x-1"
+                      : "rotate-180 group-hover:translate-x-1"
+                  }`}
+                />
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
@@ -578,7 +685,8 @@ export default function HomePage() {
             style={{
               backgroundImage:
                 "linear-gradient(to right, rgba(148,163,184,0.035) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.035) 1px, transparent 1px)",
-              backgroundSize: "44px 44px",
+              backgroundSize:
+                "44px 44px",
             }}
           />
 
@@ -623,7 +731,9 @@ export default function HomePage() {
               href="/plans"
               className="group mt-8 inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white px-6 py-3.5 text-sm font-black text-slate-900 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-blue-50"
             >
-              {isArabic ? "شوف الباقات" : "View plans"}
+              {isArabic
+                ? "شوف الباقات"
+                : "View plans"}
 
               <ArrowLeft
                 size={17}
@@ -731,28 +841,30 @@ export default function HomePage() {
           <div className="relative mt-16 grid gap-10 md:grid-cols-3 md:gap-8">
             <div className="pointer-events-none absolute right-[16%] left-[16%] top-10 hidden h-px bg-gradient-to-l from-blue-200 via-cyan-200 to-blue-200 dark:from-blue-900/70 dark:via-cyan-900/70 dark:to-blue-900/70 md:block" />
 
-            {steps.map((step) => (
-              <div
-                key={step.number}
-                className="group relative text-center"
-              >
-                <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-full border-[7px] border-white bg-gradient-to-br from-blue-600 to-cyan-500 text-lg font-black text-white shadow-xl shadow-blue-600/20 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-blue-600/30 dark:border-[#070b14]">
-                  {step.number}
+            {steps.map(
+              (step) => (
+                <div
+                  key={step.number}
+                  className="group relative text-center"
+                >
+                  <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-full border-[7px] border-white bg-gradient-to-br from-blue-600 to-cyan-500 text-lg font-black text-white shadow-xl shadow-blue-600/20 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-blue-600/30 dark:border-[#070b14]">
+                    {step.number}
+                  </div>
+
+                  <h3 className="mt-7 text-lg font-black text-slate-950 dark:text-white">
+                    {isArabic
+                      ? step.titleAr
+                      : step.titleEn}
+                  </h3>
+
+                  <p className="mx-auto mt-3 max-w-xs text-sm leading-7 text-slate-500 dark:text-slate-400">
+                    {isArabic
+                      ? step.descriptionAr
+                      : step.descriptionEn}
+                  </p>
                 </div>
-
-                <h3 className="mt-7 text-lg font-black text-slate-950 dark:text-white">
-                  {isArabic
-                    ? step.titleAr
-                    : step.titleEn}
-                </h3>
-
-                <p className="mx-auto mt-3 max-w-xs text-sm leading-7 text-slate-500 dark:text-slate-400">
-                  {isArabic
-                    ? step.descriptionAr
-                    : step.descriptionEn}
-                </p>
-              </div>
-            ))}
+              )
+            )}
           </div>
         </div>
       </section>

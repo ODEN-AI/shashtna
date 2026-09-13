@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import {
@@ -32,7 +32,7 @@ export default function Footer() {
 
             <div>
               <div className="text-xl font-black">
-                Ø´Ø§Ø´ØªÙ†Ø§
+                شاشتنا
               </div>
 
               <div className="mt-1 text-[10px] font-semibold tracking-[0.2em] text-cyan-400">
@@ -43,7 +43,7 @@ export default function Footer() {
 
           <p className="max-w-md text-sm leading-7 text-slate-400">
             {isArabic
-              ? "Ù…Ù†ØµØ© Ø´Ø§Ø´ØªÙ†Ø§ ØªÙˆÙØ± Ù„Ùƒ Ø§Ø´ØªØ±Ø§ÙƒØ§Øª ØªØ±ÙÙŠÙ‡ÙŠØ© Ø¨Ø·Ø±ÙŠÙ‚Ø© Ø¨Ø³ÙŠØ·Ø© ÙˆÙˆØ§Ø¶Ø­Ø©ØŒ Ù…Ø¹ Ø¨Ø§Ù‚Ø§Øª ØªÙ†Ø§Ø³Ø¨ Ø§Ø­ØªÙŠØ§Ø¬Ø§ØªÙƒ ÙˆØ¯Ø¹Ù… ÙŠØ³Ø§Ø¹Ø¯Ùƒ Ø¨ÙƒÙ„ Ø®Ø·ÙˆØ©."
+              ? "منصة شاشتنا توفر لك اشتراكات ترفيهية بطريقة بسيطة وواضحة، مع باقات تناسب احتياجاتك ودعم يساعدك بكل خطوة."
               : "Shashtna provides entertainment subscriptions in a simple and clear way, with plans that fit your needs and support whenever you need it."}
           </p>
 
@@ -69,7 +69,7 @@ export default function Footer() {
         {/* Links */}
         <div>
           <h3 className="mb-5 text-sm font-bold text-white">
-            {isArabic ? "Ø±ÙˆØ§Ø¨Ø· Ø³Ø±ÙŠØ¹Ø©" : "Quick links"}
+            {isArabic ? "روابط سريعة" : "Quick links"}
           </h3>
 
           <div className="flex flex-col gap-3">
@@ -77,35 +77,35 @@ export default function Footer() {
               href="/"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©" : "Home"}
+              {isArabic ? "الرئيسية" : "Home"}
             </Link>
 
             <Link
               href="/plans"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "Ø§Ù„Ø¨Ø§Ù‚Ø§Øª" : "Plans"}
+              {isArabic ? "الباقات" : "Plans"}
             </Link>
 
             <Link
               href="/apps"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "Ø§Ù„ØªØ·Ø¨ÙŠÙ‚Ø§Øª" : "Apps"}
+              {isArabic ? "التطبيقات" : "Apps"}
             </Link>
 
             <Link
               href="/about"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "Ù…Ù† Ù†Ø­Ù†" : "About"}
+              {isArabic ? "من نحن" : "About"}
             </Link>
 
             <Link
               href="/tickets"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "Ø§Ù„Ø¯Ø¹Ù… Ø§Ù„ÙÙ†ÙŠ" : "Support"}
+              {isArabic ? "الدعم الفني" : "Support"}
             </Link>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function Footer() {
         {/* Account */}
         <div>
           <h3 className="mb-5 text-sm font-bold text-white">
-            {isArabic ? "Ø­Ø³Ø§Ø¨Ùƒ" : "Your account"}
+            {isArabic ? "حسابك" : "Your account"}
           </h3>
 
           <div className="flex flex-col gap-3">
@@ -121,21 +121,21 @@ export default function Footer() {
               href="/login"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„" : "Sign in"}
+              {isArabic ? "تسجيل الدخول" : "Sign in"}
             </Link>
 
             <Link
               href="/register"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "Ø¥Ù†Ø´Ø§Ø¡ Ø­Ø³Ø§Ø¨" : "Create account"}
+              {isArabic ? "إنشاء حساب" : "Create account"}
             </Link>
 
             <Link
               href="/dashboard"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ…" : "Dashboard"}
+              {isArabic ? "لوحة التحكم" : "Dashboard"}
             </Link>
 
             <Link
@@ -143,7 +143,7 @@ export default function Footer() {
               className="text-sm text-slate-400 transition hover:text-white"
             >
               {isArabic
-                ? "Ø§Ø´ØªØ±Ø§ÙƒØ§ØªÙŠ"
+                ? "اشتراكاتي"
                 : "My subscriptions"}
             </Link>
 
@@ -151,7 +151,7 @@ export default function Footer() {
               href="/orders"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "Ø·Ù„Ø¨Ø§ØªÙŠ" : "My orders"}
+              {isArabic ? "طلباتي" : "My orders"}
             </Link>
           </div>
         </div>
@@ -161,9 +161,9 @@ export default function Footer() {
       <div className="border-t border-slate-800">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-5 text-xs text-slate-500 md:flex-row md:items-center md:justify-between lg:px-8">
           <p>
-            Â© {new Date().getFullYear()} Ø´Ø§Ø´ØªÙ†Ø§.{" "}
+            © {new Date().getFullYear()} شاشتنا.{" "}
             {isArabic
-              ? "Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ‚ Ù…Ø­ÙÙˆØ¸Ø©."
+              ? "جميع الحقوق محفوظة."
               : "All rights reserved."}
           </p>
 
@@ -173,7 +173,7 @@ export default function Footer() {
               className="transition hover:text-slate-300"
             >
               {isArabic
-                ? "Ø³ÙŠØ§Ø³Ø© Ø§Ù„Ø®ØµÙˆØµÙŠØ©"
+                ? "سياسة الخصوصية"
                 : "Privacy Policy"}
             </Link>
 
@@ -182,7 +182,7 @@ export default function Footer() {
               className="transition hover:text-slate-300"
             >
               {isArabic
-                ? "Ø§Ù„Ø´Ø±ÙˆØ· ÙˆØ§Ù„Ø£Ø­ÙƒØ§Ù…"
+                ? "الشروط والأحكام"
                 : "Terms & Conditions"}
             </Link>
           </div>

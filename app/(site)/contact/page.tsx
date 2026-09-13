@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -46,7 +46,7 @@ const services = {
   },
 } as const;
 
-const DURATION_AR = "Ø³Ù†Ø© ÙˆØ§Ø­Ø¯Ø©";
+const DURATION_AR = "سنة واحدة";
 const DURATION_EN = "1 Year";
 
 const TELEGRAM_URL =
@@ -115,16 +115,16 @@ function ContactPageContent() {
       : DURATION_EN;
 
     return isArabic
-      ? `Ø§Ù„Ø³Ù„Ø§Ù… Ø¹Ù„ÙŠÙƒÙ…ØŒ Ø£Ø±ÙŠØ¯ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ø¨Ø®Ø¯Ù…Ø© ${serviceName} Ù„Ù…Ø¯Ø© ${duration} Ø¹Ù† Ø·Ø±ÙŠÙ‚ Ù…ÙˆÙ‚Ø¹ Ø´Ø§Ø´ØªÙ†Ø§.
+      ? `السلام عليكم، أريد الاشتراك بخدمة ${serviceName} لمدة ${duration} عن طريق موقع شاشتنا.
 
-Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø´ØªØ±Ùƒ:
-Ø§Ù„Ø§Ø³Ù…: ${user.name}
-Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ: ${user.phone}
-Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ: ${user.email}
+بيانات المشترك:
+الاسم: ${user.name}
+رقم الهاتف: ${user.phone}
+البريد الإلكتروني: ${user.email}
 
-Ø§Ù„Ø³Ø¹Ø±: ${service.price.toLocaleString(
+السعر: ${service.price.toLocaleString(
           "en-US"
-        )} Ø¯ÙŠÙ†Ø§Ø±`
+        )} دينار`
       : `Hello, I would like to subscribe to ${serviceName} for ${duration} through the Shashtna website.
 
 Subscriber details:
@@ -256,7 +256,7 @@ Price: ${service.price.toLocaleString(
         if (!cancelled) {
           setRequestError(
             isArabic
-              ? "ØªØ¹Ø°Ø± Ø­ÙØ¸ Ø·Ù„Ø¨Ùƒ Ø­Ø§Ù„ÙŠÙ‹Ø§. ØªÙ‚Ø¯Ø± ØªÙƒÙ…Ù„ Ø§Ù„ØªÙˆØ§ØµÙ„ ÙˆÙŠØ§Ù†Ø§."
+              ? "تعذر حفظ طلبك حاليًا. تقدر تكمل التواصل ويانا."
               : "We could not save your request right now. You can still contact us."
           );
         }
@@ -333,7 +333,7 @@ Price: ${service.price.toLocaleString(
 
       setRequestError(
         isArabic
-          ? "ØªØ¹Ø°Ø± ØªØ­Ø¯ÙŠØ« Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„ØªÙˆØ§ØµÙ„."
+          ? "تعذر تحديث طريقة التواصل."
           : "Could not update the contact method."
       );
     }
@@ -411,7 +411,7 @@ Price: ${service.price.toLocaleString(
 
           <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
             {isArabic
-              ? "Ø¬Ø§Ø±ÙŠ ØªØ¬Ù‡ÙŠØ² Ø·Ù„Ø¨Ùƒ..."
+              ? "جاري تجهيز طلبك..."
               : "Preparing your request..."}
           </p>
         </div>
@@ -473,7 +473,7 @@ Price: ${service.price.toLocaleString(
               />
 
               {isArabic
-                ? "Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„Ù„Ø¨Ø§Ù‚Ø§Øª"
+                ? "الرجوع للباقات"
                 : "Back to plans"}
             </Link>
 
@@ -483,19 +483,19 @@ Price: ${service.price.toLocaleString(
               />
 
               {isArabic
-                ? "Ø¥ÙƒÙ…Ø§Ù„ Ø·Ù„Ø¨ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ"
+                ? "إكمال طلب الاشتراك"
                 : "Complete your subscription request"}
             </div>
 
             <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl dark:text-white">
               {isArabic
-                ? "Ù‚Ø±ÙŠØ¨ÙŠÙ† Ù†ÙƒÙ…Ù‘Ù„ Ø§Ø´ØªØ±Ø§ÙƒÙƒ."
+                ? "قريبين نكمّل اشتراكك."
                 : "You are one step away."}
             </h1>
 
             <p className="mt-5 max-w-2xl text-sm leading-8 text-slate-500 sm:text-base dark:text-slate-400">
               {isArabic
-                ? "Ø±Ø§Ø¬Ø¹ Ø¨ÙŠØ§Ù†Ø§ØªÙƒØŒ ÙˆØ¨Ø¹Ø¯Ù‡Ø§ Ø§Ø®ØªØ§Ø± Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„ØªÙˆØ§ØµÙ„ Ø§Ù„Ù…Ù†Ø§Ø³Ø¨Ø© Ø­ØªÙ‰ Ù†ÙƒÙ…Ù„ Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ÙˆÙŠØ§Ùƒ."
+                ? "راجع بياناتك، وبعدها اختار طريقة التواصل المناسبة حتى نكمل إجراءات الاشتراك وياك."
                 : "Review your details, then choose your preferred way to contact us so we can complete your subscription."}
             </p>
 
@@ -504,7 +504,7 @@ Price: ${service.price.toLocaleString(
                 <Check size={14} />
 
                 {isArabic
-                  ? `ØªÙ… Ø­ÙØ¸ Ø·Ù„Ø¨Ùƒ #${requestId}`
+                  ? `تم حفظ طلبك #${requestId}`
                   : `Request #${requestId} saved`}
               </div>
             )}
@@ -523,7 +523,7 @@ Price: ${service.price.toLocaleString(
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-600 dark:text-blue-400">
                   {isArabic
-                    ? "Ø§Ù„Ø®Ø¯Ù…Ø© Ø§Ù„Ù…Ø®ØªØ§Ø±Ø©"
+                    ? "الخدمة المختارة"
                     : "SELECTED SERVICE"}
                 </div>
 
@@ -540,7 +540,7 @@ Price: ${service.price.toLocaleString(
                 }
                 label={
                   isArabic
-                    ? "Ø§Ù„Ù…Ø¯Ø©"
+                    ? "المدة"
                     : "Duration"
                 }
                 value={duration}
@@ -550,7 +550,7 @@ Price: ${service.price.toLocaleString(
                 icon={<Tv size={17} />}
                 label={
                   isArabic
-                    ? "Ø§Ù„Ø®Ø¯Ù…Ø©"
+                    ? "الخدمة"
                     : "Service"
                 }
                 value={serviceName}
@@ -559,7 +559,7 @@ Price: ${service.price.toLocaleString(
               <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-4 dark:border-blue-500/10 dark:bg-blue-500/[0.06]">
                 <div className="text-[10px] font-black uppercase tracking-[0.14em] text-blue-500 dark:text-blue-400">
                   {isArabic
-                    ? "Ø§Ù„Ø³Ø¹Ø±"
+                    ? "السعر"
                     : "PRICE"}
                 </div>
 
@@ -586,7 +586,7 @@ Price: ${service.price.toLocaleString(
 
                 <p className="text-xs leading-6 text-emerald-800 dark:text-emerald-300">
                   {isArabic
-                    ? "Ø·Ù„Ø¨Ùƒ Ù…Ø±ØªØ¨Ø· Ø¨Ø­Ø³Ø§Ø¨ÙƒØŒ ÙˆØ¨Ø¹Ø¯ Ø¥ØªÙ…Ø§Ù… Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ù†ÙƒØ¯Ø± Ù†Ø¶ÙŠÙ ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ÙˆØªØ§Ø±ÙŠØ® Ø§Ù„Ø§Ù†ØªÙ‡Ø§Ø¡ Ø¥Ù„Ù‰ Ø­Ø³Ø§Ø¨Ùƒ."
+                    ? "طلبك مرتبط بحسابك، وبعد إتمام الاشتراك نكدر نضيف تفاصيل الاشتراك وتاريخ الانتهاء إلى حسابك."
                     : "Your request is linked to your account. After the subscription is completed, we can add its details and expiry date to your account."}
                 </p>
               </div>
@@ -603,13 +603,13 @@ Price: ${service.price.toLocaleString(
                 <div>
                   <h2 className="text-lg font-black text-slate-950 dark:text-white">
                     {isArabic
-                      ? "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø´ØªØ±Ùƒ"
+                      ? "بيانات المشترك"
                       : "Subscriber details"}
                   </h2>
 
                   <p className="mt-1 text-xs text-slate-400">
                     {isArabic
-                      ? "Ù‡Ø°Ù‡ Ø§Ù„Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø±Ø§Ø­ ØªÙƒÙˆÙ† Ø¶Ù…Ù† Ø·Ù„Ø¨Ùƒ."
+                      ? "هذه المعلومات راح تكون ضمن طلبك."
                       : "These details will be included in your request."}
                   </p>
                 </div>
@@ -622,7 +622,7 @@ Price: ${service.price.toLocaleString(
                   }
                   label={
                     isArabic
-                      ? "Ø§Ù„Ø§Ø³Ù…"
+                      ? "الاسم"
                       : "Name"
                   }
                   value={user.name}
@@ -632,7 +632,7 @@ Price: ${service.price.toLocaleString(
                   icon={<Phone size={16} />}
                   label={
                     isArabic
-                      ? "Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ"
+                      ? "رقم الهاتف"
                       : "Phone"
                   }
                   value={user.phone}
@@ -642,7 +642,7 @@ Price: ${service.price.toLocaleString(
                   icon={<Mail size={16} />}
                   label={
                     isArabic
-                      ? "Ø§Ù„Ø¨Ø±ÙŠØ¯"
+                      ? "البريد"
                       : "Email"
                   }
                   value={user.email}
@@ -666,7 +666,7 @@ Price: ${service.price.toLocaleString(
 
                     <p className="mt-1 text-xs text-slate-400">
                       {isArabic
-                        ? "Ø§Ù„Ø£Ø³Ø±Ø¹ Ù„Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø·Ù„Ø¨"
+                        ? "الأسرع لإرسال الطلب"
                         : "Fastest way to send your request"}
                     </p>
                   </div>
@@ -681,7 +681,7 @@ Price: ${service.price.toLocaleString(
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-500 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-sky-500/20 transition-all duration-300 hover:-translate-y-1 hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isArabic
-                    ? "Ø§Ù„ØªÙˆØ¬Ù‡ Ø¥Ù„Ù‰ Telegram"
+                    ? "التوجه إلى Telegram"
                     : "Open Telegram"}
 
                   <Send size={17} />
@@ -691,7 +691,7 @@ Price: ${service.price.toLocaleString(
               <div className="relative mt-5 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                 <p className="text-xs leading-6 text-slate-500 dark:text-slate-300">
                   {isArabic
-                    ? "Ø±Ø§Ø­ ØªÙ†ÙØªØ­ Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø© ÙˆØ§Ù„Ø±Ø³Ø§Ù„Ø© ØªÙƒÙˆÙ† Ù…Ø¬Ù‡Ø²Ø© ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§."
+                    ? "راح تنفتح المحادثة والرسالة تكون مجهزة تلقائيًا."
                     : "The conversation will open with your message prepared automatically."}
                 </p>
               </div>
@@ -713,7 +713,7 @@ Price: ${service.price.toLocaleString(
 
                     <p className="mt-1 text-xs text-slate-400">
                       {isArabic
-                        ? "Ø§Ù†Ø³Ø® Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø«Ù… Ø§ÙØªØ­ Messenger"
+                        ? "انسخ الرسالة ثم افتح Messenger"
                         : "Copy the message, then open Messenger"}
                     </p>
                   </div>
@@ -723,7 +723,7 @@ Price: ${service.price.toLocaleString(
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
                       {isArabic
-                        ? "Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ø¬Ø§Ù‡Ø²Ø©"
+                        ? "الرسالة الجاهزة"
                         : "READY MESSAGE"}
                     </div>
 
@@ -743,7 +743,7 @@ Price: ${service.price.toLocaleString(
                           <Check size={15} />
 
                           {isArabic
-                            ? "ØªÙ… Ø§Ù„Ù†Ø³Ø®"
+                            ? "تم النسخ"
                             : "Copied"}
                         </>
                       ) : (
@@ -751,7 +751,7 @@ Price: ${service.price.toLocaleString(
                           <Copy size={15} />
 
                           {isArabic
-                            ? "Ù†Ø³Ø®"
+                            ? "نسخ"
                             : "Copy"}
                         </>
                       )}
@@ -797,7 +797,7 @@ Price: ${service.price.toLocaleString(
                   />
 
                   {isArabic
-                    ? "Ù†Ø³Ø® Ø§Ù„Ø±Ø³Ø§Ù„Ø© ÙˆØ§Ù„ØªÙˆØ¬Ù‡ Ø¥Ù„Ù‰ Messenger"
+                    ? "نسخ الرسالة والتوجه إلى Messenger"
                     : "Copy message & open Messenger"}
 
                   <ArrowLeft
@@ -823,8 +823,8 @@ Price: ${service.price.toLocaleString(
                 {isArabic
                   ? selectedContact ===
                     "TELEGRAM"
-                    ? "ØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø£Ù† Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„ØªÙˆØ§ØµÙ„ Ø§Ù„Ù…Ø®ØªØ§Ø±Ø© Ù‡ÙŠ Telegram."
-                    : "ØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø£Ù† Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„ØªÙˆØ§ØµÙ„ Ø§Ù„Ù…Ø®ØªØ§Ø±Ø© Ù‡ÙŠ Facebook."
+                    ? "تم تسجيل أن طريقة التواصل المختارة هي Telegram."
+                    : "تم تسجيل أن طريقة التواصل المختارة هي Facebook."
                   : selectedContact ===
                     "TELEGRAM"
                     ? "Telegram has been saved as your contact method."
@@ -847,7 +847,7 @@ export default function ContactPage() {
             <div className="h-11 w-11 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
 
             <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
-              Ø¬Ø§Ø±ÙŠ ØªØ¬Ù‡ÙŠØ² Ø·Ù„Ø¨Ùƒ...
+              جاري تجهيز طلبك...
             </p>
           </div>
         </main>

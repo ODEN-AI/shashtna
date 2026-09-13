@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -59,7 +59,7 @@ export default function DashboardPage() {
 
   const userName =
     user?.name ||
-    (isArabic ? "Ø¹Ù…ÙŠÙ„Ù†Ø§" : "Customer");
+    (isArabic ? "عميلنا" : "Customer");
 
   const isAdmin =
     user?.role?.toUpperCase() === "ADMIN";
@@ -73,19 +73,19 @@ export default function DashboardPage() {
         <div className="mb-8">
           <p className="mb-2 text-sm font-bold text-blue-600 dark:text-blue-400">
             {isArabic
-              ? "Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ…"
+              ? "لوحة التحكم"
               : "Dashboard"}
           </p>
 
           <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
             {isArabic
-              ? `Ø£Ù‡Ù„Ø§Ù‹ ${userName} ðŸ‘‹`
-              : `Welcome ${userName} ðŸ‘‹`}
+              ? `أهلاً ${userName} 👋`
+              : `Welcome ${userName} 👋`}
           </h1>
 
           <p className="mt-3 text-slate-500 dark:text-slate-400">
             {isArabic
-              ? "Ù…Ù† Ù‡Ù†Ø§ ØªÙ‚Ø¯Ø± ØªØ¯ÙŠØ± Ø§Ø´ØªØ±Ø§ÙƒØ§ØªÙƒ ÙˆØ£Ø¬Ù‡Ø²ØªÙƒ ÙˆØ·Ù„Ø¨Ø§ØªÙƒ ÙˆØ¥ÙŠØµØ§Ù„Ø§ØªÙƒ ÙˆØªØ¬Ø¯ÙŠØ¯Ø§ØªÙƒ."
+              ? "من هنا تقدر تدير اشتراكاتك وأجهزتك وطلباتك وإيصالاتك وتجديداتك."
               : "From here you can manage your subscriptions, devices, orders, receipts, and renewals."}
           </p>
         </div>
@@ -106,12 +106,12 @@ export default function DashboardPage() {
                 icon={<Tv size={22} />}
                 title={
                   isArabic
-                    ? "Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ø§Ù„Ø­Ø§Ù„ÙŠ"
+                    ? "الاشتراك الحالي"
                     : "Current subscription"
                 }
                 value={
                   isArabic
-                    ? "Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø§Ø´ØªØ±Ø§Ùƒ"
+                    ? "لا يوجد اشتراك"
                     : "No subscription"
                 }
                 iconClass="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
@@ -121,12 +121,12 @@ export default function DashboardPage() {
                 icon={<Smartphone size={22} />}
                 title={
                   isArabic
-                    ? "Ø§Ù„Ø£Ø¬Ù‡Ø²Ø© Ø§Ù„Ù…ØªØµÙ„Ø©"
+                    ? "الأجهزة المتصلة"
                     : "Connected devices"
                 }
                 value={
                   isArabic
-                    ? "0 Ø¬Ù‡Ø§Ø²"
+                    ? "0 جهاز"
                     : "0 devices"
                 }
                 iconClass="bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400"
@@ -136,12 +136,12 @@ export default function DashboardPage() {
                 icon={<CreditCard size={22} />}
                 title={
                   isArabic
-                    ? "Ø§Ù„Ø·Ù„Ø¨Ø§Øª"
+                    ? "الطلبات"
                     : "Orders"
                 }
                 value={
                   isArabic
-                    ? "0 Ø·Ù„Ø¨"
+                    ? "0 طلب"
                     : "0 orders"
                 }
                 iconClass="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
@@ -151,12 +151,12 @@ export default function DashboardPage() {
                 icon={<Headphones size={22} />}
                 title={
                   isArabic
-                    ? "Ø§Ù„Ø¯Ø¹Ù…"
+                    ? "الدعم"
                     : "Support"
                 }
                 value={
                   isArabic
-                    ? "Ù…ÙØªÙˆØ­ 24/7"
+                    ? "مفتوح 24/7"
                     : "Daily, 10 AM – 11 PM"
                 }
                 iconClass="bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400"
@@ -168,12 +168,12 @@ export default function DashboardPage() {
                 href="/plans"
                 title={
                   isArabic
-                    ? "Ø§Ù„Ø¨Ø§Ù‚Ø§Øª"
+                    ? "الباقات"
                     : "Plans"
                 }
                 description={
                   isArabic
-                    ? "ØªØµÙØ­ Ø§Ù„Ø¨Ø§Ù‚Ø§Øª Ø§Ù„Ù…ØªÙˆÙØ±Ø© ÙˆØ§Ø®ØªØ± Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ø§Ù„Ù…Ù†Ø§Ø³Ø¨."
+                    ? "تصفح الباقات المتوفرة واختر الاشتراك المناسب."
                     : "Browse available plans and choose the right subscription."
                 }
               />
@@ -182,12 +182,12 @@ export default function DashboardPage() {
                 href="/subscriptions"
                 title={
                   isArabic
-                    ? "Ø§Ø´ØªØ±Ø§ÙƒØ§ØªÙŠ"
+                    ? "اشتراكاتي"
                     : "My subscriptions"
                 }
                 description={
                   isArabic
-                    ? "ØªØ§Ø¨Ø¹ Ø§Ø´ØªØ±Ø§ÙƒØ§ØªÙƒ ÙˆØªÙØ§ØµÙŠÙ„Ù‡Ø§ ÙˆØªÙˆØ§Ø±ÙŠØ® Ø§Ù†ØªÙ‡Ø§Ø¦Ù‡Ø§."
+                    ? "تابع اشتراكاتك وتفاصيلها وتواريخ انتهائها."
                     : "Track your subscriptions, details, and expiry dates."
                 }
               />
@@ -196,12 +196,12 @@ export default function DashboardPage() {
                 href="/receipts"
                 title={
                   isArabic
-                    ? "Ø¥ÙŠØµØ§Ù„Ø§ØªÙŠ"
+                    ? "إيصالاتي"
                     : "My receipts"
                 }
                 description={
                   isArabic
-                    ? "Ø´ÙˆÙ Ø¥ÙŠØµØ§Ù„Ø§Øª Ø´Ø±Ø§Ø¡ Ø§Ø´ØªØ±Ø§ÙƒØ§ØªÙƒ ÙˆØªÙØ§ØµÙŠÙ„ ÙƒÙ„ Ø¹Ù…Ù„ÙŠØ©."
+                    ? "شوف إيصالات شراء اشتراكاتك وتفاصيل كل عملية."
                     : "View your subscription receipts and purchase details."
                 }
               />
@@ -210,12 +210,12 @@ export default function DashboardPage() {
                 href="/devices"
                 title={
                   isArabic
-                    ? "Ø£Ø¬Ù‡Ø²ØªÙŠ"
+                    ? "أجهزتي"
                     : "My devices"
                 }
                 description={
                   isArabic
-                    ? "ØªØ§Ø¨Ø¹ Ø§Ù„Ø£Ø¬Ù‡Ø²Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ø´ØªØ±Ø§ÙƒØ§ØªÙƒ."
+                    ? "تابع الأجهزة المرتبطة باشتراكاتك."
                     : "Track the devices connected to your subscriptions."
                 }
               />
@@ -224,12 +224,12 @@ export default function DashboardPage() {
                 href="/tickets"
                 title={
                   isArabic
-                    ? "Ø§Ù„Ø¯Ø¹Ù… Ø§Ù„ÙÙ†ÙŠ"
+                    ? "الدعم الفني"
                     : "Technical support"
                 }
                 description={
                   isArabic
-                    ? "ØªÙˆØ§ØµÙ„ Ù…Ø¹ ÙØ±ÙŠÙ‚ Ø§Ù„Ø¯Ø¹Ù… Ø¹Ù†Ø¯ Ø§Ù„Ø­Ø§Ø¬Ø©."
+                    ? "تواصل مع فريق الدعم عند الحاجة."
                     : "Contact our support team whenever you need help."
                 }
               />
@@ -241,19 +241,19 @@ export default function DashboardPage() {
                   <div>
                     <div className="text-xs font-bold text-blue-100">
                       {isArabic
-                        ? "ØµÙ„Ø§Ø­ÙŠØ§Øª Ø§Ù„Ù…Ø¯ÙŠØ±"
+                        ? "صلاحيات المدير"
                         : "Administrator access"}
                     </div>
 
                     <h2 className="mt-2 text-2xl font-black">
                       {isArabic
-                        ? "Ø£Ù†Øª Ù…Ø³Ø¬Ù„ ÙƒÙ…Ø¯ÙŠØ± Ù„Ù„Ù†Ø¸Ø§Ù…"
+                        ? "أنت مسجل كمدير للنظام"
                         : "You are signed in as an administrator"}
                     </h2>
 
                     <p className="mt-2 max-w-xl text-sm leading-7 text-blue-100">
                       {isArabic
-                        ? "ØªÙ‚Ø¯Ø± Ù…Ù† Ù„ÙˆØ­Ø© Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ ÙˆØ§Ù„Ø§Ø´ØªØ±Ø§ÙƒØ§Øª ÙˆØ§Ù„Ø¨Ø§Ù‚Ø§Øª ÙˆØ§Ù„Ø·Ù„Ø¨Ø§Øª ÙˆØ¨Ø§Ù‚ÙŠ Ø£Ù‚Ø³Ø§Ù… Ø§Ù„Ù†Ø¸Ø§Ù…."
+                        ? "تقدر من لوحة الإدارة إدارة العملاء والاشتراكات والباقات والطلبات وباقي أقسام النظام."
                         : "From the admin panel, you can manage customers, subscriptions, plans, orders, and the rest of the system."}
                     </p>
                   </div>
@@ -263,7 +263,7 @@ export default function DashboardPage() {
                     className="flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-black text-blue-700 transition hover:bg-blue-50"
                   >
                     {isArabic
-                      ? "Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø¥Ù„Ù‰ Ù„ÙˆØ­Ø© Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©"
+                      ? "الدخول إلى لوحة الإدارة"
                       : "Open admin panel"}
 
                     <ChevronLeft
@@ -318,7 +318,7 @@ export default function DashboardPage() {
                 <LogOut size={17} />
 
                 {isArabic
-                  ? "ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬"
+                  ? "تسجيل الخروج"
                   : "Sign out"}
               </button>
             </div>

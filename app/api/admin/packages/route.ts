@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
-import { db, ensureDatabaseConnection } from "@/src/prisma/db";
+import {
+  db,
+  ensureDatabaseConnection,
+} from "@/src/prisma/db";
 
 export const dynamic = "force-dynamic";
+
+type ServiceType = "IPTV" | "VIP";
 
 type PackageBody = {
   name?: string;
   slug?: string;
+  serviceType?: string;
   price?: number;
   durationMonths?: number;
   durationLabel?: string;
@@ -16,13 +22,33 @@ type PackageBody = {
   isActive?: boolean;
 };
 
+function normalizeServiceType(
+  value?: string
+): ServiceType {
+  return value?.trim().toUpperCase() ===
+    "VIP"
+    ? "VIP"
+    : "IPTV";
+}
+
 export async function GET() {
   try {
     await ensureDatabaseConnection();
 
-    const packages = await db.orm.public.Package.all();
+    const packages =
+      await db.orm.public.Package.all();
 
     packages.sort((a, b) => {
+      if (
+        a.serviceType !==
+        b.serviceType
+      ) {
+        return a.serviceType ===
+          "IPTV"
+          ? -1
+          : 1;
+      }
+
       if (a.price !== b.price) {
         return a.price - b.price;
       }
@@ -32,29 +58,50 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      packages: packages.map((pkg) => ({
-        id: pkg.id,
-        name: pkg.name,
-        slug: pkg.slug,
-        price: pkg.price,
-        durationMonths: pkg.durationMonths,
-        durationLabel: pkg.durationLabel,
-        description: pkg.description,
-        specifications: pkg.specifications,
-        notes: pkg.notes,
-        imageUrl: pkg.imageUrl,
-        isActive: pkg.isActive,
-        createdAt: pkg.createdAt,
-        updatedAt: pkg.updatedAt,
-      })),
+
+      packages: packages.map(
+        (pkg) => ({
+          id: pkg.id,
+          name: pkg.name,
+          slug: pkg.slug,
+
+          serviceType:
+            normalizeServiceType(
+              pkg.serviceType
+            ),
+
+          price: pkg.price,
+          durationMonths:
+            pkg.durationMonths,
+          durationLabel:
+            pkg.durationLabel,
+          description:
+            pkg.description,
+          specifications:
+            pkg.specifications,
+          notes: pkg.notes,
+          imageUrl:
+            pkg.imageUrl,
+          isActive:
+            pkg.isActive,
+          createdAt:
+            pkg.createdAt,
+          updatedAt:
+            pkg.updatedAt,
+        })
+      ),
     });
   } catch (error) {
-    console.error("Admin packages GET error:", error);
+    console.error(
+      "Admin packages GET error:",
+      error
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message: "تعذر تحميل الباقات.",
+        message:
+          "تعذر تحميل الباقات.",
         packages: [],
       },
       { status: 500 }
@@ -62,59 +109,93 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(
+  request: Request
+) {
   try {
     await ensureDatabaseConnection();
 
-    const body = (await request.json()) as PackageBody;
+    const body =
+      (await request.json()) as PackageBody;
 
-    const name = body.name?.trim();
-    const slug = body.slug?.trim().toLowerCase();
+    const name =
+      body.name?.trim();
 
-    const price = body.price;
-    const durationMonths = body.durationMonths;
+    const slug =
+      body.slug?.trim().toLowerCase();
 
-    if (!name || !slug) {
+    const serviceType =
+      normalizeServiceType(
+        body.serviceType
+      );
+
+    const price =
+      body.price;
+
+    if (
+      !name ||
+      !slug
+    ) {
       return NextResponse.json(
         {
           success: false,
-          message: "اسم الباقة والـ Slug مطلوبان.",
+          message:
+            "اسم الباقة والـ Slug مطلوبان.",
         },
         { status: 400 }
       );
     }
 
     if (
-      typeof price !== "number" ||
-      !Number.isFinite(price) ||
+      typeof price !==
+        "number" ||
+      !Number.isFinite(
+        price
+      ) ||
       price < 0
     ) {
       return NextResponse.json(
         {
           success: false,
-          message: "السعر غير صحيح.",
+          message:
+            "السعر غير صحيح.",
         },
         { status: 400 }
       );
     }
 
-    if (
-      typeof durationMonths !== "number" ||
-      !Number.isInteger(durationMonths) ||
-      durationMonths <= 0
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "مدة الاشتراك غير صحيحة.",
-        },
-        { status: 400 }
-      );
-    }
+    let durationMonths =
+      body.durationMonths;
 
-    const durationLabel =
-      body.durationLabel?.trim() ||
-      `${durationMonths} Months`;
+    let durationLabel =
+      body.durationLabel?.trim();
+
+    if (serviceType === "VIP") {
+      durationMonths = 3;
+      durationLabel = "3 Months";
+    } else {
+      if (
+        typeof durationMonths !==
+          "number" ||
+        !Number.isInteger(
+          durationMonths
+        ) ||
+        durationMonths <= 0
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "مدة الاشتراك غير صحيحة.",
+          },
+          { status: 400 }
+        );
+      }
+
+      durationLabel =
+        durationLabel ||
+        `${durationMonths} Months`;
+    }
 
     const description =
       body.description?.trim() ||
@@ -125,49 +206,59 @@ export async function POST(request: Request) {
       `اشتراك لمدة ${durationMonths} شهر`;
 
     const notes =
-      body.notes?.trim() || null;
+      body.notes?.trim() ||
+      null;
 
     const imageUrl =
-      body.imageUrl?.trim() || null;
+      body.imageUrl?.trim() ||
+      null;
 
     const isActive =
-      typeof body.isActive === "boolean"
+      typeof body.isActive ===
+      "boolean"
         ? body.isActive
         : true;
 
     const existing =
-      await db.orm.public.Package.first({
-        slug,
-      });
+      await db.orm.public.Package.first(
+        {
+          slug,
+        }
+      );
 
     if (existing) {
       return NextResponse.json(
         {
           success: false,
-          message: "هذا الـ Slug مستخدم مسبقًا.",
+          message:
+            "هذا الـ Slug مستخدم مسبقًا.",
         },
         { status: 409 }
       );
     }
 
     const created =
-      await db.orm.public.Package.create({
-        name,
-        slug,
-        price,
-        durationMonths,
-        durationLabel,
-        description,
-        specifications,
-        notes,
-        imageUrl,
-        isActive,
-      });
+      await db.orm.public.Package.create(
+        {
+          name,
+          slug,
+          serviceType,
+          price,
+          durationMonths,
+          durationLabel,
+          description,
+          specifications,
+          notes,
+          imageUrl,
+          isActive,
+        }
+      );
 
     return NextResponse.json(
       {
         success: true,
-        message: "تم إنشاء الباقة بنجاح.",
+        message:
+          "تم إنشاء الباقة بنجاح.",
         package: created,
       },
       { status: 201 }
@@ -181,7 +272,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: "حدث خطأ أثناء إنشاء الباقة.",
+        message:
+          "حدث خطأ أثناء إنشاء الباقة.",
       },
       { status: 500 }
     );

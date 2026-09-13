@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
-import { db, ensureDatabaseConnection } from "@/src/prisma/db";
+import {
+  db,
+  ensureDatabaseConnection,
+} from "@/src/prisma/db";
 
 export const dynamic = "force-dynamic";
+
+type ServiceType = "IPTV" | "VIP";
 
 type PackageBody = {
   name?: string;
   slug?: string;
+  serviceType?: string;
   price?: number;
   durationMonths?: number;
   durationLabel?: string;
@@ -22,6 +28,15 @@ type RouteContext = {
   }>;
 };
 
+function normalizeServiceType(
+  value?: string
+): ServiceType {
+  return value?.trim().toUpperCase() ===
+    "VIP"
+    ? "VIP"
+    : "IPTV";
+}
+
 export async function PATCH(
   request: Request,
   context: RouteContext
@@ -29,71 +44,120 @@ export async function PATCH(
   try {
     await ensureDatabaseConnection();
 
-    const { id } = await context.params;
-    const packageId = Number(id);
+    const { id } =
+      await context.params;
 
-    if (!Number.isInteger(packageId) || packageId <= 0) {
+    const packageId =
+      Number(id);
+
+    if (
+      !Number.isInteger(
+        packageId
+      ) ||
+      packageId <= 0
+    ) {
       return NextResponse.json(
         {
           success: false,
-          message: "معرّف الباقة غير صحيح.",
+          message:
+            "معرّف الباقة غير صحيح.",
         },
         { status: 400 }
       );
     }
 
     const existing =
-      await db.orm.public.Package.first({
-        id: packageId,
-      });
+      await db.orm.public.Package.first(
+        {
+          id: packageId,
+        }
+      );
 
     if (!existing) {
       return NextResponse.json(
         {
           success: false,
-          message: "الباقة غير موجودة.",
+          message:
+            "الباقة غير موجودة.",
         },
         { status: 404 }
       );
     }
 
-    const body = (await request.json()) as PackageBody;
+    const body =
+      (await request.json()) as PackageBody;
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Record<
+      string,
+      unknown
+    > = {};
 
-    if (typeof body.name === "string") {
-      const value = body.name.trim();
+    let serviceType: ServiceType =
+      normalizeServiceType(
+        existing.serviceType
+      );
+
+    if (
+      typeof body.serviceType ===
+      "string"
+    ) {
+      serviceType =
+        normalizeServiceType(
+          body.serviceType
+        );
+
+      updateData.serviceType =
+        serviceType;
+    }
+
+    if (
+      typeof body.name ===
+      "string"
+    ) {
+      const value =
+        body.name.trim();
 
       if (!value) {
         return NextResponse.json(
           {
             success: false,
-            message: "اسم الباقة مطلوب.",
+            message:
+              "اسم الباقة مطلوب.",
           },
           { status: 400 }
         );
       }
 
-      updateData.name = value;
+      updateData.name =
+        value;
     }
 
-    if (typeof body.slug === "string") {
-      const value = body.slug.trim().toLowerCase();
+    if (
+      typeof body.slug ===
+      "string"
+    ) {
+      const value =
+        body.slug
+          .trim()
+          .toLowerCase();
 
       if (!value) {
         return NextResponse.json(
           {
             success: false,
-            message: "Slug الباقة مطلوب.",
+            message:
+              "Slug الباقة مطلوب.",
           },
           { status: 400 }
         );
       }
 
       const sameSlug =
-        await db.orm.public.Package.first({
-          slug: value,
-        });
+        await db.orm.public.Package.first(
+          {
+            slug: value,
+          }
+        );
 
       if (
         sameSlug &&
@@ -109,62 +173,88 @@ export async function PATCH(
         );
       }
 
-      updateData.slug = value;
+      updateData.slug =
+        value;
     }
 
-    if (typeof body.price === "number") {
+    if (
+      typeof body.price ===
+      "number"
+    ) {
       if (
-        !Number.isFinite(body.price) ||
+        !Number.isFinite(
+          body.price
+        ) ||
         body.price < 0
       ) {
         return NextResponse.json(
           {
             success: false,
-            message: "السعر غير صحيح.",
+            message:
+              "السعر غير صحيح.",
           },
           { status: 400 }
         );
       }
 
-      updateData.price = body.price;
+      updateData.price =
+        body.price;
     }
 
     if (
-      typeof body.durationMonths === "number"
+      serviceType === "VIP"
     ) {
-      if (
-        !Number.isInteger(body.durationMonths) ||
-        body.durationMonths <= 0
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: "مدة الاشتراك غير صحيحة.",
-          },
-          { status: 400 }
-        );
-      }
-
       updateData.durationMonths =
-        body.durationMonths;
-    }
+        3;
 
-    if (
-      typeof body.durationLabel === "string"
-    ) {
       updateData.durationLabel =
-        body.durationLabel.trim();
+        "3 Months";
+    } else {
+      if (
+        typeof body.durationMonths ===
+        "number"
+      ) {
+        if (
+          !Number.isInteger(
+            body.durationMonths
+          ) ||
+          body.durationMonths <=
+            0
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                "مدة الاشتراك غير صحيحة.",
+            },
+            { status: 400 }
+          );
+        }
+
+        updateData.durationMonths =
+          body.durationMonths;
+      }
+
+      if (
+        typeof body.durationLabel ===
+        "string"
+      ) {
+        updateData.durationLabel =
+          body.durationLabel.trim();
+      }
     }
 
     if (
-      typeof body.description === "string"
+      typeof body.description ===
+      "string"
     ) {
       updateData.description =
         body.description.trim();
     }
 
     if (
-      typeof body.specifications === "string"
+      typeof body.specifications ===
+      "string"
     ) {
       updateData.specifications =
         body.specifications.trim();
@@ -172,26 +262,31 @@ export async function PATCH(
 
     if (
       body.notes === null ||
-      typeof body.notes === "string"
+      typeof body.notes ===
+        "string"
     ) {
       updateData.notes =
         body.notes === null
           ? null
-          : body.notes.trim() || null;
+          : body.notes.trim() ||
+            null;
     }
 
     if (
       body.imageUrl === null ||
-      typeof body.imageUrl === "string"
+      typeof body.imageUrl ===
+        "string"
     ) {
       updateData.imageUrl =
         body.imageUrl === null
           ? null
-          : body.imageUrl.trim() || null;
+          : body.imageUrl.trim() ||
+            null;
     }
 
     if (
-      typeof body.isActive === "boolean"
+      typeof body.isActive ===
+      "boolean"
     ) {
       updateData.isActive =
         body.isActive;
@@ -211,7 +306,8 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          message: "تعذر تحديث الباقة.",
+          message:
+            "تعذر تحديث الباقة.",
         },
         { status: 500 }
       );
@@ -219,7 +315,8 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      message: "تم تحديث الباقة بنجاح.",
+      message:
+        "تم تحديث الباقة بنجاح.",
       package: updated,
     });
   } catch (error) {
@@ -231,7 +328,8 @@ export async function PATCH(
     return NextResponse.json(
       {
         success: false,
-        message: "حدث خطأ أثناء تحديث الباقة.",
+        message:
+          "حدث خطأ أثناء تحديث الباقة.",
       },
       { status: 500 }
     );
@@ -245,29 +343,41 @@ export async function DELETE(
   try {
     await ensureDatabaseConnection();
 
-    const { id } = await context.params;
-    const packageId = Number(id);
+    const { id } =
+      await context.params;
 
-    if (!Number.isInteger(packageId) || packageId <= 0) {
+    const packageId =
+      Number(id);
+
+    if (
+      !Number.isInteger(
+        packageId
+      ) ||
+      packageId <= 0
+    ) {
       return NextResponse.json(
         {
           success: false,
-          message: "معرّف الباقة غير صحيح.",
+          message:
+            "معرّف الباقة غير صحيح.",
         },
         { status: 400 }
       );
     }
 
     const existing =
-      await db.orm.public.Package.first({
-        id: packageId,
-      });
+      await db.orm.public.Package.first(
+        {
+          id: packageId,
+        }
+      );
 
     if (!existing) {
       return NextResponse.json(
         {
           success: false,
-          message: "الباقة غير موجودة.",
+          message:
+            "الباقة غير موجودة.",
         },
         { status: 404 }
       );
@@ -275,14 +385,17 @@ export async function DELETE(
 
     const deleted =
       await db.orm.public.Package
-        .where({ id: packageId })
+        .where({
+          id: packageId,
+        })
         .delete();
 
     if (!deleted) {
       return NextResponse.json(
         {
           success: false,
-          message: "تعذر حذف الباقة.",
+          message:
+            "تعذر حذف الباقة.",
         },
         { status: 500 }
       );
@@ -290,7 +403,8 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "تم حذف الباقة.",
+      message:
+        "تم حذف الباقة.",
     });
   } catch (error) {
     console.error(
@@ -301,7 +415,8 @@ export async function DELETE(
     return NextResponse.json(
       {
         success: false,
-        message: "حدث خطأ أثناء حذف الباقة.",
+        message:
+          "حدث خطأ أثناء حذف الباقة.",
       },
       { status: 500 }
     );

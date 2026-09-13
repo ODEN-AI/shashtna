@@ -16,10 +16,13 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+type ServiceType = "IPTV" | "VIP";
+
 type PackageData = {
   id: number;
   name: string;
   slug: string;
+  serviceType: ServiceType;
   price: number;
   durationMonths: number;
   durationLabel: string;
@@ -35,6 +38,7 @@ type PackageData = {
 type PackageForm = {
   name: string;
   slug: string;
+  serviceType: ServiceType;
   price: string;
   durationMonths: string;
   durationLabel: string;
@@ -48,6 +52,7 @@ type PackageForm = {
 const emptyForm: PackageForm = {
   name: "",
   slug: "",
+  serviceType: "IPTV",
   price: "",
   durationMonths: "12",
   durationLabel: "1 Year",
@@ -62,22 +67,40 @@ function formatPrice(price: number) {
   return new Intl.NumberFormat("ar-IQ").format(price);
 }
 
+function getServiceLabel(serviceType: ServiceType) {
+  return serviceType === "VIP"
+    ? "VIP"
+    : "IPTV";
+}
+
 export default function AdminPackagesPage() {
   const [packages, setPackages] = useState<PackageData[]>([]);
-  const [form, setForm] = useState<PackageForm>(emptyForm);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] =
+    useState<PackageForm>(emptyForm);
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] =
+    useState<number | null>(null);
 
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [loading, setLoading] =
+    useState(true);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [saving, setSaving] =
+    useState(false);
+
+  const [uploading, setUploading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [message, setMessage] =
+    useState("");
+
+  const fileInputRef =
+    useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    loadPackages();
+    void loadPackages();
   }, []);
 
   async function loadPackages() {
@@ -85,19 +108,30 @@ export default function AdminPackagesPage() {
       setLoading(true);
       setError("");
 
-      const response = await fetch("/api/admin/packages", {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        "/api/admin/packages",
+        {
+          cache: "no-store",
+        }
+      );
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
+      if (
+        !response.ok ||
+        !data.success
+      ) {
         throw new Error(
-          data.message || "تعذر تحميل الباقات."
+          data.message ||
+            "تعذر تحميل الباقات."
         );
       }
 
-      setPackages(data.packages ?? []);
+      setPackages(
+        Array.isArray(data.packages)
+          ? data.packages
+          : []
+      );
     } catch (error) {
       console.error(error);
 
@@ -121,6 +155,35 @@ export default function AdminPackagesPage() {
     }));
   }
 
+  function changeServiceType(
+    serviceType: ServiceType
+  ) {
+    setForm((current) => {
+      if (serviceType === "VIP") {
+        return {
+          ...current,
+          serviceType: "VIP",
+          durationMonths: "3",
+          durationLabel: "3 Months",
+        };
+      }
+
+      return {
+        ...current,
+        serviceType: "IPTV",
+        durationMonths:
+          current.durationMonths === "3"
+            ? "12"
+            : current.durationMonths,
+        durationLabel:
+          current.durationMonths === "3" ||
+          current.durationLabel === "3 Months"
+            ? "1 Year"
+            : current.durationLabel,
+      };
+    });
+  }
+
   function startCreate() {
     setEditingId(null);
     setForm(emptyForm);
@@ -134,18 +197,33 @@ export default function AdminPackagesPage() {
   }
 
   function startEdit(pkg: PackageData) {
+    const serviceType: ServiceType =
+      pkg.serviceType === "VIP"
+        ? "VIP"
+        : "IPTV";
+
     setEditingId(pkg.id);
 
     setForm({
       name: pkg.name,
       slug: pkg.slug,
+      serviceType,
       price: String(pkg.price),
-      durationMonths: String(pkg.durationMonths),
-      durationLabel: pkg.durationLabel,
-      description: pkg.description ?? "",
-      specifications: pkg.specifications ?? "",
+      durationMonths:
+        serviceType === "VIP"
+          ? "3"
+          : String(pkg.durationMonths),
+      durationLabel:
+        serviceType === "VIP"
+          ? "3 Months"
+          : pkg.durationLabel,
+      description:
+        pkg.description ?? "",
+      specifications:
+        pkg.specifications ?? "",
       notes: pkg.notes ?? "",
-      imageUrl: pkg.imageUrl ?? "",
+      imageUrl:
+        pkg.imageUrl ?? "",
       isActive: pkg.isActive,
     });
 
@@ -171,28 +249,44 @@ export default function AdminPackagesPage() {
       setError("");
       setMessage("");
 
-      const formData = new FormData();
-      formData.append("file", file);
+      const formData =
+        new FormData();
 
-      const response = await fetch(
-        "/api/admin/packages/upload",
-        {
-          method: "POST",
-          body: formData,
-        }
+      formData.append(
+        "file",
+        file
       );
 
-      const data = await response.json();
+      const response =
+        await fetch(
+          "/api/admin/packages/upload",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
 
-      if (!response.ok || !data.success) {
+      const data =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
         throw new Error(
-          data.message || "تعذر رفع الصورة."
+          data.message ||
+            "تعذر رفع الصورة."
         );
       }
 
-      updateField("imageUrl", data.imageUrl);
+      updateField(
+        "imageUrl",
+        data.imageUrl
+      );
 
-      setMessage("تم رفع الصورة بنجاح.");
+      setMessage(
+        "تم رفع الصورة بنجاح."
+      );
     } catch (error) {
       console.error(error);
 
@@ -205,7 +299,8 @@ export default function AdminPackagesPage() {
       setUploading(false);
 
       if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+        fileInputRef.current.value =
+          "";
       }
     }
   }
@@ -213,7 +308,8 @@ export default function AdminPackagesPage() {
   async function handleFileChange(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
-    const file = event.target.files?.[0];
+    const file =
+      event.target.files?.[0];
 
     if (!file) {
       return;
@@ -232,8 +328,14 @@ export default function AdminPackagesPage() {
       setError("");
       setMessage("");
 
-      const name = form.name.trim();
-      const slug = form.slug.trim().toLowerCase();
+      const name =
+        form.name.trim();
+
+      const slug =
+        form.slug.trim().toLowerCase();
+
+      const serviceType =
+        form.serviceType;
 
       if (!name || !slug) {
         throw new Error(
@@ -241,22 +343,45 @@ export default function AdminPackagesPage() {
         );
       }
 
-      const price = Number(form.price);
-      const durationMonths = Number(
-        form.durationMonths
-      );
-
-      if (!Number.isFinite(price) || price < 0) {
-        throw new Error("السعر غير صحيح.");
-      }
+      const price =
+        Number(form.price);
 
       if (
-        !Number.isInteger(durationMonths) ||
-        durationMonths <= 0
+        !Number.isFinite(price) ||
+        price < 0
       ) {
         throw new Error(
-          "مدة الاشتراك غير صحيحة."
+          "السعر غير صحيح."
         );
+      }
+
+      let durationMonths =
+        Number(
+          form.durationMonths
+        );
+
+      let durationLabel =
+        form.durationLabel.trim();
+
+      if (serviceType === "VIP") {
+        durationMonths = 3;
+        durationLabel = "3 Months";
+      } else {
+        if (
+          !Number.isInteger(
+            durationMonths
+          ) ||
+          durationMonths <= 0
+        ) {
+          throw new Error(
+            "مدة الاشتراك غير صحيحة."
+          );
+        }
+
+        if (!durationLabel) {
+          durationLabel =
+            `${durationMonths} Months`;
+        }
       }
 
       const description =
@@ -267,38 +392,50 @@ export default function AdminPackagesPage() {
         form.specifications.trim() ||
         `اشتراك لمدة ${durationMonths} شهر`;
 
-      const durationLabel =
-        form.durationLabel.trim() ||
-        `${durationMonths} Months`;
-
       const payload = {
         name,
         slug,
+        serviceType,
         price,
         durationMonths,
         durationLabel,
         description,
         specifications,
-        notes: form.notes.trim() || null,
-        imageUrl: form.imageUrl.trim() || null,
-        isActive: form.isActive,
+        notes:
+          form.notes.trim() ||
+          null,
+        imageUrl:
+          form.imageUrl.trim() ||
+          null,
+        isActive:
+          form.isActive,
       };
 
       const url = editingId
         ? `/api/admin/packages/${editingId}`
         : "/api/admin/packages";
 
-      const response = await fetch(url, {
-        method: editingId ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const response =
+        await fetch(url, {
+          method: editingId
+            ? "PATCH"
+            : "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify(
+            payload
+          ),
+        });
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
-      if (!response.ok || !data.success) {
+      if (
+        !response.ok ||
+        !data.success
+      ) {
         throw new Error(
           data.message ||
             "تعذر حفظ الباقة."
@@ -335,22 +472,29 @@ export default function AdminPackagesPage() {
       setError("");
       setMessage("");
 
-      const response = await fetch(
-        `/api/admin/packages/${pkg.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            isActive: !pkg.isActive,
-          }),
-        }
-      );
+      const response =
+        await fetch(
+          `/api/admin/packages/${pkg.id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              isActive:
+                !pkg.isActive,
+            }),
+          }
+        );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
-      if (!response.ok || !data.success) {
+      if (
+        !response.ok ||
+        !data.success
+      ) {
         throw new Error(
           data.message ||
             "تعذر تغيير حالة الباقة."
@@ -358,6 +502,12 @@ export default function AdminPackagesPage() {
       }
 
       await loadPackages();
+
+      setMessage(
+        pkg.isActive
+          ? "تم إيقاف الباقة."
+          : "تم تفعيل الباقة."
+      );
     } catch (error) {
       console.error(error);
 
@@ -372,9 +522,10 @@ export default function AdminPackagesPage() {
   async function deletePackage(
     pkg: PackageData
   ) {
-    const confirmed = window.confirm(
-      `هل تريد حذف باقة ${pkg.name} نهائياً؟`
-    );
+    const confirmed =
+      window.confirm(
+        `هل تريد حذف باقة ${pkg.name} نهائيًا؟`
+      );
 
     if (!confirmed) {
       return;
@@ -384,29 +535,38 @@ export default function AdminPackagesPage() {
       setError("");
       setMessage("");
 
-      const response = await fetch(
-        `/api/admin/packages/${pkg.id}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const response =
+        await fetch(
+          `/api/admin/packages/${pkg.id}`,
+          {
+            method: "DELETE",
+          }
+        );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
-      if (!response.ok || !data.success) {
+      if (
+        !response.ok ||
+        !data.success
+      ) {
         throw new Error(
           data.message ||
             "تعذر حذف الباقة."
         );
       }
 
-      if (editingId === pkg.id) {
+      if (
+        editingId === pkg.id
+      ) {
         cancelEdit();
       }
 
       await loadPackages();
 
-      setMessage("تم حذف الباقة.");
+      setMessage(
+        "تم حذف الباقة."
+      );
     } catch (error) {
       console.error(error);
 
@@ -435,23 +595,28 @@ export default function AdminPackagesPage() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              أضف وعدّل الباقات والأسعار والصور التي تظهر للعملاء.
+              أضف وعدّل باقات IPTV وVIP والأسعار والصور التي تظهر للعملاء.
             </p>
           </div>
 
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={loadPackages}
+              onClick={() => {
+                void loadPackages();
+              }}
               disabled={loading}
               className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-black shadow-sm transition hover:border-blue-200 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
             >
               <RefreshCw
                 size={17}
                 className={
-                  loading ? "animate-spin" : ""
+                  loading
+                    ? "animate-spin"
+                    : ""
                 }
               />
+
               تحديث
             </button>
 
@@ -510,22 +675,133 @@ export default function AdminPackagesPage() {
             onSubmit={savePackage}
             className="grid gap-5 md:grid-cols-2"
           >
+            {/* SERVICE TYPE */}
+            <div className="md:col-span-2">
+              <label className="mb-3 block text-sm font-black">
+                نوع الخدمة
+              </label>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    changeServiceType(
+                      "IPTV"
+                    )
+                  }
+                  className={`rounded-2xl border-2 p-5 text-right transition ${
+                    form.serviceType ===
+                    "IPTV"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm dark:border-blue-400 dark:bg-blue-500/10 dark:text-blue-300"
+                      : "border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-lg font-black">
+                        IPTV
+                      </div>
+
+                      <p className="mt-1 text-xs leading-6 opacity-70">
+                        خدمة تعتمد على Username وPassword وMAC Address.
+                      </p>
+                    </div>
+
+                    <div
+                      className={`flex h-6 w-6 items-center justify-center rounded-full border ${
+                        form.serviceType ===
+                        "IPTV"
+                          ? "border-blue-600 bg-blue-600 text-white"
+                          : "border-slate-300 dark:border-slate-600"
+                      }`}
+                    >
+                      {form.serviceType ===
+                        "IPTV" && (
+                        <Check
+                          size={14}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    changeServiceType(
+                      "VIP"
+                    )
+                  }
+                  className={`rounded-2xl border-2 p-5 text-right transition ${
+                    form.serviceType ===
+                    "VIP"
+                      ? "border-cyan-500 bg-cyan-50 text-cyan-700 shadow-sm dark:border-cyan-400 dark:bg-cyan-500/10 dark:text-cyan-300"
+                      : "border-slate-200 bg-slate-50 text-slate-600 hover:border-cyan-200 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-lg font-black">
+                        VIP
+                      </div>
+
+                      <p className="mt-1 text-xs leading-6 opacity-70">
+                        خدمة مرتبطة بجهاز VIP ومعرّف جهاز خاص، ومدتها 3 أشهر.
+                      </p>
+                    </div>
+
+                    <div
+                      className={`flex h-6 w-6 items-center justify-center rounded-full border ${
+                        form.serviceType ===
+                        "VIP"
+                          ? "border-cyan-600 bg-cyan-600 text-white"
+                          : "border-slate-300 dark:border-slate-600"
+                      }`}
+                    >
+                      {form.serviceType ===
+                        "VIP" && (
+                        <Check
+                          size={14}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             <Field
               label="اسم الباقة"
               value={form.name}
               onChange={(value) =>
-                updateField("name", value)
+                updateField(
+                  "name",
+                  value
+                )
               }
-              placeholder="Family"
+              placeholder={
+                form.serviceType ===
+                "VIP"
+                  ? "VIP 3 Months"
+                  : "Family"
+              }
             />
 
             <Field
               label="Slug"
               value={form.slug}
               onChange={(value) =>
-                updateField("slug", value)
+                updateField(
+                  "slug",
+                  value
+                )
               }
-              placeholder="family"
+              placeholder={
+                form.serviceType ===
+                "VIP"
+                  ? "vip-3m"
+                  : "family"
+              }
               dir="ltr"
             />
 
@@ -533,26 +809,46 @@ export default function AdminPackagesPage() {
               label="السعر"
               value={form.price}
               onChange={(value) =>
-                updateField("price", value)
+                updateField(
+                  "price",
+                  value
+                )
               }
               placeholder="25000"
               type="number"
               dir="ltr"
             />
 
-            <Field
-              label="عدد الأشهر"
-              value={form.durationMonths}
-              onChange={(value) =>
-                updateField(
-                  "durationMonths",
-                  value
-                )
-              }
-              placeholder="12"
-              type="number"
-              dir="ltr"
-            />
+            <div>
+              <label className="mb-2 block text-sm font-black">
+                مدة الاشتراك
+              </label>
+
+              {form.serviceType ===
+              "VIP" ? (
+                <div className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3.5 text-sm font-black text-cyan-700 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300">
+                  3 أشهر
+                </div>
+              ) : (
+                <Field
+                  label=""
+                  value={
+                    form.durationMonths
+                  }
+                  onChange={(
+                    value
+                  ) =>
+                    updateField(
+                      "durationMonths",
+                      value
+                    )
+                  }
+                  placeholder="12"
+                  type="number"
+                  dir="ltr"
+                />
+              )}
+            </div>
 
             <Field
               label="اسم المدة"
@@ -563,7 +859,16 @@ export default function AdminPackagesPage() {
                   value
                 )
               }
-              placeholder="1 Year"
+              placeholder={
+                form.serviceType ===
+                "VIP"
+                  ? "3 Months"
+                  : "1 Year"
+              }
+              disabled={
+                form.serviceType ===
+                "VIP"
+              }
             />
 
             <div className="md:col-span-2">
@@ -577,13 +882,17 @@ export default function AdminPackagesPage() {
                     ref={fileInputRef}
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/gif"
-                    onChange={handleFileChange}
+                    onChange={
+                      handleFileChange
+                    }
                     className="hidden"
                   />
 
                   <button
                     type="button"
-                    disabled={uploading}
+                    disabled={
+                      uploading
+                    }
                     onClick={() =>
                       fileInputRef.current?.click()
                     }
@@ -617,12 +926,17 @@ export default function AdminPackagesPage() {
                   {form.imageUrl ? (
                     <img
                       src={form.imageUrl}
-                      alt={form.name || "Package"}
+                      alt={
+                        form.name ||
+                        "Package"
+                      }
                       className="h-full min-h-[180px] w-full object-cover"
                     />
                   ) : (
                     <div className="flex min-h-[180px] flex-col items-center justify-center text-slate-400">
-                      <Upload size={28} />
+                      <Upload
+                        size={28}
+                      />
 
                       <span className="mt-2 text-xs font-bold">
                         لا توجد صورة
@@ -672,7 +986,9 @@ export default function AdminPackagesPage() {
             <div className="md:col-span-2">
               <TextAreaField
                 label="المواصفات"
-                value={form.specifications}
+                value={
+                  form.specifications
+                }
                 onChange={(value) =>
                   updateField(
                     "specifications",
@@ -688,7 +1004,10 @@ export default function AdminPackagesPage() {
                 label="ملاحظات"
                 value={form.notes}
                 onChange={(value) =>
-                  updateField("notes", value)
+                  updateField(
+                    "notes",
+                    value
+                  )
                 }
                 placeholder="ملاحظات إضافية... (اختياري)"
               />
@@ -697,7 +1016,9 @@ export default function AdminPackagesPage() {
             <label className="md:col-span-2 flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
               <input
                 type="checkbox"
-                checked={form.isActive}
+                checked={
+                  form.isActive
+                }
                 onChange={(event) =>
                   updateField(
                     "isActive",
@@ -721,7 +1042,10 @@ export default function AdminPackagesPage() {
             <div className="md:col-span-2">
               <button
                 type="submit"
-                disabled={saving || uploading}
+                disabled={
+                  saving ||
+                  uploading
+                }
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-700 to-cyan-500 px-5 py-4 text-sm font-black text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? (
@@ -769,121 +1093,176 @@ export default function AdminPackagesPage() {
             </div>
           ) : (
             <div className="grid gap-5 lg:grid-cols-3">
-              {packages.map((pkg) => (
-                <article
-                  key={pkg.id}
-                  className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
-                >
-                  <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
-                    {pkg.imageUrl ? (
-                      <img
-                        src={pkg.imageUrl}
-                        alt={pkg.name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full flex-col items-center justify-center text-slate-400">
-                        <ImagePlus size={32} />
+              {packages.map(
+                (pkg) => {
+                  const serviceType: ServiceType =
+                    pkg.serviceType ===
+                    "VIP"
+                      ? "VIP"
+                      : "IPTV";
 
-                        <span className="mt-2 text-xs font-bold">
-                          لا توجد صورة
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="absolute right-4 top-4">
-                      <span
-                        className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
-                          pkg.isActive
-                            ? "bg-emerald-500 text-white"
-                            : "bg-slate-900/80 text-white"
-                        }`}
-                      >
-                        {pkg.isActive
-                          ? "مفعلة"
-                          : "متوقفة"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="text-xl font-black">
-                          {pkg.name}
-                        </h3>
-
-                        <p
-                          dir="ltr"
-                          className="mt-1 text-xs text-slate-400"
-                        >
-                          {pkg.slug}
-                        </p>
-                      </div>
-
-                      <div className="text-left">
-                        <div className="text-lg font-black text-blue-600 dark:text-blue-400">
-                          {formatPrice(pkg.price)}
-                        </div>
-
-                        <div className="text-[10px] font-bold text-slate-400">
-                          IQD
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="mt-4 line-clamp-2 text-sm leading-7 text-slate-500 dark:text-slate-400">
-                      {pkg.description}
-                    </p>
-
-                    <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                      المدة: {pkg.durationLabel}
-                    </div>
-
-                    <div className="mt-5 grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          startEdit(pkg)
-                        }
-                        className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-3 text-xs font-black transition hover:border-blue-200 hover:bg-blue-50 dark:border-slate-700 dark:hover:bg-slate-800"
-                      >
-                        <Edit3 size={14} />
-                        تعديل
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          togglePackage(pkg)
-                        }
-                        className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-3 text-xs font-black transition hover:border-blue-200 hover:bg-blue-50 dark:border-slate-700 dark:hover:bg-slate-800"
-                      >
-                        {pkg.isActive ? (
-                          <CircleX size={14} />
+                  return (
+                    <article
+                      key={pkg.id}
+                      className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                    >
+                      <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
+                        {pkg.imageUrl ? (
+                          <img
+                            src={pkg.imageUrl}
+                            alt={
+                              pkg.name
+                            }
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
-                          <Check size={14} />
+                          <div className="flex h-full flex-col items-center justify-center text-slate-400">
+                            <ImagePlus
+                              size={32}
+                            />
+
+                            <span className="mt-2 text-xs font-bold">
+                              لا توجد صورة
+                            </span>
+                          </div>
                         )}
 
-                        {pkg.isActive
-                          ? "إيقاف"
-                          : "تفعيل"}
-                      </button>
+                        <div className="absolute right-4 top-4 flex gap-2">
+                          <span
+                            className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
+                              serviceType ===
+                              "VIP"
+                                ? "bg-cyan-600 text-white"
+                                : "bg-blue-600 text-white"
+                            }`}
+                          >
+                            {getServiceLabel(
+                              serviceType
+                            )}
+                          </span>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          deletePackage(pkg)
-                        }
-                        className="flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-xs font-black text-red-600 transition hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400"
-                      >
-                        <Trash2 size={14} />
-                        حذف
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                          <span
+                            className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
+                              pkg.isActive
+                                ? "bg-emerald-500 text-white"
+                                : "bg-slate-900/80 text-white"
+                            }`}
+                          >
+                            {pkg.isActive
+                              ? "مفعلة"
+                              : "متوقفة"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <h3 className="text-xl font-black">
+                              {pkg.name}
+                            </h3>
+
+                            <p
+                              dir="ltr"
+                              className="mt-1 text-xs text-slate-400"
+                            >
+                              {pkg.slug}
+                            </p>
+                          </div>
+
+                          <div className="text-left">
+                            <div className="text-lg font-black text-blue-600 dark:text-blue-400">
+                              {formatPrice(
+                                pkg.price
+                              )}
+                            </div>
+
+                            <div className="text-[10px] font-bold text-slate-400">
+                              IQD
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="mt-4 line-clamp-2 text-sm leading-7 text-slate-500 dark:text-slate-400">
+                          {
+                            pkg.description
+                          }
+                        </p>
+
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                            الخدمة:{" "}
+                            {getServiceLabel(
+                              serviceType
+                            )}
+                          </div>
+
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                            المدة:{" "}
+                            {pkg.durationLabel}
+                          </div>
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-3 gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              startEdit(
+                                pkg
+                              )
+                            }
+                            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-3 text-xs font-black transition hover:border-blue-200 hover:bg-blue-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                          >
+                            <Edit3
+                              size={14}
+                            />
+                            تعديل
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void togglePackage(
+                                pkg
+                              )
+                            }
+                            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-3 text-xs font-black transition hover:border-blue-200 hover:bg-blue-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                          >
+                            {pkg.isActive ? (
+                              <CircleX
+                                size={14}
+                              />
+                            ) : (
+                              <Check
+                                size={14}
+                              />
+                            )}
+
+                            {pkg.isActive
+                              ? "إيقاف"
+                              : "تفعيل"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void deletePackage(
+                                pkg
+                              )
+                            }
+                            className="flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-xs font-black text-red-600 transition hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400"
+                          >
+                            <Trash2
+                              size={14}
+                            />
+                            حذف
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                }
+              )}
             </div>
           )}
         </section>
@@ -899,6 +1278,7 @@ function Field({
   placeholder,
   type = "text",
   dir = "rtl",
+  disabled = false,
 }: {
   label: string;
   value: string;
@@ -906,22 +1286,28 @@ function Field({
   placeholder?: string;
   type?: string;
   dir?: "rtl" | "ltr";
+  disabled?: boolean;
 }) {
   return (
     <label>
-      <span className="mb-2 block text-sm font-black">
-        {label}
-      </span>
+      {label && (
+        <span className="mb-2 block text-sm font-black">
+          {label}
+        </span>
+      )}
 
       <input
         dir={dir}
         type={type}
         value={value}
+        disabled={disabled}
         onChange={(event) =>
-          onChange(event.target.value)
+          onChange(
+            event.target.value
+          )
         }
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none transition focus:border-blue-500 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800"
+        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none transition focus:border-blue-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800"
       />
     </label>
   );
@@ -947,7 +1333,9 @@ function TextAreaField({
       <textarea
         value={value}
         onChange={(event) =>
-          onChange(event.target.value)
+          onChange(
+            event.target.value
+          )
         }
         placeholder={placeholder}
         rows={4}

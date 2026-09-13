@@ -1,0 +1,122 @@
+[
+  {
+    "id": "table.subscriptionRequest",
+    "label": "Create table \"subscriptionRequest\"",
+    "summary": "Creates table \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"subscriptionRequest\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"subscriptionRequest\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"subscriptionRequest\"",
+        "sql": "CREATE TABLE \"public\".\"subscriptionRequest\" (\n  \"contactMethod\" text DEFAULT 'PENDING' NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"durationLabel\" text DEFAULT '1 Year' NOT NULL,\n  \"durationMonths\" int4 DEFAULT 12 NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"planSlug\" text NOT NULL,\n  \"price\" int4 NOT NULL,\n  \"serviceName\" text NOT NULL,\n  \"status\" text DEFAULT 'PENDING' NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"subscriptionRequest\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"subscriptionRequest\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.subscriptionRequest.subscriptionRequest_userId_idx_a489d58a",
+    "label": "Create index \"subscriptionRequest_userId_idx_a489d58a\" on \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "subscriptionRequest_userId_idx_a489d58a",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"subscriptionRequest_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"subscriptionRequest_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"subscriptionRequest_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"subscriptionRequest_userId_idx_a489d58a\" ON \"public\".\"subscriptionRequest\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"subscriptionRequest_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"subscriptionRequest_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.subscriptionRequest.subscriptionRequest_userId_fkey",
+    "label": "Add foreign key \"subscriptionRequest_userId_fkey\" on \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "subscriptionRequest_userId_fkey",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"subscriptionRequest_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "subscriptionRequest_userId_fkey",
+          "public",
+          "\"public\".\"subscriptionRequest\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"subscriptionRequest_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\"\nADD CONSTRAINT \"subscriptionRequest_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"subscriptionRequest_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "subscriptionRequest_userId_fkey",
+          "public",
+          "\"public\".\"subscriptionRequest\""
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,83 @@
+[
+  {
+    "id": "table.app",
+    "label": "Create table \"app\"",
+    "summary": "Creates table \"app\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "app"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"app\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"app\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"app\"",
+        "sql": "CREATE TABLE \"public\".\"app\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text NOT NULL,\n  \"downloadUrl\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"imageUrl\" text,\n  \"instructions\" text,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"name\" text NOT NULL,\n  \"notes\" text,\n  \"platform\" text NOT NULL,\n  \"slug\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"version\" text,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"app\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"app\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.app.app_slug_key",
+    "label": "Add unique constraint on \"app\" (slug)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "app_slug_key",
+        "table": "app"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"app_slug_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "app_slug_key",
+          "public",
+          "\"public\".\"app\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"app_slug_key\"",
+        "sql": "ALTER TABLE \"public\".\"app\" ADD CONSTRAINT \"app_slug_key\" UNIQUE (\"slug\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"app_slug_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "app_slug_key",
+          "public",
+          "\"public\".\"app\""
+        ]
+      }
+    ]
+  }
+]

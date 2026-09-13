@@ -1,0 +1,83 @@
+[
+  {
+    "id": "table.receipt",
+    "label": "Create table \"receipt\"",
+    "summary": "Creates table \"receipt\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "receipt"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"receipt\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"receipt\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"receipt\"",
+        "sql": "CREATE TABLE \"public\".\"receipt\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"durationLabel\" text NOT NULL,\n  \"durationMonths\" int4 NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"price\" int4 NOT NULL,\n  \"receiptNumber\" text NOT NULL,\n  \"serviceName\" text NOT NULL,\n  \"status\" text DEFAULT 'PAID' NOT NULL,\n  \"subscriptionId\" int4 NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"receipt\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"receipt\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.receipt.receipt_receiptNumber_key",
+    "label": "Add unique constraint on \"receipt\" (receiptNumber)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "receipt_receiptNumber_key",
+        "table": "receipt"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"receipt_receiptNumber_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "receipt_receiptNumber_key",
+          "public",
+          "\"public\".\"receipt\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"receipt_receiptNumber_key\"",
+        "sql": "ALTER TABLE \"public\".\"receipt\" ADD CONSTRAINT \"receipt_receiptNumber_key\" UNIQUE (\"receiptNumber\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"receipt_receiptNumber_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "receipt_receiptNumber_key",
+          "public",
+          "\"public\".\"receipt\""
+        ]
+      }
+    ]
+  }
+]

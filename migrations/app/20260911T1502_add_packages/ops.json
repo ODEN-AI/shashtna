@@ -1,0 +1,83 @@
+[
+  {
+    "id": "table.package",
+    "label": "Create table \"package\"",
+    "summary": "Creates table \"package\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "package"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"package\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"package\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"package\"",
+        "sql": "CREATE TABLE \"public\".\"package\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text NOT NULL,\n  \"durationLabel\" text NOT NULL,\n  \"durationMonths\" int4 NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"imageUrl\" text,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"name\" text NOT NULL,\n  \"notes\" text,\n  \"price\" int4 NOT NULL,\n  \"slug\" text NOT NULL,\n  \"specifications\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"package\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"package\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.package.package_slug_key",
+    "label": "Add unique constraint on \"package\" (slug)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "package_slug_key",
+        "table": "package"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"package_slug_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "package_slug_key",
+          "public",
+          "\"public\".\"package\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"package_slug_key\"",
+        "sql": "ALTER TABLE \"public\".\"package\" ADD CONSTRAINT \"package_slug_key\" UNIQUE (\"slug\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"package_slug_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "package_slug_key",
+          "public",
+          "\"public\".\"package\""
+        ]
+      }
+    ]
+  }
+]

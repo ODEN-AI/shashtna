@@ -1,0 +1,120 @@
+// use prisma-next
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  phone        String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("CUSTOMER")
+  createdAt    TimestamptzString @default(now())
+  updatedAt    temporal.updatedAtString()
+
+  subscriptions        Subscription[]
+  subscriptionRequests Subscription[]
+}
+
+model Subscription {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  user             User     @relation(fields: [userId], references: [id])
+
+  username        String   @unique
+  password        String
+  macAddress      String?
+  status          String   @default("ACTIVE")
+
+  packageName     String
+  startDate       TimestamptzString
+  expiryDate      TimestamptzString
+
+  connections     Int      @default(0)
+  maxConnections  Int      @default(1)
+
+  createdAt       TimestamptzString @default(now())
+  updatedAt       temporal.updatedAtString()
+}
+
+model Package {
+  id              Int      @id @default(autoincrement())
+
+  name            String
+  slug            String   @unique
+
+  price           Int
+  durationMonths  Int
+  durationLabel   String
+
+  description     String
+  specifications  String
+  notes           String?
+
+  imageUrl        String?
+
+  isActive        Boolean  @default(true)
+
+  createdAt       TimestamptzString @default(now())
+  updatedAt       temporal.updatedAtString()
+}
+
+model App {
+  id           Int      @id @default(autoincrement())
+
+  name         String
+  slug         String   @unique
+
+  description  String
+  platform     String
+  version      String?
+
+  downloadUrl  String
+  imageUrl     String?
+
+  instructions String?
+  notes        String?
+
+  isActive     Boolean  @default(true)
+
+  createdAt    TimestamptzString @default(now())
+  updatedAt    temporal.updatedAtString()
+}
+
+model SubscriptionRequest {
+  id              Int      @id @default(autoincrement())
+
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+
+  planSlug        String
+  serviceName     String
+
+  price           Int
+  durationMonths  Int      @default(12)
+  durationLabel   String   @default("1 Year")
+
+  contactMethod   String   @default("PENDING")
+
+  status          String   @default("PENDING")
+
+  createdAt       TimestamptzString @default(now())
+  updatedAt       temporal.updatedAtString()
+}
+
+model Receipt {
+  id              Int      @id @default(autoincrement())
+
+  receiptNumber   String   @unique
+
+  userId          Int
+  subscriptionId  Int
+
+  serviceName     String
+  price           Int
+
+  durationMonths  Int
+  durationLabel   String
+
+  status          String   @default("PAID")
+
+  createdAt       TimestamptzString @default(now())
+}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import {
@@ -32,7 +32,7 @@ export default function Footer() {
 
             <div>
               <div className="text-xl font-black">
-                شاشتنا
+                Ø´Ø§Ø´ØªÙ†Ø§
               </div>
 
               <div className="mt-1 text-[10px] font-semibold tracking-[0.2em] text-cyan-400">
@@ -43,7 +43,7 @@ export default function Footer() {
 
           <p className="max-w-md text-sm leading-7 text-slate-400">
             {isArabic
-              ? "منصة شاشتنا توفر لك اشتراكات ترفيهية بطريقة بسيطة وواضحة، مع باقات تناسب احتياجاتك ودعم يساعدك بكل خطوة."
+              ? "Ù…Ù†ØµØ© Ø´Ø§Ø´ØªÙ†Ø§ ØªÙˆÙØ± Ù„Ùƒ Ø§Ø´ØªØ±Ø§ÙƒØ§Øª ØªØ±ÙÙŠÙ‡ÙŠØ© Ø¨Ø·Ø±ÙŠÙ‚Ø© Ø¨Ø³ÙŠØ·Ø© ÙˆÙˆØ§Ø¶Ø­Ø©ØŒ Ù…Ø¹ Ø¨Ø§Ù‚Ø§Øª ØªÙ†Ø§Ø³Ø¨ Ø§Ø­ØªÙŠØ§Ø¬Ø§ØªÙƒ ÙˆØ¯Ø¹Ù… ÙŠØ³Ø§Ø¹Ø¯Ùƒ Ø¨ÙƒÙ„ Ø®Ø·ÙˆØ©."
               : "Shashtna provides entertainment subscriptions in a simple and clear way, with plans that fit your needs and support whenever you need it."}
           </p>
 
@@ -58,8 +58,7 @@ export default function Footer() {
             </a>
 
             <a
-              href="#"
-              aria-label="Telegram"
+              href="https://t.me/shashtna" target="_blank" rel="noopener noreferrer" aria-label="Telegram"
               className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-300 transition hover:border-cyan-500 hover:bg-cyan-500 hover:text-white"
             >
               <Send size={18} />
@@ -70,7 +69,7 @@ export default function Footer() {
         {/* Links */}
         <div>
           <h3 className="mb-5 text-sm font-bold text-white">
-            {isArabic ? "روابط سريعة" : "Quick links"}
+            {isArabic ? "Ø±ÙˆØ§Ø¨Ø· Ø³Ø±ÙŠØ¹Ø©" : "Quick links"}
           </h3>
 
           <div className="flex flex-col gap-3">
@@ -78,35 +77,35 @@ export default function Footer() {
               href="/"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "الرئيسية" : "Home"}
+              {isArabic ? "Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©" : "Home"}
             </Link>
 
             <Link
               href="/plans"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "الباقات" : "Plans"}
+              {isArabic ? "Ø§Ù„Ø¨Ø§Ù‚Ø§Øª" : "Plans"}
             </Link>
 
             <Link
               href="/apps"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "التطبيقات" : "Apps"}
+              {isArabic ? "Ø§Ù„ØªØ·Ø¨ÙŠÙ‚Ø§Øª" : "Apps"}
             </Link>
 
             <Link
               href="/about"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "من نحن" : "About"}
+              {isArabic ? "Ù…Ù† Ù†Ø­Ù†" : "About"}
             </Link>
 
             <Link
               href="/tickets"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "الدعم الفني" : "Support"}
+              {isArabic ? "Ø§Ù„Ø¯Ø¹Ù… Ø§Ù„ÙÙ†ÙŠ" : "Support"}
             </Link>
           </div>
         </div>
@@ -114,7 +113,7 @@ export default function Footer() {
         {/* Account */}
         <div>
           <h3 className="mb-5 text-sm font-bold text-white">
-            {isArabic ? "حسابك" : "Your account"}
+            {isArabic ? "Ø­Ø³Ø§Ø¨Ùƒ" : "Your account"}
           </h3>
 
           <div className="flex flex-col gap-3">
@@ -122,21 +121,21 @@ export default function Footer() {
               href="/login"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "تسجيل الدخول" : "Sign in"}
+              {isArabic ? "ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„" : "Sign in"}
             </Link>
 
             <Link
               href="/register"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "إنشاء حساب" : "Create account"}
+              {isArabic ? "Ø¥Ù†Ø´Ø§Ø¡ Ø­Ø³Ø§Ø¨" : "Create account"}
             </Link>
 
             <Link
               href="/dashboard"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "لوحة التحكم" : "Dashboard"}
+              {isArabic ? "Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ…" : "Dashboard"}
             </Link>
 
             <Link
@@ -144,7 +143,7 @@ export default function Footer() {
               className="text-sm text-slate-400 transition hover:text-white"
             >
               {isArabic
-                ? "اشتراكاتي"
+                ? "Ø§Ø´ØªØ±Ø§ÙƒØ§ØªÙŠ"
                 : "My subscriptions"}
             </Link>
 
@@ -152,7 +151,7 @@ export default function Footer() {
               href="/orders"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              {isArabic ? "طلباتي" : "My orders"}
+              {isArabic ? "Ø·Ù„Ø¨Ø§ØªÙŠ" : "My orders"}
             </Link>
           </div>
         </div>
@@ -162,9 +161,9 @@ export default function Footer() {
       <div className="border-t border-slate-800">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-5 text-xs text-slate-500 md:flex-row md:items-center md:justify-between lg:px-8">
           <p>
-            © {new Date().getFullYear()} شاشتنا.{" "}
+            Â© {new Date().getFullYear()} Ø´Ø§Ø´ØªÙ†Ø§.{" "}
             {isArabic
-              ? "جميع الحقوق محفوظة."
+              ? "Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ‚ Ù…Ø­ÙÙˆØ¸Ø©."
               : "All rights reserved."}
           </p>
 
@@ -174,7 +173,7 @@ export default function Footer() {
               className="transition hover:text-slate-300"
             >
               {isArabic
-                ? "سياسة الخصوصية"
+                ? "Ø³ÙŠØ§Ø³Ø© Ø§Ù„Ø®ØµÙˆØµÙŠØ©"
                 : "Privacy Policy"}
             </Link>
 
@@ -183,7 +182,7 @@ export default function Footer() {
               className="transition hover:text-slate-300"
             >
               {isArabic
-                ? "الشروط والأحكام"
+                ? "Ø§Ù„Ø´Ø±ÙˆØ· ÙˆØ§Ù„Ø£Ø­ÙƒØ§Ù…"
                 : "Terms & Conditions"}
             </Link>
           </div>

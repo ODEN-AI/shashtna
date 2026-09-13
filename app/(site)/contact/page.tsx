@@ -28,36 +28,29 @@ type UserData = {
   role: string;
 };
 
-const services = {
-  family: {
-    nameAr: "Family",
-    nameEn: "Family",
-    price: 25000,
-  },
-  star10: {
-    nameAr: "Star10",
-    nameEn: "Star10",
-    price: 20000,
-  },
-  max: {
-    nameAr: "Max",
-    nameEn: "Max",
-    price: 25000,
-  },
-} as const;
+type PackageData = {
+  id: number;
+  name: string;
+  slug: string;
+  price: number;
+  durationMonths: number;
+  durationLabel: string;
+  description: string;
+  specifications: string;
+  notes: string | null;
+  imageUrl: string | null;
+  isActive: boolean;
+};
 
-const DURATION_AR = "سنة واحدة";
-const DURATION_EN = "1 Year";
+type ContactMethod =
+  | "TELEGRAM"
+  | "FACEBOOK";
 
 const TELEGRAM_URL =
   "https://t.me/shashtna";
 
 const FACEBOOK_MESSENGER_URL =
   "https://www.facebook.com/profile.php?id=61594341596034";
-
-type ContactMethod =
-  | "TELEGRAM"
-  | "FACEBOOK";
 
 function ContactPageContent() {
   const { language } = useLanguage();
@@ -69,8 +62,14 @@ function ContactPageContent() {
   const [user, setUser] =
     useState<UserData | null>(null);
 
+  const [selectedPackage, setSelectedPackage] =
+    useState<PackageData | null>(null);
+
   const [mounted, setMounted] =
     useState(false);
+
+  const [loadingPackage, setLoadingPackage] =
+    useState(true);
 
   const [copied, setCopied] =
     useState(false);
@@ -89,30 +88,21 @@ function ContactPageContent() {
 
   const isArabic = language === "ar";
 
-  const service = useMemo(() => {
-    if (!planSlug) {
-      return null;
-    }
-
-    return (
-      services[
-        planSlug as keyof typeof services
-      ] ?? null
-    );
-  }, [planSlug]);
-
   const message = useMemo(() => {
-    if (!user || !service) {
+    if (!user || !selectedPackage) {
       return "";
     }
 
-    const serviceName = isArabic
-      ? service.nameAr
-      : service.nameEn;
+    const serviceName =
+      selectedPackage.name;
 
-    const duration = isArabic
-      ? DURATION_AR
-      : DURATION_EN;
+    const duration =
+      selectedPackage.durationLabel;
+
+    const formattedPrice =
+      selectedPackage.price.toLocaleString(
+        "en-US"
+      );
 
     return isArabic
       ? `السلام عليكم، أريد الاشتراك بخدمة ${serviceName} لمدة ${duration} عن طريق موقع شاشتنا.
@@ -122,9 +112,9 @@ function ContactPageContent() {
 رقم الهاتف: ${user.phone}
 البريد الإلكتروني: ${user.email}
 
-السعر: ${service.price.toLocaleString(
-          "en-US"
-        )} دينار`
+الباقة: ${serviceName}
+المدة: ${duration}
+السعر: ${formattedPrice} دينار`
       : `Hello, I would like to subscribe to ${serviceName} for ${duration} through the Shashtna website.
 
 Subscriber details:
@@ -132,10 +122,14 @@ Name: ${user.name}
 Phone: ${user.phone}
 Email: ${user.email}
 
-Price: ${service.price.toLocaleString(
-          "en-US"
-        )} IQD`;
-  }, [user, service, isArabic]);
+Package: ${serviceName}
+Duration: ${duration}
+Price: ${formattedPrice} IQD`;
+  }, [
+    user,
+    selectedPackage,
+    isArabic,
+  ]);
 
   useEffect(() => {
     setMounted(true);
@@ -189,13 +183,103 @@ Price: ${service.price.toLocaleString(
   }, [router, planSlug]);
 
   useEffect(() => {
-    if (mounted && !service) {
-      router.replace("/plans");
+    if (!mounted) {
+      return;
     }
-  }, [mounted, service, router]);
+
+    if (!planSlug) {
+      router.replace("/plans");
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadPackage() {
+      setLoadingPackage(true);
+      setRequestError("");
+
+      try {
+        const response = await fetch(
+          "/api/packages",
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        const data = (await response.json()) as {
+          success?: boolean;
+          packages?: PackageData[];
+        };
+
+        if (!response.ok || !data.success) {
+          throw new Error(
+            "Failed to load packages."
+          );
+        }
+
+        const packages =
+          Array.isArray(data.packages)
+            ? data.packages
+            : [];
+
+        const foundPackage =
+          packages.find(
+            (pkg) =>
+              pkg.slug === planSlug &&
+              pkg.isActive
+          ) ?? null;
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!foundPackage) {
+          router.replace("/plans");
+          return;
+        }
+
+        setSelectedPackage(
+          foundPackage
+        );
+      } catch (error) {
+        console.error(
+          "Load selected package error:",
+          error
+        );
+
+        if (!cancelled) {
+          setRequestError(
+            isArabic
+              ? "تعذر تحميل الباقة المحددة حاليًا."
+              : "We could not load the selected package."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingPackage(false);
+        }
+      }
+    }
+
+    void loadPackage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    mounted,
+    planSlug,
+    router,
+    isArabic,
+  ]);
 
   useEffect(() => {
-    if (!user || !service || !planSlug) {
+    if (
+      !user ||
+      !selectedPackage ||
+      !planSlug
+    ) {
       return;
     }
 
@@ -218,7 +302,8 @@ Price: ${service.price.toLocaleString(
                 "application/json",
             },
             body: JSON.stringify({
-              userId: currentUser.id,
+              userId:
+                currentUser.id,
               planSlug:
                 currentPlanSlug,
               contactMethod: "PENDING",
@@ -226,11 +311,12 @@ Price: ${service.price.toLocaleString(
           }
         );
 
-        const data = (await response.json()) as {
-          success?: boolean;
-          requestId?: number;
-          error?: string;
-        };
+        const data =
+          (await response.json()) as {
+            success?: boolean;
+            requestId?: number;
+            error?: string;
+          };
 
         if (!response.ok) {
           throw new Error(
@@ -274,7 +360,7 @@ Price: ${service.price.toLocaleString(
     };
   }, [
     user,
-    service,
+    selectedPackage,
     planSlug,
     isArabic,
   ]);
@@ -306,11 +392,12 @@ Price: ${service.price.toLocaleString(
         }
       );
 
-      const data = (await response.json()) as {
-        success?: boolean;
-        requestId?: number;
-        error?: string;
-      };
+      const data =
+        (await response.json()) as {
+          success?: boolean;
+          requestId?: number;
+          error?: string;
+        };
 
       if (!response.ok) {
         throw new Error(
@@ -323,7 +410,9 @@ Price: ${service.price.toLocaleString(
         typeof data.requestId ===
         "number"
       ) {
-        setRequestId(data.requestId);
+        setRequestId(
+          data.requestId
+        );
       }
     } catch (error) {
       console.error(
@@ -398,8 +487,9 @@ Price: ${service.price.toLocaleString(
 
   if (
     !mounted ||
-    !service ||
-    !user
+    !user ||
+    loadingPackage ||
+    !selectedPackage
   ) {
     return (
       <main
@@ -419,13 +509,11 @@ Price: ${service.price.toLocaleString(
     );
   }
 
-  const serviceName = isArabic
-    ? service.nameAr
-    : service.nameEn;
+  const serviceName =
+    selectedPackage.name;
 
-  const duration = isArabic
-    ? DURATION_AR
-    : DURATION_EN;
+  const duration =
+    selectedPackage.durationLabel;
 
   return (
     <main
@@ -523,8 +611,8 @@ Price: ${service.price.toLocaleString(
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-600 dark:text-blue-400">
                   {isArabic
-                    ? "الخدمة المختارة"
-                    : "SELECTED SERVICE"}
+                    ? "الباقة المختارة"
+                    : "SELECTED PACKAGE"}
                 </div>
 
                 <h2 className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
@@ -550,8 +638,8 @@ Price: ${service.price.toLocaleString(
                 icon={<Tv size={17} />}
                 label={
                   isArabic
-                    ? "الخدمة"
-                    : "Service"
+                    ? "الباقة"
+                    : "Package"
                 }
                 value={serviceName}
               />
@@ -565,7 +653,7 @@ Price: ${service.price.toLocaleString(
 
                 <div className="mt-1 flex items-baseline gap-2">
                   <span className="text-3xl font-black text-slate-950 dark:text-white">
-                    {service.price.toLocaleString(
+                    {selectedPackage.price.toLocaleString(
                       "en-US"
                     )}
                   </span>
@@ -575,6 +663,20 @@ Price: ${service.price.toLocaleString(
                   </span>
                 </div>
               </div>
+
+              {selectedPackage.description && (
+                <div className="rounded-2xl border border-slate-200/70 bg-white/70 px-4 py-4 dark:border-slate-700/70 dark:bg-slate-900/50">
+                  <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+                    {isArabic
+                      ? "عن الباقة"
+                      : "ABOUT THE PACKAGE"}
+                  </div>
+
+                  <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                    {selectedPackage.description}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="mt-7 rounded-2xl border border-emerald-200/70 bg-emerald-50/70 px-4 py-4 dark:border-emerald-500/10 dark:bg-emerald-500/[0.05]">
@@ -827,8 +929,8 @@ Price: ${service.price.toLocaleString(
                     : "تم تسجيل أن طريقة التواصل المختارة هي Facebook."
                   : selectedContact ===
                     "TELEGRAM"
-                    ? "Telegram has been saved as your contact method."
-                    : "Facebook has been saved as your contact method."}
+                  ? "Telegram has been saved as your contact method."
+                  : "Facebook has been saved as your contact method."}
               </div>
             )}
           </div>

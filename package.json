@@ -12,6 +12,8 @@
     "contract:emit": "prisma contract emit"
   },
   "dependencies": {
+    "@neon/config": "^1.4.2",
+    "@neon/env": "^1.3.2",
     "@prisma/client": "^7.10.0",
     "@prisma/orm-postgres": "^8.0.0-rc.9",
     "bcryptjs": "^3.0.3",

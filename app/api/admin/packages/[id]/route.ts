@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@/src/prisma/db";
+import { db, ensureDatabaseConnection } from "@/src/prisma/db";
+
+export const dynamic = "force-dynamic";
 
 type PackageBody = {
   name?: string;
@@ -25,6 +27,8 @@ export async function PATCH(
   context: RouteContext
 ) {
   try {
+    await ensureDatabaseConnection();
+
     const { id } = await context.params;
     const packageId = Number(id);
 
@@ -32,7 +36,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          message: "معرف الباقة غير صحيح.",
+          message: "معرّف الباقة غير صحيح.",
         },
         { status: 400 }
       );
@@ -55,10 +59,7 @@ export async function PATCH(
 
     const body = (await request.json()) as PackageBody;
 
-    const updateData: Record<
-      string,
-      unknown
-    > = {};
+    const updateData: Record<string, unknown> = {};
 
     if (typeof body.name === "string") {
       const value = body.name.trim();
@@ -112,7 +113,10 @@ export async function PATCH(
     }
 
     if (typeof body.price === "number") {
-      if (body.price < 0) {
+      if (
+        !Number.isFinite(body.price) ||
+        body.price < 0
+      ) {
         return NextResponse.json(
           {
             success: false,
@@ -126,10 +130,12 @@ export async function PATCH(
     }
 
     if (
-      typeof body.durationMonths ===
-      "number"
+      typeof body.durationMonths === "number"
     ) {
-      if (body.durationMonths <= 0) {
+      if (
+        !Number.isInteger(body.durationMonths) ||
+        body.durationMonths <= 0
+      ) {
         return NextResponse.json(
           {
             success: false,
@@ -158,8 +164,7 @@ export async function PATCH(
     }
 
     if (
-      typeof body.specifications ===
-      "string"
+      typeof body.specifications === "string"
     ) {
       updateData.specifications =
         body.specifications.trim();
@@ -192,12 +197,15 @@ export async function PATCH(
         body.isActive;
     }
 
-    updateData.updatedAt = new Date().toISOString();
+    updateData.updatedAt =
+      new Date().toISOString();
 
     const updated =
-      await db.orm.public.Package.where({
-        id: packageId,
-      }).update(updateData);
+      await db.orm.public.Package
+        .where({
+          id: packageId,
+        })
+        .update(updateData);
 
     if (!updated) {
       return NextResponse.json(
@@ -235,6 +243,8 @@ export async function DELETE(
   context: RouteContext
 ) {
   try {
+    await ensureDatabaseConnection();
+
     const { id } = await context.params;
     const packageId = Number(id);
 
@@ -242,7 +252,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          message: "معرف الباقة غير صحيح.",
+          message: "معرّف الباقة غير صحيح.",
         },
         { status: 400 }
       );

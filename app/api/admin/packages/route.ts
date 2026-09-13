@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@/src/prisma/db";
+import { db, ensureDatabaseConnection } from "@/src/prisma/db";
+
+export const dynamic = "force-dynamic";
 
 type PackageBody = {
   name?: string;
@@ -16,6 +18,8 @@ type PackageBody = {
 
 export async function GET() {
   try {
+    await ensureDatabaseConnection();
+
     const packages = await db.orm.public.Package.all();
 
     packages.sort((a, b) => {
@@ -60,6 +64,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    await ensureDatabaseConnection();
+
     const body = (await request.json()) as PackageBody;
 
     const name = body.name?.trim();
@@ -138,8 +144,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "هذا الـ Slug مستخدم مسبقاً.",
+          message: "هذا الـ Slug مستخدم مسبقًا.",
         },
         { status: 409 }
       );
@@ -176,8 +181,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message:
-          "حدث خطأ أثناء إنشاء الباقة.",
+        message: "حدث خطأ أثناء إنشاء الباقة.",
       },
       { status: 500 }
     );

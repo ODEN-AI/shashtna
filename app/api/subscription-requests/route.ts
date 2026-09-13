@@ -1,26 +1,10 @@
 import { NextResponse } from "next/server";
-import { db } from "@/src/prisma/db";
+import {
+  db,
+  ensureDatabaseConnection,
+} from "@/src/prisma/db";
 
-const allowedPlans = {
-  family: {
-    name: "Family",
-    price: 25000,
-    durationMonths: 12,
-    durationLabel: "1 Year",
-  },
-  star10: {
-    name: "Star10",
-    price: 20000,
-    durationMonths: 12,
-    durationLabel: "1 Year",
-  },
-  max: {
-    name: "Max",
-    price: 25000,
-    durationMonths: 12,
-    durationLabel: "1 Year",
-  },
-} as const;
+export const dynamic = "force-dynamic";
 
 type RequestBody = {
   userId?: number;
@@ -28,36 +12,47 @@ type RequestBody = {
   contactMethod?: string;
 };
 
+const VALID_CONTACT_METHODS = new Set([
+  "PENDING",
+  "TELEGRAM",
+  "FACEBOOK",
+]);
+
 export async function POST(request: Request) {
   try {
+    await ensureDatabaseConnection();
+
     const body =
       (await request.json()) as RequestBody;
 
     const userId = body.userId;
-    const planSlug = body.planSlug;
+    const planSlug = body.planSlug?.trim();
     const contactMethod =
       body.contactMethod ?? "PENDING";
 
-    if (!userId || !planSlug) {
+    if (
+      !Number.isInteger(userId) ||
+      !userId ||
+      !planSlug
+    ) {
       return NextResponse.json(
         {
-          error:
-            "بيانات الطلب غير مكتملة.",
+          success: false,
+          error: "بيانات الطلب غير مكتملة.",
         },
         { status: 400 }
       );
     }
 
-    const plan =
-      allowedPlans[
-        planSlug as keyof typeof allowedPlans
-      ];
-
-    if (!plan) {
+    if (
+      !VALID_CONTACT_METHODS.has(
+        contactMethod
+      )
+    ) {
       return NextResponse.json(
         {
-          error:
-            "الباقة المحددة غير موجودة.",
+          success: false,
+          error: "طريقة التواصل غير صحيحة.",
         },
         { status: 400 }
       );
@@ -71,19 +66,38 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         {
-          error:
-            "المستخدم غير موجود.",
+          success: false,
+          error: "المستخدم غير موجود.",
         },
         { status: 404 }
       );
     }
 
-    const existingRequest =
-      await db.orm.public.SubscriptionRequest.first({
-        userId,
-        planSlug,
-        status: "PENDING",
+    const plan =
+      await db.orm.public.Package.first({
+        slug: planSlug,
+        isActive: true,
       });
+
+    if (!plan) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "الباقة المحددة غير موجودة أو غير متاحة حاليًا.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const existingRequest =
+      await db.orm.public.SubscriptionRequest.first(
+        {
+          userId,
+          planSlug,
+          status: "PENDING",
+        }
+      );
 
     if (existingRequest) {
       if (
@@ -98,11 +112,18 @@ export async function POST(request: Request) {
             })
             .update({
               contactMethod,
+              serviceName: plan.name,
+              price: plan.price,
+              durationMonths:
+                plan.durationMonths,
+              durationLabel:
+                plan.durationLabel,
             });
 
         if (!updated) {
           return NextResponse.json(
             {
+              success: false,
               error:
                 "تعذر تحديث طلب الاشتراك.",
             },
@@ -133,18 +154,20 @@ export async function POST(request: Request) {
     }
 
     const created =
-      await db.orm.public.SubscriptionRequest.create({
-        userId,
-        planSlug,
-        serviceName: plan.name,
-        price: plan.price,
-        durationMonths:
-          plan.durationMonths,
-        durationLabel:
-          plan.durationLabel,
-        contactMethod,
-        status: "PENDING",
-      });
+      await db.orm.public.SubscriptionRequest.create(
+        {
+          userId,
+          planSlug,
+          serviceName: plan.name,
+          price: plan.price,
+          durationMonths:
+            plan.durationMonths,
+          durationLabel:
+            plan.durationLabel,
+          contactMethod,
+          status: "PENDING",
+        }
+      );
 
     return NextResponse.json(
       {
@@ -161,6 +184,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
+        success: false,
         error:
           "حدث خطأ أثناء حفظ طلب الاشتراك.",
       },

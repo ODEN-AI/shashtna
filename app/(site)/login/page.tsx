@@ -7,6 +7,7 @@ import {
   EyeOff,
   ArrowLeft,
   Loader2,
+  Phone,
 } from "lucide-react";
 
 import { useLanguage } from "../components/LanguageProvider";
@@ -17,7 +18,7 @@ export default function LoginPage() {
   const isArabic = language === "ar";
 
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,19 +33,16 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "/api/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        }
-      );
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone,
+          password,
+        }),
+      });
 
       const data = await response.json();
 
@@ -96,9 +94,7 @@ export default function LoginPage() {
             </div>
 
             <h1 className="text-3xl font-black tracking-tight">
-              {isArabic
-                ? "تسجيل الدخول"
-                : "Sign in"}
+              {isArabic ? "تسجيل الدخول" : "Sign in"}
             </h1>
 
             <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
@@ -113,36 +109,46 @@ export default function LoginPage() {
               onSubmit={handleSubmit}
               className="space-y-5"
             >
-              {/* Email */}
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                  {isArabic
-                    ? "البريد الإلكتروني"
-                    : "Email address"}
+                <label
+                  htmlFor="phone"
+                  className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
+                >
+                  {isArabic ? "رقم الهاتف" : "Phone number"}
                 </label>
 
-                <input
-                  suppressHydrationWarning
-                  dir={isArabic ? "rtl" : "ltr"}
-                  type="email"
-                  value={email}
-                  onChange={(event) =>
-                    setEmail(event.target.value)
-                  }
-                  placeholder="example@email.com"
-                  autoComplete="email"
-                  required
-                  className={`w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800 ${
-                    isArabic
-                      ? "text-right"
-                      : "text-left"
-                  }`}
-                />
+                <div className="relative">
+                  <Phone
+                    size={19}
+                    className={`absolute top-1/2 -translate-y-1/2 text-slate-400 ${
+                      isArabic ? "right-4" : "left-4"
+                    }`}
+                  />
+
+                  <input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(event) =>
+                      setPhone(event.target.value)
+                    }
+                    placeholder="07XXXXXXXXX"
+                    autoComplete="tel"
+                    required
+                    className={`w-full rounded-xl border border-slate-200 bg-slate-50 py-3 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800 ${
+                      isArabic
+                        ? "pl-4 pr-11 text-right"
+                        : "pl-11 pr-4 text-left"
+                    }`}
+                  />
+                </div>
               </div>
 
-              {/* Password */}
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                <label
+                  htmlFor="password"
+                  className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
+                >
                   {isArabic
                     ? "كلمة المرور"
                     : "Password"}
@@ -150,13 +156,8 @@ export default function LoginPage() {
 
                 <div className="relative">
                   <input
-                    suppressHydrationWarning
-                    dir={isArabic ? "rtl" : "ltr"}
-                    type={
-                      showPassword
-                        ? "text"
-                        : "password"
-                    }
+                    id="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(event) =>
                       setPassword(event.target.value)
@@ -178,9 +179,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() =>
-                      setShowPassword(
-                        !showPassword
-                      )
+                      setShowPassword(!showPassword)
                     }
                     className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-blue-600 dark:hover:text-blue-400"
                     aria-label={
@@ -202,12 +201,9 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Remember + Forgot */}
               <div
                 className={`flex items-center justify-between ${
-                  isArabic
-                    ? ""
-                    : "flex-row-reverse"
+                  isArabic ? "" : "flex-row-reverse"
                 }`}
               >
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
@@ -215,9 +211,7 @@ export default function LoginPage() {
                     type="checkbox"
                     checked={remember}
                     onChange={(event) =>
-                      setRemember(
-                        event.target.checked
-                      )
+                      setRemember(event.target.checked)
                     }
                     className="h-4 w-4 rounded border-slate-300 accent-blue-600"
                   />
@@ -237,14 +231,12 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              {/* Error */}
               {error && (
                 <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-600 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
                   {error}
                 </div>
               )}
 
-              {/* Submit */}
               <button
                 type="submit"
                 disabled={loading}
@@ -303,9 +295,7 @@ export default function LoginPage() {
             >
               <ArrowLeft
                 size={16}
-                className={
-                  isArabic ? "" : "rotate-180"
-                }
+                className={isArabic ? "" : "rotate-180"}
               />
 
               {isArabic

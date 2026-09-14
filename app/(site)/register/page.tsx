@@ -6,7 +6,6 @@ import {
   Eye,
   EyeOff,
   LockKeyhole,
-  Mail,
   Phone,
   ShieldCheck,
   Tv,
@@ -29,7 +28,6 @@ export default function RegisterPage() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] =
     useState("");
@@ -59,7 +57,6 @@ export default function RegisterPage() {
           body: JSON.stringify({
             name,
             phone,
-            email,
             password,
             confirmPassword,
             terms,
@@ -87,12 +84,27 @@ export default function RegisterPage() {
             : "Account created successfully")
       );
 
+      if (data.user && typeof window !== "undefined") {
+        localStorage.setItem(
+          "user",
+          JSON.stringify(data.user)
+        );
+
+        localStorage.setItem(
+          "remember",
+          "true"
+        );
+      }
+
       setName("");
       setPhone("");
-      setEmail("");
       setPassword("");
       setConfirmPassword("");
       setTerms(false);
+
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 500);
     } catch {
       setError(
         isArabic
@@ -115,7 +127,6 @@ export default function RegisterPage() {
         <div className="pointer-events-none absolute -left-40 bottom-0 h-96 w-96 rounded-full bg-cyan-100/60 blur-3xl dark:bg-cyan-900/10" />
 
         <div className="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20 lg:grid-cols-2">
-          {/* Promotional panel */}
           <div className="relative hidden overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-10 text-white lg:block">
             <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-white/10" />
 
@@ -178,7 +189,6 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Form */}
           <div className="p-7 sm:p-10 lg:p-12">
             <div className="mb-8">
               <p className="text-sm font-black text-blue-600 dark:text-blue-400">
@@ -204,7 +214,6 @@ export default function RegisterPage() {
               onSubmit={handleSubmit}
               className="space-y-5"
             >
-              {/* Name */}
               <div>
                 <label
                   htmlFor="name"
@@ -248,7 +257,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Phone */}
               <div>
                 <label
                   htmlFor="phone"
@@ -288,47 +296,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Email */}
-              <div>
-                <label
-                  htmlFor="email"
-                  className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200"
-                >
-                  {isArabic
-                    ? "البريد الإلكتروني"
-                    : "Email address"}
-                </label>
-
-                <div className="relative">
-                  <Mail
-                    size={19}
-                    className={`absolute top-1/2 -translate-y-1/2 text-slate-400 ${
-                      isArabic
-                        ? "right-4"
-                        : "left-4"
-                    }`}
-                  />
-
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(event) =>
-                      setEmail(event.target.value)
-                    }
-                    placeholder="example@email.com"
-                    autoComplete="email"
-                    required
-                    className={`w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800 ${
-                      isArabic
-                        ? "pl-4 pr-11 text-right"
-                        : "pl-11 pr-4 text-left"
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
               <div>
                 <label
                   htmlFor="password"
@@ -367,6 +334,7 @@ export default function RegisterPage() {
                     }
                     autoComplete="new-password"
                     required
+                    minLength={6}
                     className={`w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800 ${
                       isArabic
                         ? "pl-12 pr-11 text-right"
@@ -386,15 +354,6 @@ export default function RegisterPage() {
                         ? "left-4"
                         : "right-4"
                     }`}
-                    aria-label={
-                      showPassword
-                        ? isArabic
-                          ? "إخفاء كلمة المرور"
-                          : "Hide password"
-                        : isArabic
-                          ? "إظهار كلمة المرور"
-                          : "Show password"
-                    }
                   >
                     {showPassword ? (
                       <EyeOff size={19} />
@@ -405,7 +364,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Confirm password */}
               <div>
                 <label
                   htmlFor="confirmPassword"
@@ -446,6 +404,7 @@ export default function RegisterPage() {
                     }
                     autoComplete="new-password"
                     required
+                    minLength={6}
                     className={`w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800 ${
                       isArabic
                         ? "pl-12 pr-11 text-right"
@@ -465,15 +424,6 @@ export default function RegisterPage() {
                         ? "left-4"
                         : "right-4"
                     }`}
-                    aria-label={
-                      showConfirmPassword
-                        ? isArabic
-                          ? "إخفاء كلمة المرور"
-                          : "Hide password"
-                        : isArabic
-                          ? "إظهار كلمة المرور"
-                          : "Show password"
-                    }
                   >
                     {showConfirmPassword ? (
                       <EyeOff size={19} />
@@ -484,15 +434,12 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Terms */}
               <label className="flex cursor-pointer items-start gap-3 pt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">
                 <input
                   type="checkbox"
                   checked={terms}
                   onChange={(event) =>
-                    setTerms(
-                      event.target.checked
-                    )
+                    setTerms(event.target.checked)
                   }
                   className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-blue-600"
                   required
@@ -539,21 +486,18 @@ export default function RegisterPage() {
                 </span>
               </label>
 
-              {/* Error */}
               {error && (
                 <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-600 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
                   {error}
                 </div>
               )}
 
-              {/* Success */}
               {success && (
                 <div className="rounded-2xl border border-green-100 bg-green-50 px-4 py-3 text-sm font-bold text-green-600 dark:border-green-900/50 dark:bg-green-950/30 dark:text-green-400">
                   {success}
                 </div>
               )}
 
-              {/* Submit */}
               <button
                 type="submit"
                 disabled={loading}
@@ -600,9 +544,7 @@ export default function RegisterPage() {
             >
               <ArrowLeft
                 size={14}
-                className={
-                  isArabic ? "" : "rotate-180"
-                }
+                className={isArabic ? "" : "rotate-180"}
               />
 
               {isArabic

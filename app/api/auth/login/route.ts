@@ -1,28 +1,35 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+
 import { db } from "@/src/prisma/db";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const email = String(body.email ?? "").trim().toLowerCase();
+    const phone = String(body.phone ?? "").trim();
     const password = String(body.password ?? "");
 
-    if (!email || !password) {
+    if (!phone || !password) {
       return NextResponse.json(
-        { message: "يرجى إدخال البريد الإلكتروني وكلمة المرور" },
+        {
+          message:
+            "يرجى إدخال رقم الهاتف وكلمة المرور",
+        },
         { status: 400 }
       );
     }
 
     const user = await db.orm.public.User.first({
-      email,
+      phone,
     });
 
     if (!user) {
       return NextResponse.json(
-        { message: "البريد الإلكتروني أو كلمة المرور غير صحيحة" },
+        {
+          message:
+            "رقم الهاتف أو كلمة المرور غير صحيحة",
+        },
         { status: 401 }
       );
     }
@@ -34,7 +41,10 @@ export async function POST(request: Request) {
 
     if (!passwordValid) {
       return NextResponse.json(
-        { message: "البريد الإلكتروني أو كلمة المرور غير صحيحة" },
+        {
+          message:
+            "رقم الهاتف أو كلمة المرور غير صحيحة",
+        },
         { status: 401 }
       );
     }
@@ -46,7 +56,6 @@ export async function POST(request: Request) {
           id: user.id,
           name: user.name,
           phone: user.phone,
-          email: user.email,
           role: user.role,
         },
       },
@@ -56,7 +65,10 @@ export async function POST(request: Request) {
     console.error("LOGIN_ERROR:", error);
 
     return NextResponse.json(
-      { message: "حدث خطأ أثناء تسجيل الدخول" },
+      {
+        message:
+          "حدث خطأ أثناء تسجيل الدخول",
+      },
       { status: 500 }
     );
   }

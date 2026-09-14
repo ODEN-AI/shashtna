@@ -3,15 +3,15 @@
 model User {
   id           Int      @id @default(autoincrement())
   name         String
-  phone        String
-  email        String   @unique
+  phone        String   @unique
+  email        String?  @unique
   passwordHash String
   role         String   @default("CUSTOMER")
   createdAt    TimestamptzString @default(now())
   updatedAt    temporal.updatedAtString()
 
   subscriptions        Subscription[]
-  subscriptionRequests Subscription[]
+  subscriptionRequests SubscriptionRequest[]
 }
 
 model Subscription {

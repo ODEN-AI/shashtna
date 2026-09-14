@@ -1,3 +1,4 @@
+import { getStore } from "@netlify/blobs";
 import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
@@ -11,6 +12,8 @@ const allowedTypes: Record<string, string> = {
   "image/webp": "webp",
   "image/gif": "gif",
 };
+
+const BLOB_STORE_NAME = "shashtna-package-images";
 
 export async function POST(request: Request) {
   try {
@@ -27,7 +30,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!allowedTypes[file.type]) {
+    const extension = allowedTypes[file.type];
+
+    if (!extension) {
       return NextResponse.json(
         {
           success: false,
@@ -58,8 +63,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const extension = allowedTypes[file.type];
     const filename = `${crypto.randomUUID()}.${extension}`;
+    const bytes = await file.arrayBuffer();
+
+    const isNetlify =
+      process.env.NETLIFY === "true";
+
+    if (isNetlify) {
+      const store = getStore(BLOB_STORE_NAME);
+
+      await store.set(filename, bytes, {
+        metadata: {
+          contentType: file.type,
+          originalName: file.name,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          imageUrl: `/api/uploads/packages/${filename}`,
+          filename,
+        },
+        { status: 201 }
+      );
+    }
 
     const uploadDirectory = path.join(
       process.cwd(),
@@ -72,33 +100,35 @@ export async function POST(request: Request) {
       recursive: true,
     });
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
     const filePath = path.join(
       uploadDirectory,
       filename
     );
 
-    await writeFile(filePath, buffer);
-
-    const imageUrl = `/uploads/packages/${filename}`;
+    await writeFile(
+      filePath,
+      Buffer.from(bytes)
+    );
 
     return NextResponse.json(
       {
         success: true,
-        imageUrl,
+        imageUrl: `/uploads/packages/${filename}`,
         filename,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error("Package image upload error:", error);
+    console.error(
+      "Package image upload error:",
+      error
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message: "حدث خطأ أثناء رفع الصورة.",
+        message:
+          "حدث خطأ أثناء رفع الصورة.",
       },
       { status: 500 }
     );

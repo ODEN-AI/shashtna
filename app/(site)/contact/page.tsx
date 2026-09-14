@@ -14,7 +14,6 @@ import {
   CircleAlert,
   Clock3,
   Copy,
-  Mail,
   MessageCircle,
   Phone,
   Send,
@@ -31,8 +30,7 @@ type UserData = {
   id: number;
   name: string;
   phone: string;
-  email: string;
-  role: string;
+  role?: string;
 };
 
 type PackageData = {
@@ -174,7 +172,6 @@ function ContactPageContent() {
 بيانات المشترك:
 الاسم: ${user.name}
 رقم الهاتف: ${user.phone}
-البريد الإلكتروني: ${user.email}
 
 باقة VIP: ${serviceName}
 المدة: ${duration}
@@ -187,7 +184,6 @@ function ContactPageContent() {
 Subscriber details:
 Name: ${user.name}
 Phone: ${user.phone}
-Email: ${user.email}
 
 VIP Plan: ${serviceName}
 Duration: ${duration}
@@ -204,7 +200,6 @@ Total: ${formattedPrice} IQD`;
 بيانات المشترك:
 الاسم: ${user.name}
 رقم الهاتف: ${user.phone}
-البريد الإلكتروني: ${user.email}
 
 باقة VIP: ${serviceName}
 مدة التجديد: ${duration}
@@ -214,7 +209,6 @@ Total: ${formattedPrice} IQD`;
 Subscriber details:
 Name: ${user.name}
 Phone: ${user.phone}
-Email: ${user.email}
 
 VIP Plan: ${serviceName}
 Renewal duration: ${duration}
@@ -228,7 +222,6 @@ Price: ${selectedPackage.price.toLocaleString("en-US")} IQD`;
 بيانات المشترك:
 الاسم: ${user.name}
 رقم الهاتف: ${user.phone}
-البريد الإلكتروني: ${user.email}
 
 الباقة: ${serviceName}
 المدة: ${duration}
@@ -238,7 +231,6 @@ Price: ${selectedPackage.price.toLocaleString("en-US")} IQD`;
 Subscriber details:
 Name: ${user.name}
 Phone: ${user.phone}
-Email: ${user.email}
 
 Package: ${serviceName}
 Duration: ${duration}
@@ -277,8 +269,7 @@ Price: ${formattedPrice} IQD`;
         !parsedUser ||
         !parsedUser.id ||
         !parsedUser.name ||
-        !parsedUser.phone ||
-        !parsedUser.email
+        !parsedUser.phone
       ) {
         localStorage.removeItem("user");
 
@@ -1002,7 +993,7 @@ Price: ${formattedPrice} IQD`;
                   ? "خلينا نكمل اشتراك VIP."
                   : "Let’s complete your VIP subscription."
                 : isArabic
-                  ? "قريبين نكمّل اشتراكك."
+                  ? "راح يكمل اشتراكك قريباً."
                   : "You are one step away."}
             </h1>
 
@@ -1477,7 +1468,7 @@ Price: ${formattedPrice} IQD`;
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <UserInfo
                   icon={
                     <UserRound size={16} />
@@ -1498,16 +1489,6 @@ Price: ${formattedPrice} IQD`;
                       : "Phone"
                   }
                   value={user.phone}
-                />
-
-                <UserInfo
-                  icon={<Mail size={16} />}
-                  label={
-                    isArabic
-                      ? "البريد"
-                      : "Email"
-                  }
-                  value={user.email}
                 />
               </div>
             </div>

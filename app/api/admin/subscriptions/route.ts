@@ -14,10 +14,16 @@ type RequestBody = {
   macAddress?: string;
   deviceId?: string;
   startDate?: string;
+  expiryDate?: string;
   price?: number;
   durationMonths?: number;
   durationLabel?: string;
   bonusYears?: number;
+
+  subscriptionId?: number;
+  packageName?: string;
+  status?: string;
+  maxConnections?: number;
 };
 
 function normalizeDateOnly(
@@ -84,7 +90,9 @@ function calculateExpiryDate(
 
   if (
     !normalizedStart ||
-    !Number.isInteger(months) ||
+    !Number.isInteger(
+      months
+    ) ||
     months <= 0
   ) {
     return null;
@@ -250,9 +258,7 @@ function getNewDurationLabel(
   baseLabel: string,
   bonusYears: number
 ) {
-  if (
-    !bonusYears
-  ) {
+  if (!bonusYears) {
     return baseLabel;
   }
 
@@ -371,6 +377,407 @@ export async function GET() {
         message:
           "تعذر تحميل الاشتراكات.",
         subscriptions: [],
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/*
+ * ==========================================================
+ * EDIT EXISTING SUBSCRIPTION
+ * ==========================================================
+ */
+
+export async function PATCH(
+  request: Request
+) {
+  try {
+    await ensureDatabaseConnection();
+
+    const body =
+      (await request.json()) as RequestBody;
+
+    const subscriptionId =
+      body.subscriptionId;
+
+    if (
+      !subscriptionId ||
+      !Number.isInteger(
+        subscriptionId
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "معرف الاشتراك غير صحيح.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const existingSubscription =
+      await db.orm.public.Subscription.first(
+        {
+          id:
+            subscriptionId,
+        }
+      );
+
+    if (
+      !existingSubscription
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "الاشتراك غير موجود.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const serviceType =
+      String(
+        existingSubscription.serviceType ??
+          "IPTV"
+      )
+        .trim()
+        .toUpperCase();
+
+    const packageName =
+      body.packageName?.trim();
+
+    const username =
+      body.username?.trim() ||
+      null;
+
+    const password =
+      body.password?.trim() ||
+      null;
+
+    const macAddress =
+      body.macAddress?.trim() ||
+      null;
+
+    const deviceId =
+      body.deviceId?.trim() ||
+      null;
+
+    const startDate =
+      normalizeDateOnly(
+        body.startDate
+      );
+
+    const expiryDate =
+      normalizeDateOnly(
+        body.expiryDate
+      );
+
+    const status =
+      body.status
+        ?.trim()
+        .toUpperCase() ||
+      existingSubscription.status;
+
+    const maxConnections =
+      body.maxConnections;
+
+    if (
+      !packageName
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "اسم الباقة غير صحيح.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      !startDate ||
+      !expiryDate
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "تاريخ البداية أو الانتهاء غير صحيح.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      expiryDate <
+      startDate
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "تاريخ الانتهاء لا يمكن أن يكون قبل تاريخ البداية.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      !Number.isInteger(
+        maxConnections
+      ) ||
+      maxConnections! < 1 ||
+      maxConnections! > 100
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "الحد الأقصى للاتصالات يجب أن يكون بين 1 و100.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const validStatuses =
+      new Set([
+        "ACTIVE",
+        "EXPIRED",
+        "SUSPENDED",
+        "CANCELLED",
+      ]);
+
+    if (
+      !validStatuses.has(
+        status
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "حالة الاشتراك غير صحيحة.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      serviceType ===
+      "IPTV"
+    ) {
+      if (
+        !username ||
+        !password
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "اشتراك IPTV يحتاج Username و Password.",
+          },
+          { status: 400 }
+        );
+      }
+
+      /*
+       * Username is unique in the database.
+       * Make sure another subscription does not
+       * already use the new username.
+       */
+      if (
+        username !==
+        existingSubscription.username
+      ) {
+        const existingUsername =
+          await db.orm.public.Subscription.first(
+            {
+              username,
+            }
+          );
+
+        if (
+          existingUsername &&
+          existingUsername.id !==
+            subscriptionId
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                "اسم المستخدم هذا مستخدم مسبقاً.",
+            },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
+    if (
+      serviceType ===
+      "VIP"
+    ) {
+      if (!deviceId) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "اشتراك VIP يحتاج Device ID أو Serial Number.",
+          },
+          { status: 400 }
+        );
+      }
+
+      /*
+       * Device ID is unique in the database.
+       */
+      if (
+        deviceId !==
+        existingSubscription.deviceId
+      ) {
+        const existingDevice =
+          await db.orm.public.Subscription.first(
+            {
+              deviceId,
+            }
+          );
+
+        if (
+          existingDevice &&
+          existingDevice.id !==
+            subscriptionId
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                "Device ID أو Serial Number هذا مرتبط باشتراك آخر.",
+            },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
+    const updated =
+      await db.orm.public.Subscription
+        .where({
+          id:
+            subscriptionId,
+        })
+        .update({
+          packageName,
+
+          username:
+            serviceType ===
+            "IPTV"
+              ? username
+              : null,
+
+          password:
+            serviceType ===
+            "IPTV"
+              ? password
+              : null,
+
+          macAddress:
+            serviceType ===
+            "IPTV"
+              ? macAddress
+              : null,
+
+          deviceId:
+            serviceType ===
+            "VIP"
+              ? deviceId
+              : null,
+
+          status,
+
+          startDate,
+
+          expiryDate,
+
+          maxConnections:
+            maxConnections!,
+        });
+
+    if (!updated) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "تعذر تعديل الاشتراك.",
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          "تم تعديل الاشتراك بنجاح.",
+        subscription: {
+          id:
+            updated.id,
+
+          userId:
+            updated.userId,
+
+          serviceType:
+            updated.serviceType,
+
+          username:
+            updated.username,
+
+          password:
+            updated.password,
+
+          macAddress:
+            updated.macAddress,
+
+          deviceId:
+            updated.deviceId,
+
+          status:
+            updated.status,
+
+          packageName:
+            updated.packageName,
+
+          startDate:
+            updated.startDate,
+
+          expiryDate:
+            updated.expiryDate,
+
+          connections:
+            updated.connections,
+
+          maxConnections:
+            updated.maxConnections,
+
+          updatedAt:
+            updated.updatedAt,
+        },
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error(
+      "Admin subscription PATCH error:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          "حدث خطأ أثناء تعديل الاشتراك.",
       },
       { status: 500 }
     );
@@ -593,7 +1000,8 @@ export async function POST(
       }
 
       const requestedYears =
-        renewalMonths! / 12;
+        renewalMonths! /
+        12;
 
       if (
         requestedYears < 1 ||
@@ -694,7 +1102,9 @@ export async function POST(
       const existingSubscription =
         activeSubscription ??
         expiredSubscription ??
-        [...customerSubscriptions].sort(
+        [
+          ...customerSubscriptions,
+        ].sort(
           (a, b) => {
             const expiryA =
               normalizeDateOnly(
@@ -730,7 +1140,9 @@ export async function POST(
           existingSubscription.expiryDate
         )
           ? startDate
-          : existingSubscription.expiryDate;
+          : normalizeDateOnly(
+              existingSubscription.expiryDate
+            );
 
       const renewalExpiryDate =
         addMonthsToDate(
@@ -994,7 +1406,7 @@ export async function POST(
       );
     }
 
-    let bonusYears =
+    const bonusYears =
       typeof requestedBonusYears ===
         "number"
         ? requestedBonusYears
@@ -1030,14 +1442,6 @@ export async function POST(
         bonusYears
       );
 
-    /*
-     * VIP base package duration
-     * remains 3 months.
-     *
-     * Bonus can still be added
-     * on a NEW subscription.
-     */
-
     if (
       serviceType ===
         "VIP" &&
@@ -1053,10 +1457,6 @@ export async function POST(
         { status: 400 }
       );
     }
-
-    /*
-     * NEW IPTV validation
-     */
 
     if (
       serviceType ===
@@ -1076,10 +1476,6 @@ export async function POST(
         );
       }
     }
-
-    /*
-     * NEW VIP validation
-     */
 
     if (
       serviceType ===
@@ -1116,10 +1512,6 @@ export async function POST(
       );
     }
 
-    /*
-     * Username uniqueness for NEW IPTV
-     */
-
     if (
       serviceType ===
         "IPTV" &&
@@ -1145,10 +1537,6 @@ export async function POST(
         );
       }
     }
-
-    /*
-     * Device uniqueness for NEW VIP
-     */
 
     if (
       serviceType ===

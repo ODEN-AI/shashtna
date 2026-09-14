@@ -104,6 +104,7 @@ model SubscriptionRequest {
   price           Int
   durationMonths  Int      @default(12)
   durationLabel   String   @default("1 Year")
+  bonusYears      Int      @default(0)
   deviceId        String?
   deviceName      String?
   devicePrice     Int?
@@ -123,6 +124,7 @@ model Receipt {
   price           Int
   durationMonths  Int
   durationLabel   String
+  bonusYears      Int      @default(0)
   status          String   @default("PAID")
   createdAt       TimestamptzString @default(now())
 }

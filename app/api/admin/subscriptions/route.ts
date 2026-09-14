@@ -17,15 +17,83 @@ type RequestBody = {
   price?: number;
   durationMonths?: number;
   durationLabel?: string;
+  bonusYears?: number;
 };
+
+function normalizeDateOnly(
+  value: unknown
+) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  const stringValue =
+    String(value).trim();
+
+  if (!stringValue) {
+    return "";
+  }
+
+  const match =
+    stringValue.match(
+      /^(\d{4}-\d{2}-\d{2})/
+    );
+
+  if (match?.[1]) {
+    return match[1];
+  }
+
+  const parsed =
+    new Date(stringValue);
+
+  if (
+    Number.isNaN(
+      parsed.getTime()
+    )
+  ) {
+    return "";
+  }
+
+  const year =
+    parsed.getFullYear();
+
+  const month =
+    String(
+      parsed.getMonth() + 1
+    ).padStart(2, "0");
+
+  const day =
+    String(
+      parsed.getDate()
+    ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
 
 function calculateExpiryDate(
   startDateString: string,
   months: number
 ) {
-  const startDate = new Date(
-    `${startDateString}T00:00:00`
-  );
+  const normalizedStart =
+    normalizeDateOnly(
+      startDateString
+    );
+
+  if (
+    !normalizedStart ||
+    !Number.isInteger(months) ||
+    months <= 0
+  ) {
+    return null;
+  }
+
+  const startDate =
+    new Date(
+      `${normalizedStart}T00:00:00`
+    );
 
   if (
     Number.isNaN(
@@ -35,25 +103,23 @@ function calculateExpiryDate(
     return null;
   }
 
-  const expiryDate =
-    new Date(startDate);
-
-  expiryDate.setFullYear(
-    expiryDate.getFullYear(),
-    expiryDate.getMonth() + months,
-    expiryDate.getDate()
+  startDate.setMonth(
+    startDate.getMonth() +
+      months
   );
 
   const year =
-    expiryDate.getFullYear();
+    startDate.getFullYear();
 
-  const month = String(
-    expiryDate.getMonth() + 1
-  ).padStart(2, "0");
+  const month =
+    String(
+      startDate.getMonth() + 1
+    ).padStart(2, "0");
 
-  const day = String(
-    expiryDate.getDate()
-  ).padStart(2, "0");
+  const day =
+    String(
+      startDate.getDate()
+    ).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -62,51 +128,28 @@ function addMonthsToDate(
   dateString: string,
   months: number
 ) {
-  const date = new Date(
-    `${dateString}T00:00:00`
+  return calculateExpiryDate(
+    dateString,
+    months
   );
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return null;
-  }
-
-  date.setFullYear(
-    date.getFullYear(),
-    date.getMonth() + months,
-    date.getDate()
-  );
-
-  const year =
-    date.getFullYear();
-
-  const month = String(
-    date.getMonth() + 1
-  ).padStart(2, "0");
-
-  const day = String(
-    date.getDate()
-  ).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
 }
 
 function getTodayDate() {
-  const today = new Date();
+  const today =
+    new Date();
 
   const year =
     today.getFullYear();
 
-  const month = String(
-    today.getMonth() + 1
-  ).padStart(2, "0");
+  const month =
+    String(
+      today.getMonth() + 1
+    ).padStart(2, "0");
 
-  const day = String(
-    today.getDate()
-  ).padStart(2, "0");
+  const day =
+    String(
+      today.getDate()
+    ).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -114,56 +157,52 @@ function getTodayDate() {
 function isDateBeforeToday(
   dateString: string
 ) {
-  const today = new Date(
-    `${getTodayDate()}T00:00:00`
-  );
+  const normalized =
+    normalizeDateOnly(
+      dateString
+    );
 
-  const date = new Date(
-    `${dateString}T00:00:00`
-  );
-
-  if (
-    Number.isNaN(
-      today.getTime()
-    ) ||
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
+  if (!normalized) {
     return false;
   }
 
   return (
-    date.getTime() <
-    today.getTime()
+    normalized <
+    getTodayDate()
   );
 }
 
 function generateReceiptNumber() {
-  const now = new Date();
+  const now =
+    new Date();
 
   const year =
     now.getFullYear();
 
-  const month = String(
-    now.getMonth() + 1
-  ).padStart(2, "0");
+  const month =
+    String(
+      now.getMonth() + 1
+    ).padStart(2, "0");
 
-  const day = String(
-    now.getDate()
-  ).padStart(2, "0");
+  const day =
+    String(
+      now.getDate()
+    ).padStart(2, "0");
 
-  const hours = String(
-    now.getHours()
-  ).padStart(2, "0");
+  const hours =
+    String(
+      now.getHours()
+    ).padStart(2, "0");
 
-  const minutes = String(
-    now.getMinutes()
-  ).padStart(2, "0");
+  const minutes =
+    String(
+      now.getMinutes()
+    ).padStart(2, "0");
 
-  const seconds = String(
-    now.getSeconds()
-  ).padStart(2, "0");
+  const seconds =
+    String(
+      now.getSeconds()
+    ).padStart(2, "0");
 
   const random =
     Math.floor(
@@ -175,12 +214,9 @@ function generateReceiptNumber() {
   return `SHASHTNA-${year}${month}${day}-${hours}${minutes}${seconds}-${random}`;
 }
 
-function getRenewalDurationLabel(
-  months: number
+function getYearLabel(
+  years: number
 ) {
-  const years =
-    months / 12;
-
   if (years === 1) {
     return "سنة واحدة";
   }
@@ -190,6 +226,39 @@ function getRenewalDurationLabel(
   }
 
   return `${years} سنوات`;
+}
+
+function getBonusLabel(
+  years: number
+) {
+  if (years === 0) {
+    return "بدون بونص";
+  }
+
+  if (years === 1) {
+    return "سنة واحدة بونص";
+  }
+
+  if (years === 2) {
+    return "سنتين بونص";
+  }
+
+  return `${years} سنوات بونص`;
+}
+
+function getNewDurationLabel(
+  baseLabel: string,
+  bonusYears: number
+) {
+  if (
+    !bonusYears
+  ) {
+    return baseLabel;
+  }
+
+  return `${baseLabel} + ${getBonusLabel(
+    bonusYears
+  )}`;
 }
 
 export async function GET() {
@@ -225,10 +294,12 @@ export async function GET() {
                 "Unknown",
 
               customerEmail:
-                user?.email ?? "",
+                user?.email ??
+                "",
 
               customerPhone:
-                user?.phone ?? "",
+                user?.phone ??
+                "",
 
               serviceType:
                 subscription.serviceType,
@@ -358,6 +429,9 @@ export async function POST(
     const requestedDurationLabel =
       body.durationLabel?.trim();
 
+    const requestedBonusYears =
+      body.bonusYears;
+
     if (
       !requestId ||
       !userId ||
@@ -377,8 +451,10 @@ export async function POST(
     }
 
     if (
-      serviceType !== "IPTV" &&
-      serviceType !== "VIP"
+      serviceType !==
+        "IPTV" &&
+      serviceType !==
+        "VIP"
     ) {
       return NextResponse.json(
         {
@@ -404,7 +480,8 @@ export async function POST(
     const subscriptionRequest =
       await db.orm.public.SubscriptionRequest.first(
         {
-          id: requestId,
+          id:
+            requestId,
         }
       );
 
@@ -481,12 +558,14 @@ export async function POST(
       requestType ===
       "RENEW"
     ) {
+      const renewalMonths =
+        requestedDurationMonths;
+
       if (
         !Number.isInteger(
-          requestedDurationMonths
+          renewalMonths
         ) ||
-        requestedDurationMonths! <=
-          0
+        renewalMonths! <= 0
       ) {
         return NextResponse.json(
           {
@@ -499,7 +578,7 @@ export async function POST(
       }
 
       if (
-        requestedDurationMonths! %
+        renewalMonths! %
           12 !==
         0
       ) {
@@ -514,8 +593,7 @@ export async function POST(
       }
 
       const requestedYears =
-        requestedDurationMonths! /
-        12;
+        renewalMonths! / 12;
 
       if (
         requestedYears < 1 ||
@@ -555,11 +633,6 @@ export async function POST(
         );
       }
 
-      /*
-       * Prefer the active subscription with the
-       * latest expiry date.
-       */
-
       const activeSubscription =
         customerSubscriptions
           .filter(
@@ -572,19 +645,22 @@ export async function POST(
               "ACTIVE"
           )
           .sort(
-            (a, b) =>
-              new Date(
-                b.expiryDate
-              ).getTime() -
-              new Date(
-                a.expiryDate
-              ).getTime()
-          )[0];
+            (a, b) => {
+              const expiryA =
+                normalizeDateOnly(
+                  a.expiryDate
+                );
 
-      /*
-       * Otherwise use the expired subscription
-       * with the latest expiry date.
-       */
+              const expiryB =
+                normalizeDateOnly(
+                  b.expiryDate
+                );
+
+              return expiryB.localeCompare(
+                expiryA
+              );
+            }
+          )[0];
 
       const expiredSubscription =
         customerSubscriptions
@@ -598,31 +674,42 @@ export async function POST(
               "EXPIRED"
           )
           .sort(
-            (a, b) =>
-              new Date(
-                b.expiryDate
-              ).getTime() -
-              new Date(
-                a.expiryDate
-              ).getTime()
-          )[0];
+            (a, b) => {
+              const expiryA =
+                normalizeDateOnly(
+                  a.expiryDate
+                );
 
-      /*
-       * Final fallback for older data where the
-       * status might not have been updated correctly.
-       */
+              const expiryB =
+                normalizeDateOnly(
+                  b.expiryDate
+                );
+
+              return expiryB.localeCompare(
+                expiryA
+              );
+            }
+          )[0];
 
       const existingSubscription =
         activeSubscription ??
         expiredSubscription ??
-        customerSubscriptions.sort(
-          (a, b) =>
-            new Date(
-              b.expiryDate
-            ).getTime() -
-            new Date(
-              a.expiryDate
-            ).getTime()
+        [...customerSubscriptions].sort(
+          (a, b) => {
+            const expiryA =
+              normalizeDateOnly(
+                a.expiryDate
+              );
+
+            const expiryB =
+              normalizeDateOnly(
+                b.expiryDate
+              );
+
+            return expiryB.localeCompare(
+              expiryA
+            );
+          }
         )[0];
 
       if (
@@ -638,14 +725,6 @@ export async function POST(
         );
       }
 
-      /*
-       * If the current subscription is still valid,
-       * extend from its current expiry date.
-       *
-       * If it is expired, start from the date
-       * selected by the admin.
-       */
-
       const baseDate =
         isDateBeforeToday(
           existingSubscription.expiryDate
@@ -656,7 +735,7 @@ export async function POST(
       const renewalExpiryDate =
         addMonthsToDate(
           baseDate,
-          requestedDurationMonths!
+          renewalMonths!
         );
 
       if (
@@ -731,8 +810,9 @@ export async function POST(
 
       const durationLabel =
         requestedDurationLabel ||
-        getRenewalDurationLabel(
-          requestedDurationMonths!
+        getYearLabel(
+          requestedDurationMonths! /
+            12
         );
 
       const receipt =
@@ -753,9 +833,12 @@ export async function POST(
             price,
 
             durationMonths:
-              requestedDurationMonths!,
+              renewalMonths!,
 
             durationLabel,
+
+            bonusYears:
+              0,
 
             status:
               "PAID",
@@ -765,7 +848,8 @@ export async function POST(
       const updatedRequest =
         await db.orm.public.SubscriptionRequest
           .where({
-            id: requestId,
+            id:
+              requestId,
           })
           .update({
             status:
@@ -774,9 +858,12 @@ export async function POST(
             price,
 
             durationMonths:
-              requestedDurationMonths!,
+              renewalMonths!,
 
             durationLabel,
+
+            bonusYears:
+              0,
           });
 
       if (
@@ -856,6 +943,9 @@ export async function POST(
             durationLabel:
               receipt.durationLabel,
 
+            bonusYears:
+              receipt.bonusYears,
+
             status:
               receipt.status,
 
@@ -869,6 +959,9 @@ export async function POST(
 
             status:
               updatedRequest.status,
+
+            bonusYears:
+              updatedRequest.bonusYears,
           },
         },
         { status: 201 }
@@ -901,8 +994,53 @@ export async function POST(
       );
     }
 
+    let bonusYears =
+      typeof requestedBonusYears ===
+        "number"
+        ? requestedBonusYears
+        : 0;
+
     if (
-      serviceType === "VIP" &&
+      !Number.isInteger(
+        bonusYears
+      ) ||
+      bonusYears < 0 ||
+      bonusYears > 5
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "البونص يجب أن يكون بين 0 و5 سنوات.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const bonusMonths =
+      bonusYears * 12;
+
+    const finalDurationMonths =
+      originalDurationMonths +
+      bonusMonths;
+
+    const finalDurationLabel =
+      getNewDurationLabel(
+        subscriptionRequest.durationLabel,
+        bonusYears
+      );
+
+    /*
+     * VIP base package duration
+     * remains 3 months.
+     *
+     * Bonus can still be added
+     * on a NEW subscription.
+     */
+
+    if (
+      serviceType ===
+        "VIP" &&
       originalDurationMonths !==
         3
     ) {
@@ -910,7 +1048,7 @@ export async function POST(
         {
           success: false,
           message:
-            "اشتراك VIP متوفر لمدة 3 أشهر فقط.",
+            "اشتراك VIP الأساسي متوفر لمدة 3 أشهر.",
         },
         { status: 400 }
       );
@@ -979,13 +1117,12 @@ export async function POST(
     }
 
     /*
-     * Username uniqueness is only relevant
-     * for a new IPTV subscription.
+     * Username uniqueness for NEW IPTV
      */
 
     if (
       serviceType ===
-      "IPTV" &&
+        "IPTV" &&
       username
     ) {
       const existingUsername =
@@ -1010,8 +1147,7 @@ export async function POST(
     }
 
     /*
-     * Device uniqueness is only relevant
-     * for a new VIP subscription.
+     * Device uniqueness for NEW VIP
      */
 
     if (
@@ -1040,15 +1176,13 @@ export async function POST(
       }
     }
 
-    const startDateValue =
-      new Date(
-        `${startDate}T00:00:00`
+    const normalizedStartDate =
+      normalizeDateOnly(
+        startDate
       );
 
     if (
-      Number.isNaN(
-        startDateValue.getTime()
-      )
+      !normalizedStartDate
     ) {
       return NextResponse.json(
         {
@@ -1062,8 +1196,8 @@ export async function POST(
 
     const expiryDate =
       calculateExpiryDate(
-        startDate,
-        originalDurationMonths
+        normalizedStartDate,
+        finalDurationMonths
       );
 
     if (!expiryDate) {
@@ -1114,7 +1248,8 @@ export async function POST(
           packageName:
             serviceName,
 
-          startDate,
+          startDate:
+            normalizedStartDate,
 
           expiryDate,
 
@@ -1146,10 +1281,12 @@ export async function POST(
           price,
 
           durationMonths:
-            originalDurationMonths,
+            finalDurationMonths,
 
           durationLabel:
-            subscriptionRequest.durationLabel,
+            finalDurationLabel,
+
+          bonusYears,
 
           status:
             "PAID",
@@ -1165,6 +1302,16 @@ export async function POST(
         .update({
           status:
             "ACCEPTED",
+
+          price,
+
+          durationMonths:
+            finalDurationMonths,
+
+          durationLabel:
+            finalDurationLabel,
+
+          bonusYears,
         });
 
     if (
@@ -1191,7 +1338,11 @@ export async function POST(
         success: true,
 
         message:
-          "تم إنشاء الاشتراك والإيصال بنجاح.",
+          bonusYears > 0
+            ? `تم إنشاء الاشتراك مع ${getBonusLabel(
+                bonusYears
+              )} بنجاح.`
+            : "تم إنشاء الاشتراك والإيصال بنجاح.",
 
         subscription: {
           id:
@@ -1244,6 +1395,9 @@ export async function POST(
           durationLabel:
             receipt.durationLabel,
 
+          bonusYears:
+            receipt.bonusYears,
+
           status:
             receipt.status,
 
@@ -1257,6 +1411,15 @@ export async function POST(
 
           status:
             updatedRequest.status,
+
+          durationMonths:
+            updatedRequest.durationMonths,
+
+          durationLabel:
+            updatedRequest.durationLabel,
+
+          bonusYears:
+            updatedRequest.bonusYears,
         },
       },
       { status: 201 }

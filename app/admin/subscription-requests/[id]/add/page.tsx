@@ -11,6 +11,7 @@ import {
   User,
   WalletCards,
   CalendarDays,
+  Gift,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -27,6 +28,7 @@ type RequestData = {
   price: number;
   durationMonths: number;
   durationLabel: string;
+  bonusYears?: number;
   contactMethod: string;
   status: string;
   createdAt: string;
@@ -47,29 +49,28 @@ type ExistingSubscription = {
   expiryDate: string;
 };
 
-const YEAR_OPTIONS = [1, 2, 3, 4, 5];
+const RENEWAL_YEAR_OPTIONS = [
+  1,
+  2,
+  3,
+  4,
+  5,
+];
+
+const BONUS_YEAR_OPTIONS = [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+];
 
 function formatPrice(price: number) {
-  return new Intl.NumberFormat("en-US").format(
-    price
-  );
+  return new Intl.NumberFormat(
+    "en-US"
+  ).format(price);
 }
-
-/*
- * ==========================================================
- * DATE HELPERS
- * ==========================================================
- *
- * The API may return either:
- *
- * YYYY-MM-DD
- *
- * or:
- *
- * YYYY-MM-DDTHH:mm:ss.sssZ
- *
- * These helpers normalize both formats safely.
- */
 
 function normalizeDateOnly(
   value: unknown
@@ -88,10 +89,6 @@ function normalizeDateOnly(
     return "";
   }
 
-  /*
-   * First try to extract the YYYY-MM-DD
-   * part from ISO/date strings.
-   */
   const match =
     stringValue.match(
       /^(\d{4}-\d{2}-\d{2})/
@@ -101,9 +98,6 @@ function normalizeDateOnly(
     return match[1];
   }
 
-  /*
-   * Fallback for other valid date strings.
-   */
   const parsed =
     new Date(stringValue);
 
@@ -193,7 +187,8 @@ function calculateExpiry(
 
   if (
     !normalizedStart ||
-    !months
+    !Number.isInteger(months) ||
+    months <= 0
   ) {
     return "";
   }
@@ -211,10 +206,6 @@ function calculateExpiry(
     return "";
   }
 
-  /*
-   * Add months while preserving
-   * normal calendar behavior.
-   */
   date.setMonth(
     date.getMonth() + months
   );
@@ -235,7 +226,9 @@ function calculateExpiry(
   return `${year}-${month}-${day}`;
 }
 
-function getYearLabel(years: number) {
+function getYearLabel(
+  years: number
+) {
   if (years === 1) {
     return "سنة واحدة";
   }
@@ -245,6 +238,39 @@ function getYearLabel(years: number) {
   }
 
   return `${years} سنوات`;
+}
+
+function getBonusLabel(
+  years: number
+) {
+  if (years === 0) {
+    return "بدون بونص";
+  }
+
+  if (years === 1) {
+    return "سنة واحدة بونص";
+  }
+
+  if (years === 2) {
+    return "سنتين بونص";
+  }
+
+  return `${years} سنوات بونص`;
+}
+
+function getNewDurationLabel(
+  baseLabel: string,
+  bonusYears: number
+) {
+  if (
+    !bonusYears
+  ) {
+    return baseLabel;
+  }
+
+  return `${baseLabel} + ${getBonusLabel(
+    bonusYears
+  )}`;
 }
 
 function normalizeStatus(
@@ -267,10 +293,10 @@ function isDateBeforeToday(
     return false;
   }
 
-  const today =
-    getTodayDate();
-
-  return normalized < today;
+  return (
+    normalized <
+    getTodayDate()
+  );
 }
 
 export default function AddSubscriptionPage({
@@ -325,6 +351,9 @@ export default function AddSubscriptionPage({
 
   const [durationYears, setDurationYears] =
     useState(1);
+
+  const [bonusYears, setBonusYears] =
+    useState(0);
 
   useEffect(() => {
     const userRaw =
@@ -395,11 +424,8 @@ export default function AddSubscriptionPage({
           )
         );
 
-        const today =
-          getTodayDate();
-
         setStartDate(
-          today
+          getTodayDate()
         );
 
         const requestType =
@@ -415,10 +441,10 @@ export default function AddSubscriptionPage({
             1
           );
 
-          /*
-           * Load the customer's
-           * current subscription.
-           */
+          setBonusYears(
+            0
+          );
+
           const subscriptionsResponse =
             await fetch(
               "/api/admin/subscriptions",
@@ -509,7 +535,7 @@ export default function AddSubscriptionPage({
             Number.isInteger(
               originalYears
             ) &&
-            YEAR_OPTIONS.includes(
+            RENEWAL_YEAR_OPTIONS.includes(
               originalYears
             )
           ) {
@@ -521,6 +547,18 @@ export default function AddSubscriptionPage({
               1
             );
           }
+
+          setBonusYears(
+            Number.isInteger(
+              request.bonusYears
+            ) &&
+              (request.bonusYears ?? 0) >=
+                0 &&
+              (request.bonusYears ?? 0) <=
+                5
+              ? request.bonusYears ?? 0
+              : 0
+          );
         }
       } catch (error) {
         console.error(
@@ -549,24 +587,31 @@ export default function AddSubscriptionPage({
     requestType ===
     "RENEW";
 
+  const baseDurationMonths =
+    requestData?.durationMonths ??
+    12;
+
+  const selectedBonusMonths =
+    isRenewal
+      ? 0
+      : bonusYears * 12;
+
   const finalDurationMonths =
     isRenewal
       ? durationYears * 12
-      : requestData?.durationMonths ??
-        12;
+      : baseDurationMonths +
+        selectedBonusMonths;
 
-  /*
-   * Renewal preview:
-   *
-   * Active subscription:
-   * current expiry + selected years
-   *
-   * Expired subscription:
-   * selected start date + selected years
-   *
-   * New subscription:
-   * start date + package duration
-   */
+  const finalDurationLabel =
+    isRenewal
+      ? `${getYearLabel(
+          durationYears
+        )}`
+      : getNewDurationLabel(
+          requestData?.durationLabel ??
+            "1 Year",
+          bonusYears
+        );
 
   const normalizedExistingExpiry =
     existingSubscription
@@ -585,8 +630,10 @@ export default function AddSubscriptionPage({
     );
 
   const expiryBaseDate =
-    hasActiveExistingSubscription
-      ? normalizedExistingExpiry
+    isRenewal
+      ? hasActiveExistingSubscription
+        ? normalizedExistingExpiry
+        : startDate
       : startDate;
 
   const expiryDate =
@@ -633,6 +680,20 @@ export default function AddSubscriptionPage({
       return;
     }
 
+    if (
+      !isRenewal &&
+      (!Number.isInteger(
+        bonusYears
+      ) ||
+        bonusYears < 0 ||
+        bonusYears > 5)
+    ) {
+      setError(
+        "مدة البونص يجب أن تكون بين 0 و5 سنوات."
+      );
+      return;
+    }
+
     const numericPrice =
       Number(price);
 
@@ -647,16 +708,6 @@ export default function AddSubscriptionPage({
       );
       return;
     }
-
-    /*
-     * For NEW subscriptions:
-     * IPTV requires username/password.
-     * VIP requires device ID.
-     *
-     * For RENEW:
-     * Existing subscription credentials
-     * are reused by the API.
-     */
 
     if (!isRenewal) {
       const serviceType =
@@ -745,11 +796,12 @@ export default function AddSubscriptionPage({
                 finalDurationMonths,
 
               durationLabel:
+                finalDurationLabel,
+
+              bonusYears:
                 isRenewal
-                  ? getYearLabel(
-                      durationYears
-                    )
-                  : requestData.durationLabel,
+                  ? 0
+                  : bonusYears,
             }),
           }
         );
@@ -772,7 +824,11 @@ export default function AddSubscriptionPage({
           ? `تم تجديد الاشتراك بنجاح لمدة ${getYearLabel(
               durationYears
             )}. رقم الاشتراك #${data.subscription.id}`
-          : `تم إنشاء الاشتراك بنجاح. رقم الاشتراك #${data.subscription.id}`
+          : bonusYears > 0
+            ? `تم إنشاء الاشتراك بنجاح مع ${getBonusLabel(
+                bonusYears
+              )}. المدة النهائية: ${finalDurationLabel}. رقم الاشتراك #${data.subscription.id}`
+            : `تم إنشاء الاشتراك بنجاح. رقم الاشتراك #${data.subscription.id}`
       );
 
       window.setTimeout(
@@ -852,7 +908,7 @@ export default function AddSubscriptionPage({
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
               {isRenewal
                 ? "حدد مدة التجديد التي تريد منحها للعميل ثم أكد العملية."
-                : "أدخل بيانات الاشتراك الفعلية للعميل وسيتم تفعيله مباشرة."}
+                : "أدخل بيانات الاشتراك الفعلية، ويمكنك إضافة مدة بونص مجانية للعميل."}
             </p>
           </div>
 
@@ -1095,7 +1151,7 @@ export default function AddSubscriptionPage({
                     }
                     className="w-full appearance-none rounded-2xl border border-blue-200 bg-blue-50 px-12 py-3.5 text-sm font-black text-blue-900 outline-none transition focus:border-blue-400 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-100"
                   >
-                    {YEAR_OPTIONS.map(
+                    {RENEWAL_YEAR_OPTIONS.map(
                       (years) => (
                         <option
                           key={
@@ -1114,7 +1170,51 @@ export default function AddSubscriptionPage({
                   </select>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div>
+                <label className="mb-2 block text-sm font-black">
+                  مدة البونص
+                </label>
+
+                <div className="relative">
+                  <Gift className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+
+                  <select
+                    value={
+                      bonusYears
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setBonusYears(
+                        Number(
+                          event.target
+                            .value
+                        )
+                      )
+                    }
+                    className="w-full appearance-none rounded-2xl border border-amber-200 bg-amber-50 px-12 py-3.5 text-sm font-black text-amber-900 outline-none transition focus:border-amber-400 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100"
+                  >
+                    {BONUS_YEAR_OPTIONS.map(
+                      (years) => (
+                        <option
+                          key={
+                            years
+                          }
+                          value={
+                            years
+                          }
+                        >
+                          {getBonusLabel(
+                            years
+                          )}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="mb-2 block text-sm font-black">
@@ -1153,6 +1253,42 @@ export default function AddSubscriptionPage({
             </div>
           </div>
 
+          {!isRenewal &&
+          bonusYears > 0 ? (
+            <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold leading-7 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+              <Gift className="mt-1 h-5 w-5 shrink-0" />
+
+              <div>
+                <div>
+                  تم إضافة{" "}
+                  <strong>
+                    {getBonusLabel(
+                      bonusYears
+                    )}
+                  </strong>
+                </div>
+
+                <div>
+                  المدة الأساسية:{" "}
+                  <strong>
+                    {
+                      requestData.durationLabel
+                    }
+                  </strong>
+                </div>
+
+                <div>
+                  المدة النهائية:{" "}
+                  <strong>
+                    {
+                      finalDurationLabel
+                    }
+                  </strong>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-8 rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-sm leading-7 text-blue-900 dark:border-blue-900/30 dark:bg-blue-950/20 dark:text-blue-200">
             <strong>
               ملاحظة:
@@ -1182,13 +1318,27 @@ export default function AddSubscriptionPage({
               </>
             ) : (
               <>
-                مدة الاشتراك{" "}
-                {
-                  requestData.durationLabel
-                }
-                ، لذلك النظام يحسب
-                تاريخ الانتهاء تلقائياً
-                من تاريخ البداية.
+                مدة الباقة الأساسية{" "}
+                <strong>
+                  {
+                    requestData.durationLabel
+                  }
+                </strong>
+                .
+                <br />
+                {bonusYears > 0
+                  ? `تمت إضافة ${getBonusLabel(
+                      bonusYears
+                    )} مجانًا.`
+                  : "ماكو بونص مضاف."}
+                <br />
+                المدة النهائية:{" "}
+                <strong>
+                  {
+                    finalDurationLabel
+                  }
+                </strong>
+                .
               </>
             )}
           </div>

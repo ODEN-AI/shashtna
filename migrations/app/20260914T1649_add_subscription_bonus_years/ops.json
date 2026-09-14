@@ -1,0 +1,86 @@
+[
+  {
+    "id": "column.public.receipt.bonusYears",
+    "label": "Add column \"bonusYears\" to \"receipt\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "bonusYears",
+        "table": "receipt"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"bonusYears\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "receipt",
+          "bonusYears"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"bonusYears\"",
+        "sql": "ALTER TABLE \"public\".\"receipt\" ADD COLUMN \"bonusYears\" int4 DEFAULT 0 NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"bonusYears\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "receipt",
+          "bonusYears"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.bonusYears",
+    "label": "Add column \"bonusYears\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "bonusYears",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"bonusYears\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "bonusYears"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"bonusYears\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"bonusYears\" int4 DEFAULT 0 NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"bonusYears\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "bonusYears"
+        ]
+      }
+    ]
+  }
+]

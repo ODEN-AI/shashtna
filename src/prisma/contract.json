@@ -570,6 +570,13 @@
           },
           "Receipt": {
             "fields": {
+              "bonusYears": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "createdAt": {
                 "nullable": false,
                 "type": {
@@ -651,6 +658,9 @@
             "relations": {},
             "storage": {
               "fields": {
+                "bonusYears": {
+                  "column": "bonusYears"
+                },
                 "createdAt": {
                   "column": "createdAt"
                 },
@@ -868,6 +878,13 @@
           },
           "SubscriptionRequest": {
             "fields": {
+              "bonusYears": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "contactMethod": {
                 "nullable": false,
                 "type": {
@@ -1000,6 +1017,9 @@
             },
             "storage": {
               "fields": {
+                "bonusYears": {
+                  "column": "bonusYears"
+                },
                 "contactMethod": {
                   "column": "contactMethod"
                 },
@@ -1567,6 +1587,15 @@
             },
             "receipt": {
               "columns": {
+                "bonusYears": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
                 "createdAt": {
                   "codecId": "pg/timestamptz-string@1",
                   "default": {
@@ -1804,6 +1833,15 @@
             },
             "subscriptionRequest": {
               "columns": {
+                "bonusYears": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
                 "contactMethod": {
                   "codecId": "pg/text@1",
                   "default": {
@@ -2037,7 +2075,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "1b8422414561e16bebdffafd727686bdaedebfbc48f102cc66aefca411806ace"
+    "storageHash": "9e027464add9e0070d5e6266440c170155e6e07fff422f670d423916a6c97022"
   },
   "execution": {
     "executionHash": "fbdb71ed0c52305855af1647d232d528ab3826f5c602272855b4f225f1d710b3",

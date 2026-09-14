@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 
-const MAX_FILE_SIZE = 8 * 1024 * 1024;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 const allowedTypes: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "حجم الصورة يجب أن يكون 8MB أو أقل.",
+          message: "حجم الصورة يجب أن يكون 5MB أو أقل.",
         },
         { status: 400 }
       );
@@ -66,10 +66,10 @@ export async function POST(request: Request) {
     const filename = `${crypto.randomUUID()}.${extension}`;
     const bytes = await file.arrayBuffer();
 
-    const isNetlify =
-      process.env.NETLIFY === "true";
+    const isProduction =
+      process.env.NODE_ENV === "production";
 
-    if (isNetlify) {
+    if (isProduction) {
       const store = getStore(BLOB_STORE_NAME);
 
       await store.set(filename, bytes, {
@@ -124,11 +124,18 @@ export async function POST(request: Request) {
       error
     );
 
+    const message =
+      error instanceof Error
+        ? error.message
+        : "حدث خطأ أثناء رفع الصورة.";
+
     return NextResponse.json(
       {
         success: false,
         message:
-          "حدث خطأ أثناء رفع الصورة.",
+          process.env.NODE_ENV === "production"
+            ? `فشل رفع الصورة على الخادم: ${message}`
+            : message,
       },
       { status: 500 }
     );

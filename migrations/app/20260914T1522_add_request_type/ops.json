@@ -1,0 +1,959 @@
+[
+  {
+    "id": "dropDefault.receipt.createdAt",
+    "label": "Drop default on \"receipt\".\"createdAt\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "createdAt",
+        "table": "receipt"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"createdAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "receipt",
+          "createdAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop default on \"createdAt\"",
+        "sql": "ALTER TABLE \"public\".\"receipt\" ALTER COLUMN \"createdAt\" DROP DEFAULT"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"createdAt\" has no default",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"column_default\" IS NULL)) AS \"result\"",
+        "params": [
+          "public",
+          "receipt",
+          "createdAt"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.device",
+    "label": "Create table \"device\"",
+    "summary": "Creates table \"device\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "device"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"device\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"device\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"device\"",
+        "sql": "CREATE TABLE \"public\".\"device\" (\n  \"description\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"imageUrl\" text,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"name\" text NOT NULL,\n  \"notes\" text,\n  \"price\" int4 NOT NULL,\n  \"serviceType\" text DEFAULT 'IPTV' NOT NULL,\n  \"slug\" text NOT NULL,\n  \"specifications\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"device\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"device\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.packageDevice",
+    "label": "Create table \"packageDevice\"",
+    "summary": "Creates table \"packageDevice\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "packageDevice"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"packageDevice\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"packageDevice\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"packageDevice\"",
+        "sql": "CREATE TABLE \"public\".\"packageDevice\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"deviceId\" int4 NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"packageId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"packageDevice\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"packageDevice\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.package.serviceType",
+    "label": "Add column \"serviceType\" to \"package\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "serviceType",
+        "table": "package"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"serviceType\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "package",
+          "serviceType"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"serviceType\"",
+        "sql": "ALTER TABLE \"public\".\"package\" ADD COLUMN \"serviceType\" text DEFAULT 'IPTV' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"serviceType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "package",
+          "serviceType"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.receipt.serviceType",
+    "label": "Add column \"serviceType\" to \"receipt\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "serviceType",
+        "table": "receipt"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"serviceType\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "receipt",
+          "serviceType"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"serviceType\"",
+        "sql": "ALTER TABLE \"public\".\"receipt\" ADD COLUMN \"serviceType\" text DEFAULT 'IPTV' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"serviceType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "receipt",
+          "serviceType"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscription.deviceId",
+    "label": "Add column \"deviceId\" to \"subscription\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "deviceId",
+        "table": "subscription"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"deviceId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscription",
+          "deviceId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"deviceId\"",
+        "sql": "ALTER TABLE \"public\".\"subscription\" ADD COLUMN \"deviceId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"deviceId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscription",
+          "deviceId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscription.serviceType",
+    "label": "Add column \"serviceType\" to \"subscription\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "serviceType",
+        "table": "subscription"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"serviceType\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscription",
+          "serviceType"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"serviceType\"",
+        "sql": "ALTER TABLE \"public\".\"subscription\" ADD COLUMN \"serviceType\" text DEFAULT 'IPTV' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"serviceType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscription",
+          "serviceType"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.deviceId",
+    "label": "Add column \"deviceId\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "deviceId",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"deviceId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "deviceId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"deviceId\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"deviceId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"deviceId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "deviceId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.deviceName",
+    "label": "Add column \"deviceName\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "deviceName",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"deviceName\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "deviceName"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"deviceName\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"deviceName\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"deviceName\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "deviceName"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.devicePrice",
+    "label": "Add column \"devicePrice\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "devicePrice",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"devicePrice\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "devicePrice"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"devicePrice\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"devicePrice\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"devicePrice\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "devicePrice"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.requestType",
+    "label": "Add column \"requestType\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "requestType",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"requestType\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "requestType"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"requestType\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"requestType\" text DEFAULT 'NEW' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"requestType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "requestType"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.serviceType",
+    "label": "Add column \"serviceType\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "serviceType",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"serviceType\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "serviceType"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"serviceType\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"serviceType\" text DEFAULT 'IPTV' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"serviceType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "serviceType"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "alterNullability.dropNotNull.subscription.password",
+    "label": "Drop NOT NULL on \"subscription\".\"password\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "password",
+        "table": "subscription"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"password\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscription",
+          "password"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop NOT NULL on \"password\"",
+        "sql": "ALTER TABLE \"public\".\"subscription\" ALTER COLUMN \"password\" DROP NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"password\" is nullable",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "subscription",
+          "password",
+          "YES"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "alterNullability.dropNotNull.subscription.username",
+    "label": "Drop NOT NULL on \"subscription\".\"username\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "username",
+        "table": "subscription"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"username\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscription",
+          "username"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop NOT NULL on \"username\"",
+        "sql": "ALTER TABLE \"public\".\"subscription\" ALTER COLUMN \"username\" DROP NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"username\" is nullable",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "subscription",
+          "username",
+          "YES"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "alterNullability.dropNotNull.user.email",
+    "label": "Drop NOT NULL on \"user\".\"email\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "email",
+        "table": "user"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"email\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "user",
+          "email"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop NOT NULL on \"email\"",
+        "sql": "ALTER TABLE \"public\".\"user\" ALTER COLUMN \"email\" DROP NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"email\" is nullable",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "user",
+          "email",
+          "YES"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.device.device_slug_key",
+    "label": "Add unique constraint on \"device\" (slug)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "device_slug_key",
+        "table": "device"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"device_slug_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "device_slug_key",
+          "public",
+          "\"public\".\"device\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"device_slug_key\"",
+        "sql": "ALTER TABLE \"public\".\"device\" ADD CONSTRAINT \"device_slug_key\" UNIQUE (\"slug\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"device_slug_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "device_slug_key",
+          "public",
+          "\"public\".\"device\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.packageDevice.packageDevice_packageId_deviceId_key",
+    "label": "Add unique constraint on \"packageDevice\" (packageId, deviceId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "packageDevice_packageId_deviceId_key",
+        "table": "packageDevice"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"packageDevice_packageId_deviceId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "packageDevice_packageId_deviceId_key",
+          "public",
+          "\"public\".\"packageDevice\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"packageDevice_packageId_deviceId_key\"",
+        "sql": "ALTER TABLE \"public\".\"packageDevice\" ADD CONSTRAINT \"packageDevice_packageId_deviceId_key\" UNIQUE (\"packageId\", \"deviceId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"packageDevice_packageId_deviceId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "packageDevice_packageId_deviceId_key",
+          "public",
+          "\"public\".\"packageDevice\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.subscription.subscription_deviceId_key",
+    "label": "Add unique constraint on \"subscription\" (deviceId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "subscription_deviceId_key",
+        "table": "subscription"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"subscription_deviceId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "subscription_deviceId_key",
+          "public",
+          "\"public\".\"subscription\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"subscription_deviceId_key\"",
+        "sql": "ALTER TABLE \"public\".\"subscription\" ADD CONSTRAINT \"subscription_deviceId_key\" UNIQUE (\"deviceId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"subscription_deviceId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "subscription_deviceId_key",
+          "public",
+          "\"public\".\"subscription\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.user.user_phone_key",
+    "label": "Add unique constraint on \"user\" (phone)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "user_phone_key",
+        "table": "user"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"user_phone_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "user_phone_key",
+          "public",
+          "\"public\".\"user\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"user_phone_key\"",
+        "sql": "ALTER TABLE \"public\".\"user\" ADD CONSTRAINT \"user_phone_key\" UNIQUE (\"phone\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"user_phone_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "user_phone_key",
+          "public",
+          "\"public\".\"user\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.packageDevice.packageDevice_deviceId_idx_a7d461e8",
+    "label": "Create index \"packageDevice_deviceId_idx_a7d461e8\" on \"packageDevice\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "packageDevice_deviceId_idx_a7d461e8",
+        "table": "packageDevice"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"packageDevice_deviceId_idx_a7d461e8\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"packageDevice_deviceId_idx_a7d461e8\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"packageDevice_deviceId_idx_a7d461e8\"",
+        "sql": "CREATE INDEX \"packageDevice_deviceId_idx_a7d461e8\" ON \"public\".\"packageDevice\" (\"deviceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"packageDevice_deviceId_idx_a7d461e8\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"packageDevice_deviceId_idx_a7d461e8\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.packageDevice.packageDevice_packageId_idx_51f866f4",
+    "label": "Create index \"packageDevice_packageId_idx_51f866f4\" on \"packageDevice\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "packageDevice_packageId_idx_51f866f4",
+        "table": "packageDevice"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"packageDevice_packageId_idx_51f866f4\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"packageDevice_packageId_idx_51f866f4\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"packageDevice_packageId_idx_51f866f4\"",
+        "sql": "CREATE INDEX \"packageDevice_packageId_idx_51f866f4\" ON \"public\".\"packageDevice\" (\"packageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"packageDevice_packageId_idx_51f866f4\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"packageDevice_packageId_idx_51f866f4\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.packageDevice.packageDevice_packageId_fkey",
+    "label": "Add foreign key \"packageDevice_packageId_fkey\" on \"packageDevice\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "packageDevice_packageId_fkey",
+        "table": "packageDevice"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"packageDevice_packageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "packageDevice_packageId_fkey",
+          "public",
+          "\"public\".\"packageDevice\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"packageDevice_packageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"packageDevice\"\nADD CONSTRAINT \"packageDevice_packageId_fkey\"\nFOREIGN KEY (\"packageId\")\nREFERENCES \"public\".\"package\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"packageDevice_packageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "packageDevice_packageId_fkey",
+          "public",
+          "\"public\".\"packageDevice\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.packageDevice.packageDevice_deviceId_fkey",
+    "label": "Add foreign key \"packageDevice_deviceId_fkey\" on \"packageDevice\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "packageDevice_deviceId_fkey",
+        "table": "packageDevice"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"packageDevice_deviceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "packageDevice_deviceId_fkey",
+          "public",
+          "\"public\".\"packageDevice\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"packageDevice_deviceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"packageDevice\"\nADD CONSTRAINT \"packageDevice_deviceId_fkey\"\nFOREIGN KEY (\"deviceId\")\nREFERENCES \"public\".\"device\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"packageDevice_deviceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "packageDevice_deviceId_fkey",
+          "public",
+          "\"public\".\"packageDevice\""
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,128 @@
+[
+  {
+    "id": "dropColumn.device.createdAt",
+    "label": "Drop column \"createdAt\" from \"device\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "createdAt",
+        "table": "device"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"createdAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "device",
+          "createdAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"createdAt\"",
+        "sql": "ALTER TABLE \"public\".\"device\" DROP COLUMN \"createdAt\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"createdAt\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "device",
+          "createdAt"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropDefault.receipt.createdAt",
+    "label": "Drop default on \"receipt\".\"createdAt\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "createdAt",
+        "table": "receipt"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"createdAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "receipt",
+          "createdAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop default on \"createdAt\"",
+        "sql": "ALTER TABLE \"public\".\"receipt\" ALTER COLUMN \"createdAt\" DROP DEFAULT"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"createdAt\" has no default",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"column_default\" IS NULL)) AS \"result\"",
+        "params": [
+          "public",
+          "receipt",
+          "createdAt"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.requestType",
+    "label": "Add column \"requestType\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "requestType",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"requestType\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "requestType"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"requestType\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"requestType\" text DEFAULT 'NEW' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"requestType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "requestType"
+        ]
+      }
+    ]
+  }
+]

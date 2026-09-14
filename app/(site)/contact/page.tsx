@@ -69,6 +69,10 @@ type VipRequestType =
   | "NEW"
   | "RENEW";
 
+type StandardRequestType =
+  | "NEW"
+  | "RENEW";
+
 const TELEGRAM_URL =
   "https://t.me/shashtna";
 
@@ -81,12 +85,46 @@ function normalizeServiceType(value: unknown) {
     .toUpperCase();
 }
 
+function normalizeRequestType(
+  value: unknown
+): StandardRequestType | null {
+  const normalized = String(
+    value ?? ""
+  )
+    .trim()
+    .toUpperCase();
+
+  if (
+    normalized === "NEW" ||
+    normalized === "RENEW"
+  ) {
+    return normalized;
+  }
+
+  return null;
+}
+
 function ContactPageContent() {
   const { language } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const planSlug = searchParams.get("plan");
+
+  const requestTypeParam =
+    searchParams.get("requestType") ??
+    searchParams.get("type");
+
+  const renewParam =
+    searchParams.get("renew");
+
+  const initialRequestType =
+    normalizeRequestType(
+      requestTypeParam
+    ) ??
+    (renewParam === "1"
+      ? "RENEW"
+      : null);
 
   const [user, setUser] =
     useState<UserData | null>(null);
@@ -110,7 +148,14 @@ function ContactPageContent() {
     useState<DeviceData | null>(null);
 
   const [vipRequestType, setVipRequestType] =
-    useState<VipRequestType | null>(null);
+    useState<VipRequestType | null>(
+      initialRequestType
+    );
+
+  const [standardRequestType, setStandardRequestType] =
+    useState<StandardRequestType | null>(
+      initialRequestType
+    );
 
   const [copied, setCopied] =
     useState(false);
@@ -134,11 +179,19 @@ function ContactPageContent() {
       selectedPackage?.serviceType
     ) === "VIP";
 
+  const activeRequestType =
+    isVip
+      ? vipRequestType
+      : standardRequestType;
+
   const canContact =
-    !isVip ||
-    vipRequestType === "RENEW" ||
-    (vipRequestType === "NEW" &&
-      selectedDevice !== null);
+    activeRequestType !== null &&
+    (!isVip ||
+      activeRequestType ===
+        "RENEW" ||
+      (activeRequestType ===
+        "NEW" &&
+        selectedDevice !== null));
 
   const currentPrice =
     isVip &&
@@ -162,10 +215,15 @@ function ContactPageContent() {
       selectedPackage.durationLabel;
 
     const formattedPrice =
-      currentPrice.toLocaleString("en-US");
+      currentPrice.toLocaleString(
+        "en-US"
+      );
 
     if (isVip) {
-      if (vipRequestType === "NEW") {
+      if (
+        vipRequestType ===
+        "NEW"
+      ) {
         return isArabic
           ? `السلام عليكم، أريد الاشتراك بباقة VIP جديدة عن طريق موقع شاشتنا.
 
@@ -193,7 +251,10 @@ Device Price: ${selectedDevice?.price.toLocaleString("en-US") ?? "0"} IQD
 Total: ${formattedPrice} IQD`;
       }
 
-      if (vipRequestType === "RENEW") {
+      if (
+        vipRequestType ===
+        "RENEW"
+      ) {
         return isArabic
           ? `السلام عليكم، أريد تجديد اشتراك VIP عن طريق موقع شاشتنا.
 
@@ -202,7 +263,6 @@ Total: ${formattedPrice} IQD`;
 رقم الهاتف: ${user.phone}
 
 باقة VIP: ${serviceName}
-مدة التجديد: ${duration}
 السعر: ${selectedPackage.price.toLocaleString("en-US")} دينار`
           : `Hello, I would like to renew my VIP subscription through the Shashtna website.
 
@@ -211,9 +271,31 @@ Name: ${user.name}
 Phone: ${user.phone}
 
 VIP Plan: ${serviceName}
-Renewal duration: ${duration}
 Price: ${selectedPackage.price.toLocaleString("en-US")} IQD`;
       }
+    }
+
+    if (
+      standardRequestType ===
+      "RENEW"
+    ) {
+      return isArabic
+        ? `السلام عليكم، أريد تجديد اشتراكي بخدمة ${serviceName} عن طريق موقع شاشتنا.
+
+بيانات المشترك:
+الاسم: ${user.name}
+رقم الهاتف: ${user.phone}
+
+الباقة: ${serviceName}
+السعر: ${selectedPackage.price.toLocaleString("en-US")} دينار`
+        : `Hello, I would like to renew my ${serviceName} subscription through the Shashtna website.
+
+Subscriber details:
+Name: ${user.name}
+Phone: ${user.phone}
+
+Package: ${serviceName}
+Price: ${selectedPackage.price.toLocaleString("en-US")} IQD`;
     }
 
     return isArabic
@@ -242,6 +324,7 @@ Price: ${formattedPrice} IQD`;
     currentPrice,
     isVip,
     vipRequestType,
+    standardRequestType,
     isArabic,
   ]);
 
@@ -250,7 +333,9 @@ Price: ${formattedPrice} IQD`;
 
     try {
       const savedUser =
-        localStorage.getItem("user");
+        localStorage.getItem(
+          "user"
+        );
 
       if (!savedUser) {
         router.replace(
@@ -263,7 +348,9 @@ Price: ${formattedPrice} IQD`;
       }
 
       const parsedUser =
-        JSON.parse(savedUser) as UserData;
+        JSON.parse(
+          savedUser
+        ) as UserData;
 
       if (
         !parsedUser ||
@@ -271,7 +358,9 @@ Price: ${formattedPrice} IQD`;
         !parsedUser.name ||
         !parsedUser.phone
       ) {
-        localStorage.removeItem("user");
+        localStorage.removeItem(
+          "user"
+        );
 
         router.replace(
           `/login?redirect=${encodeURIComponent(
@@ -284,7 +373,9 @@ Price: ${formattedPrice} IQD`;
 
       setUser(parsedUser);
     } catch {
-      localStorage.removeItem("user");
+      localStorage.removeItem(
+        "user"
+      );
 
       router.replace(
         `/login?redirect=${encodeURIComponent(
@@ -292,7 +383,10 @@ Price: ${formattedPrice} IQD`;
         )}`
       );
     }
-  }, [router, planSlug]);
+  }, [
+    router,
+    planSlug,
+  ]);
 
   useEffect(() => {
     if (!mounted) {
@@ -300,7 +394,9 @@ Price: ${formattedPrice} IQD`;
     }
 
     if (!planSlug) {
-      router.replace("/plans");
+      router.replace(
+        "/plans"
+      );
       return;
     }
 
@@ -311,13 +407,14 @@ Price: ${formattedPrice} IQD`;
       setRequestError("");
 
       try {
-        const response = await fetch(
-          "/api/packages",
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
+        const response =
+          await fetch(
+            "/api/packages",
+            {
+              method: "GET",
+              cache: "no-store",
+            }
+          );
 
         const data =
           (await response.json()) as {
@@ -325,21 +422,27 @@ Price: ${formattedPrice} IQD`;
             packages?: PackageData[];
           };
 
-        if (!response.ok || !data.success) {
+        if (
+          !response.ok ||
+          !data.success
+        ) {
           throw new Error(
             "Failed to load packages."
           );
         }
 
         const packages =
-          Array.isArray(data.packages)
+          Array.isArray(
+            data.packages
+          )
             ? data.packages
             : [];
 
         const foundPackage =
           packages.find(
             (pkg) =>
-              pkg.slug === planSlug &&
+              pkg.slug ===
+                planSlug &&
               pkg.isActive
           ) ?? null;
 
@@ -348,7 +451,9 @@ Price: ${formattedPrice} IQD`;
         }
 
         if (!foundPackage) {
-          router.replace("/plans");
+          router.replace(
+            "/plans"
+          );
           return;
         }
 
@@ -361,10 +466,17 @@ Price: ${formattedPrice} IQD`;
             foundPackage.serviceType
           );
 
-        if (serviceType !== "VIP") {
-          setVipRequestType(null);
+        if (
+          serviceType !==
+          "VIP"
+        ) {
+          setVipRequestType(
+            null
+          );
           setDevices([]);
-          setSelectedDevice(null);
+          setSelectedDevice(
+            null
+          );
         }
       } catch (error) {
         console.error(
@@ -381,7 +493,9 @@ Price: ${formattedPrice} IQD`;
         }
       } finally {
         if (!cancelled) {
-          setLoadingPackage(false);
+          setLoadingPackage(
+            false
+          );
         }
       }
     }
@@ -403,21 +517,39 @@ Price: ${formattedPrice} IQD`;
       return;
     }
 
-    if (
+    const serviceType =
       normalizeServiceType(
         selectedPackage.serviceType
-      ) !== "VIP"
-    ) {
+      );
+
+    setRequestId(null);
+    setSelectedContact(null);
+    setRequestError("");
+
+    if (serviceType === "VIP") {
+      setStandardRequestType(
+        null
+      );
+      setVipRequestType(
+        initialRequestType
+      );
+      setDevices([]);
+      setSelectedDevice(
+        null
+      );
       return;
     }
 
     setVipRequestType(null);
     setDevices([]);
     setSelectedDevice(null);
-    setRequestId(null);
-    setSelectedContact(null);
-    setRequestError("");
-  }, [selectedPackage]);
+    setStandardRequestType(
+      initialRequestType
+    );
+  }, [
+    selectedPackage,
+    initialRequestType,
+  ]);
 
   useEffect(() => {
     if (
@@ -425,7 +557,8 @@ Price: ${formattedPrice} IQD`;
       normalizeServiceType(
         selectedPackage.serviceType
       ) !== "VIP" ||
-      vipRequestType !== "NEW" ||
+      vipRequestType !==
+        "NEW" ||
       !planSlug
     ) {
       return;
@@ -434,7 +567,9 @@ Price: ${formattedPrice} IQD`;
     let cancelled = false;
 
     async function loadVipDevices() {
-      setLoadingDevices(true);
+      setLoadingDevices(
+        true
+      );
       setRequestError("");
 
       try {
@@ -444,10 +579,13 @@ Price: ${formattedPrice} IQD`;
           )}`;
 
         const response =
-          await fetch(query, {
-            method: "GET",
-            cache: "no-store",
-          });
+          await fetch(
+            query,
+            {
+              method: "GET",
+              cache: "no-store",
+            }
+          );
 
         const data =
           (await response.json()) as {
@@ -455,7 +593,10 @@ Price: ${formattedPrice} IQD`;
             devices?: DeviceData[];
           };
 
-        if (!response.ok || !data.success) {
+        if (
+          !response.ok ||
+          !data.success
+        ) {
           throw new Error(
             "Failed to load VIP devices."
           );
@@ -466,7 +607,9 @@ Price: ${formattedPrice} IQD`;
         }
 
         const loadedDevices =
-          Array.isArray(data.devices)
+          Array.isArray(
+            data.devices
+          )
             ? data.devices.filter(
                 (device) =>
                   device.isActive &&
@@ -476,23 +619,31 @@ Price: ${formattedPrice} IQD`;
               )
             : [];
 
-        setDevices(loadedDevices);
+        setDevices(
+          loadedDevices
+        );
 
-        setSelectedDevice((current) => {
-          if (
-            current &&
-            loadedDevices.some(
-              (device) =>
-                device.id === current.id
-            )
-          ) {
-            return current;
+        setSelectedDevice(
+          (current) => {
+            if (
+              current &&
+              loadedDevices.some(
+                (device) =>
+                  device.id ===
+                  current.id
+              )
+            ) {
+              return current;
+            }
+
+            return null;
           }
+        );
 
-          return null;
-        });
-
-        if (loadedDevices.length === 0) {
+        if (
+          loadedDevices.length ===
+          0
+        ) {
           setRequestError(
             isArabic
               ? "ماكو أجهزة VIP مرتبطة بهذه الباقة حاليًا."
@@ -507,7 +658,10 @@ Price: ${formattedPrice} IQD`;
 
         if (!cancelled) {
           setDevices([]);
-          setSelectedDevice(null);
+          setSelectedDevice(
+            null
+          );
+
           setRequestError(
             isArabic
               ? "تعذر تحميل أجهزة VIP حاليًا."
@@ -516,7 +670,9 @@ Price: ${formattedPrice} IQD`;
         }
       } finally {
         if (!cancelled) {
-          setLoadingDevices(false);
+          setLoadingDevices(
+            false
+          );
         }
       }
     }
@@ -538,39 +694,53 @@ Price: ${formattedPrice} IQD`;
       !user ||
       !selectedPackage ||
       !planSlug ||
-      isVip
+      isVip ||
+      !standardRequestType
     ) {
       return;
     }
 
-    const currentUser = user;
-    const currentPlanSlug = planSlug;
+    const currentUser =
+      user;
+
+    const currentPlanSlug =
+      planSlug;
+
+    const currentRequestType =
+      standardRequestType;
 
     let cancelled = false;
 
     async function createRequest() {
-      setSavingRequest(true);
+      setSavingRequest(
+        true
+      );
       setRequestError("");
 
       try {
-        const response = await fetch(
-          "/api/subscription-requests",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              userId:
-                currentUser.id,
-              planSlug:
-                currentPlanSlug,
-              serviceType: "IPTV",
-              contactMethod: "PENDING",
-            }),
-          }
-        );
+        const response =
+          await fetch(
+            "/api/subscription-requests",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                userId:
+                  currentUser.id,
+                planSlug:
+                  currentPlanSlug,
+                serviceType:
+                  "IPTV",
+                contactMethod:
+                  "PENDING",
+                requestType:
+                  currentRequestType,
+              }),
+            }
+          );
 
         const data =
           (await response.json()) as {
@@ -609,7 +779,9 @@ Price: ${formattedPrice} IQD`;
         }
       } finally {
         if (!cancelled) {
-          setSavingRequest(false);
+          setSavingRequest(
+            false
+          );
         }
       }
     }
@@ -625,6 +797,7 @@ Price: ${formattedPrice} IQD`;
     planSlug,
     isVip,
     isArabic,
+    standardRequestType,
   ]);
 
   async function createVipRequest(
@@ -641,49 +814,61 @@ Price: ${formattedPrice} IQD`;
     }
 
     if (
-      vipRequestType === "NEW" &&
+      vipRequestType ===
+        "NEW" &&
       !selectedDevice
     ) {
       return null;
     }
 
-    setSavingRequest(true);
+    setSavingRequest(
+      true
+    );
     setRequestError("");
 
     try {
-      const response = await fetch(
-        "/api/subscription-requests",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            planSlug,
-            serviceType: "VIP",
-            contactMethod: method,
-            requestType: vipRequestType,
-            deviceId:
-              vipRequestType === "NEW"
-                ? String(
-                    selectedDevice?.id ?? ""
-                  )
-                : null,
-            deviceName:
-              vipRequestType === "NEW"
-                ? selectedDevice?.name ??
-                  null
-                : null,
-            devicePrice:
-              vipRequestType === "NEW"
-                ? selectedDevice?.price ??
-                  null
-                : null,
-          }),
-        }
-      );
+      const response =
+        await fetch(
+          "/api/subscription-requests",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              userId:
+                user.id,
+              planSlug,
+              serviceType:
+                "VIP",
+              contactMethod:
+                method,
+              requestType:
+                vipRequestType,
+              deviceId:
+                vipRequestType ===
+                "NEW"
+                  ? String(
+                      selectedDevice?.id ??
+                        ""
+                    )
+                  : null,
+              deviceName:
+                vipRequestType ===
+                "NEW"
+                  ? selectedDevice?.name ??
+                    null
+                  : null,
+              devicePrice:
+                vipRequestType ===
+                "NEW"
+                  ? selectedDevice?.price ??
+                    null
+                  : null,
+            }),
+          }
+        );
 
       const data =
         (await response.json()) as {
@@ -708,7 +893,10 @@ Price: ${formattedPrice} IQD`;
         );
       }
 
-      return data.requestId ?? null;
+      return (
+        data.requestId ??
+        null
+      );
     } catch (error) {
       console.error(
         "Create VIP request error:",
@@ -723,30 +911,40 @@ Price: ${formattedPrice} IQD`;
 
       return null;
     } finally {
-      setSavingRequest(false);
+      setSavingRequest(
+        false
+      );
     }
   }
 
   async function saveContactMethod(
     method: ContactMethod
   ) {
-    if (!user || !planSlug) {
+    if (
+      !user ||
+      !planSlug
+    ) {
       return;
     }
 
     if (isVip) {
-      if (!vipRequestType) {
+      if (
+        !vipRequestType
+      ) {
         return;
       }
 
       if (
-        vipRequestType === "NEW" &&
+        vipRequestType ===
+          "NEW" &&
         !selectedDevice
       ) {
         return;
       }
 
-      setSelectedContact(method);
+      setSelectedContact(
+        method
+      );
 
       await createVipRequest(
         method
@@ -755,26 +953,39 @@ Price: ${formattedPrice} IQD`;
       return;
     }
 
-    setSelectedContact(method);
+    if (!standardRequestType) {
+      return;
+    }
+
+    setSelectedContact(
+      method
+    );
+
     setRequestError("");
 
     try {
-      const response = await fetch(
-        "/api/subscription-requests",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            planSlug,
-            serviceType: "IPTV",
-            contactMethod: method,
-          }),
-        }
-      );
+      const response =
+        await fetch(
+          "/api/subscription-requests",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              userId:
+                user.id,
+              planSlug,
+              serviceType:
+                "IPTV",
+              contactMethod:
+                method,
+              requestType:
+                standardRequestType,
+            }),
+          }
+        );
 
       const data =
         (await response.json()) as {
@@ -824,9 +1035,12 @@ Price: ${formattedPrice} IQD`;
 
       setCopied(true);
 
-      window.setTimeout(() => {
-        setCopied(false);
-      }, 2200);
+      window.setTimeout(
+        () => {
+          setCopied(false);
+        },
+        2200
+      );
     } catch (error) {
       console.error(
         "Copy message error:",
@@ -838,7 +1052,10 @@ Price: ${formattedPrice} IQD`;
   }
 
   async function openTelegram() {
-    if (!message || !canContact) {
+    if (
+      !message ||
+      !canContact
+    ) {
       return;
     }
 
@@ -848,7 +1065,9 @@ Price: ${formattedPrice} IQD`;
 
     const url =
       `${TELEGRAM_URL}?text=` +
-      encodeURIComponent(message);
+      encodeURIComponent(
+        message
+      );
 
     window.open(
       url,
@@ -858,7 +1077,9 @@ Price: ${formattedPrice} IQD`;
   }
 
   async function openFacebook() {
-    if (!canContact) {
+    if (
+      !canContact
+    ) {
       return;
     }
 
@@ -876,9 +1097,28 @@ Price: ${formattedPrice} IQD`;
   function chooseVipRequestType(
     type: VipRequestType
   ) {
-    setVipRequestType(type);
-    setSelectedDevice(null);
-    setSelectedContact(null);
+    setVipRequestType(
+      type
+    );
+    setSelectedDevice(
+      null
+    );
+    setSelectedContact(
+      null
+    );
+    setRequestId(null);
+    setRequestError("");
+  }
+
+  function chooseStandardRequestType(
+    type: StandardRequestType
+  ) {
+    setStandardRequestType(
+      type
+    );
+    setSelectedContact(
+      null
+    );
     setRequestId(null);
     setRequestError("");
   }
@@ -891,7 +1131,11 @@ Price: ${formattedPrice} IQD`;
   ) {
     return (
       <main
-        dir={isArabic ? "rtl" : "ltr"}
+        dir={
+          isArabic
+            ? "rtl"
+            : "ltr"
+        }
         className="flex min-h-[70vh] items-center justify-center bg-white dark:bg-[#070b14]"
       >
         <div className="flex flex-col items-center gap-4 text-center">
@@ -915,7 +1159,11 @@ Price: ${formattedPrice} IQD`;
 
   return (
     <main
-      dir={isArabic ? "rtl" : "ltr"}
+      dir={
+        isArabic
+          ? "rtl"
+          : "ltr"
+      }
       className="min-h-screen overflow-hidden bg-white text-slate-900 dark:bg-[#070b14] dark:text-white"
     >
       <section className="relative isolate overflow-hidden border-b border-slate-200/70 dark:border-slate-800/70">
@@ -971,7 +1219,9 @@ Price: ${formattedPrice} IQD`;
               }`}
             >
               {isVip ? (
-                <Sparkles size={14} />
+                <Sparkles
+                  size={14}
+                />
               ) : (
                 <MessageCircle
                   size={14}
@@ -1003,13 +1253,15 @@ Price: ${formattedPrice} IQD`;
                   ? "اختار نوع العملية أولًا، وبعدها نكمل وياك الخطوات المناسبة."
                   : "Choose the type of VIP request first, then we’ll continue with the right flow."
                 : isArabic
-                  ? "راجع بياناتك، وبعدها اختار طريقة التواصل المناسبة حتى نكمل إجراءات الاشتراك وياك."
-                  : "Review your details, then choose your preferred way to contact us so we can complete your subscription."}
+                  ? "اختار أولًا إذا تريد اشتراك جديد أو تجديد اشتراكك الحالي، وبعدها نكمل وياك."
+                  : "Choose whether you want a new subscription or a renewal, then we’ll continue with you."}
             </p>
 
             {requestId && (
               <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50/70 px-4 py-2 text-[11px] font-black text-emerald-700 dark:border-emerald-500/10 dark:bg-emerald-500/[0.05] dark:text-emerald-400">
-                <Check size={14} />
+                <Check
+                  size={14}
+                />
 
                 {isArabic
                   ? `تم حفظ طلبك #${requestId}`
@@ -1032,7 +1284,9 @@ Price: ${formattedPrice} IQD`;
                 }`}
               >
                 {isVip ? (
-                  <Sparkles size={22} />
+                  <Sparkles
+                    size={22}
+                  />
                 ) : (
                   <Tv size={22} />
                 )}
@@ -1058,20 +1312,26 @@ Price: ${formattedPrice} IQD`;
             <div className="mt-7 grid gap-3">
               <InfoRow
                 icon={
-                  <Clock3 size={17} />
+                  <Clock3
+                    size={17}
+                  />
                 }
                 label={
                   isArabic
                     ? "المدة"
                     : "Duration"
                 }
-                value={duration}
+                value={
+                  duration
+                }
               />
 
               <InfoRow
                 icon={
                   isVip ? (
-                    <Sparkles size={17} />
+                    <Sparkles
+                      size={17}
+                    />
                   ) : (
                     <Tv size={17} />
                   )
@@ -1128,7 +1388,9 @@ Price: ${formattedPrice} IQD`;
                   </div>
 
                   <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                    {selectedPackage.description}
+                    {
+                      selectedPackage.description
+                    }
                   </p>
                 </div>
               )}
@@ -1145,7 +1407,9 @@ Price: ${formattedPrice} IQD`;
                     </div>
 
                     <div className="mt-1 text-sm font-black text-slate-900 dark:text-white">
-                      {selectedDevice.name}
+                      {
+                        selectedDevice.name
+                      }
                     </div>
                   </div>
                 )}
@@ -1172,7 +1436,9 @@ Price: ${formattedPrice} IQD`;
               <div className="euclid-glass rounded-[30px] p-7">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/[0.08] dark:text-blue-400">
-                    <Sparkles size={19} />
+                    <Sparkles
+                      size={19}
+                    />
                   </div>
 
                   <div>
@@ -1207,7 +1473,9 @@ Price: ${formattedPrice} IQD`;
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/[0.08] dark:text-blue-400">
-                        <Sparkles size={20} />
+                        <Sparkles
+                          size={20}
+                        />
                       </div>
 
                       {vipRequestType ===
@@ -1249,7 +1517,9 @@ Price: ${formattedPrice} IQD`;
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                        <Clock3 size={20} />
+                        <Clock3
+                          size={20}
+                        />
                       </div>
 
                       {vipRequestType ===
@@ -1278,6 +1548,122 @@ Price: ${formattedPrice} IQD`;
               </div>
             )}
 
+            {!isVip && (
+              <div className="euclid-glass rounded-[30px] p-7">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/[0.08] dark:text-blue-400">
+                    <Clock3
+                      size={19}
+                    />
+                  </div>
+
+                  <div>
+                    <h2 className="text-lg font-black text-slate-950 dark:text-white">
+                      {isArabic
+                        ? "شنو نوع طلبك؟"
+                        : "What would you like to do?"}
+                    </h2>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      {isArabic
+                        ? "اختار إذا تريد اشتراك جديد أو تجديد اشتراكك الحالي."
+                        : "Choose whether you want a new subscription or a renewal."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      chooseStandardRequestType(
+                        "NEW"
+                      )
+                    }
+                    className={`rounded-2xl border p-5 text-start transition-all duration-300 hover:-translate-y-0.5 ${
+                      standardRequestType ===
+                      "NEW"
+                        ? "border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/10 dark:border-blue-400 dark:bg-blue-500/[0.08]"
+                        : "border-slate-200 bg-white hover:border-blue-300 dark:border-slate-700 dark:bg-slate-900/60 dark:hover:border-blue-500/30"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/[0.08] dark:text-blue-400">
+                        <Sparkles
+                          size={20}
+                        />
+                      </div>
+
+                      {standardRequestType ===
+                        "NEW" && (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white">
+                          <Check
+                            size={14}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <h3 className="mt-4 text-base font-black text-slate-900 dark:text-white">
+                      {isArabic
+                        ? "اشتراك جديد"
+                        : "New subscription"}
+                    </h3>
+
+                    <p className="mt-2 text-xs leading-6 text-slate-500 dark:text-slate-400">
+                      {isArabic
+                        ? "تقديم طلب اشتراك جديد بهذه الباقة."
+                        : "Create a new subscription request for this package."}
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      chooseStandardRequestType(
+                        "RENEW"
+                      )
+                    }
+                    className={`rounded-2xl border p-5 text-start transition-all duration-300 hover:-translate-y-0.5 ${
+                      standardRequestType ===
+                      "RENEW"
+                        ? "border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/10 dark:border-blue-400 dark:bg-blue-500/[0.08]"
+                        : "border-slate-200 bg-white hover:border-blue-300 dark:border-slate-700 dark:bg-slate-900/60 dark:hover:border-blue-500/30"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        <Clock3
+                          size={20}
+                        />
+                      </div>
+
+                      {standardRequestType ===
+                        "RENEW" && (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white">
+                          <Check
+                            size={14}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <h3 className="mt-4 text-base font-black text-slate-900 dark:text-white">
+                      {isArabic
+                        ? "تجديد اشتراك"
+                        : "Renew subscription"}
+                    </h3>
+
+                    <p className="mt-2 text-xs leading-6 text-slate-500 dark:text-slate-400">
+                      {isArabic
+                        ? "تمديد اشتراكك الحالي بدل إنشاء اشتراك جديد."
+                        : "Extend your current subscription instead of creating a new one."}
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {isVip &&
               vipRequestType ===
                 "NEW" && (
@@ -1285,7 +1671,9 @@ Price: ${formattedPrice} IQD`;
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600 dark:bg-cyan-500/[0.08] dark:text-cyan-400">
-                        <Tv size={19} />
+                        <Tv
+                          size={19}
+                        />
                       </div>
 
                       <div>
@@ -1450,7 +1838,9 @@ Price: ${formattedPrice} IQD`;
             <div className="euclid-glass rounded-[30px] p-7">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/[0.08] dark:text-blue-400">
-                  <UserRound size={19} />
+                  <UserRound
+                    size={19}
+                  />
                 </div>
 
                 <div>
@@ -1471,24 +1861,32 @@ Price: ${formattedPrice} IQD`;
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <UserInfo
                   icon={
-                    <UserRound size={16} />
+                    <UserRound
+                      size={16}
+                    />
                   }
                   label={
                     isArabic
                       ? "الاسم"
                       : "Name"
                   }
-                  value={user.name}
+                  value={
+                    user.name
+                  }
                 />
 
                 <UserInfo
-                  icon={<Phone size={16} />}
+                  icon={
+                    <Phone size={16} />
+                  }
                   label={
                     isArabic
                       ? "رقم الهاتف"
                       : "Phone"
                   }
-                  value={user.phone}
+                  value={
+                    user.phone
+                  }
                 />
               </div>
             </div>
@@ -1509,7 +1907,9 @@ Price: ${formattedPrice} IQD`;
                   <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
                       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/[0.09] dark:text-sky-400">
-                        <Send size={21} />
+                        <Send
+                          size={21}
+                        />
                       </div>
 
                       <div>
@@ -1540,7 +1940,9 @@ Price: ${formattedPrice} IQD`;
                         ? "التوجه إلى Telegram"
                         : "Open Telegram"}
 
-                      <Send size={17} />
+                      <Send
+                        size={17}
+                      />
                     </button>
                   </div>
 
@@ -1553,15 +1955,20 @@ Price: ${formattedPrice} IQD`;
                         ? isArabic
                           ? "اختار جهاز VIP أولًا حتى نكدر نجهز طلبك."
                           : "Choose a VIP device first so we can prepare your request."
-                        : isVip &&
-                            vipRequestType ===
-                              "RENEW"
+                        : !canContact &&
+                            !isVip
                           ? isArabic
-                            ? "التجديد ما يحتاج اختيار جهاز."
-                            : "Renewal does not require device selection."
-                          : isArabic
-                            ? "راح تنفتح المحادثة والرسالة تكون مجهزة تلقائيًا."
-                            : "The conversation will open with your message prepared automatically."}
+                            ? "اختار أولًا «اشتراك جديد» أو «تجديد اشتراك»."
+                            : "Choose “New subscription” or “Renew subscription” first."
+                          : isVip &&
+                              vipRequestType ===
+                                "RENEW"
+                            ? isArabic
+                              ? "التجديد ما يحتاج اختيار جهاز."
+                              : "Renewal does not require device selection."
+                            : isArabic
+                              ? "راح تنفتح المحادثة والرسالة تكون مجهزة تلقائيًا."
+                              : "The conversation will open with your message prepared automatically."}
                     </p>
                   </div>
                 </div>
@@ -1609,7 +2016,9 @@ Price: ${formattedPrice} IQD`;
                           onClick={() => {
                             void copyMessage();
                           }}
-                          disabled={!message}
+                          disabled={
+                            !message
+                          }
                           className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${
                             copied
                               ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
@@ -1642,7 +2051,9 @@ Price: ${formattedPrice} IQD`;
 
                       <div className="rounded-xl bg-white p-4 text-sm leading-7 text-slate-700 shadow-sm dark:bg-slate-900 dark:text-slate-300">
                         {message
-                          .split("\n")
+                          .split(
+                            "\n"
+                          )
                           .map(
                             (
                               line,
@@ -1652,7 +2063,9 @@ Price: ${formattedPrice} IQD`;
                                 key={`${line}-${index}`}
                                 className="block min-h-[1.5rem]"
                               >
-                                {line}
+                                {
+                                  line
+                                }
                               </span>
                             )
                           )}
@@ -1708,6 +2121,15 @@ Price: ${formattedPrice} IQD`;
                 </div>
               )}
 
+            {!isVip &&
+              !standardRequestType && (
+                <div className="rounded-2xl border border-blue-200/70 bg-blue-50/60 px-5 py-4 text-xs font-bold leading-6 text-blue-700 dark:border-blue-500/10 dark:bg-blue-500/[0.06] dark:text-blue-400">
+                  {isArabic
+                    ? "اختار «اشتراك جديد» أو «تجديد اشتراك» حتى تظهر لك الخطوة التالية."
+                    : "Choose “New subscription” or “Renew subscription” to continue."}
+                </div>
+              )}
+
             {requestError && (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-xs font-bold leading-6 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/[0.06] dark:text-amber-300">
                 <div className="flex items-start gap-3">
@@ -1716,7 +2138,9 @@ Price: ${formattedPrice} IQD`;
                     className="mt-0.5 shrink-0"
                   />
 
-                  <span>{requestError}</span>
+                  <span>
+                    {requestError}
+                  </span>
                 </div>
               </div>
             )}

@@ -40,27 +40,51 @@ export async function GET(
       );
     }
 
-    const user = await db.orm.public.User.first({
-      id: request.userId,
-    });
+    const user =
+      await db.orm.public.User.first({
+        id: request.userId,
+      });
 
     return NextResponse.json({
       success: true,
       request: {
         id: request.id,
         userId: request.userId,
-        customerName: user?.name ?? "Unknown",
-        customerPhone: user?.phone ?? "",
-        customerEmail: user?.email ?? "",
-        planSlug: request.planSlug,
-        serviceName: request.serviceName,
-        price: request.price,
-        durationMonths: request.durationMonths,
-        durationLabel: request.durationLabel,
-        contactMethod: request.contactMethod,
-        status: request.status,
-        createdAt: request.createdAt,
-        updatedAt: request.updatedAt,
+        customerName:
+          user?.name ?? "Unknown",
+        customerPhone:
+          user?.phone ?? "",
+        customerEmail:
+          user?.email ?? "",
+        planSlug:
+          request.planSlug,
+        serviceName:
+          request.serviceName,
+
+        requestType:
+          request.requestType ??
+          "NEW",
+
+        price:
+          request.price,
+
+        durationMonths:
+          request.durationMonths,
+
+        durationLabel:
+          request.durationLabel,
+
+        contactMethod:
+          request.contactMethod,
+
+        status:
+          request.status,
+
+        createdAt:
+          request.createdAt,
+
+        updatedAt:
+          request.updatedAt,
       },
     });
   } catch (error) {
@@ -72,7 +96,8 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-        message: "تعذر تحميل الطلب.",
+        message:
+          "تعذر تحميل الطلب.",
       },
       { status: 500 }
     );
@@ -91,46 +116,59 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          message: "رقم الطلب غير صحيح.",
+          message:
+            "رقم الطلب غير صحيح.",
         },
         { status: 400 }
       );
     }
 
-    const body = (await request.json()) as {
-      status?: string;
-    };
+    const body =
+      (await request.json()) as {
+        status?: string;
+      };
 
-    if (body.status !== "REJECTED") {
+    if (
+      body.status !==
+      "REJECTED"
+    ) {
       return NextResponse.json(
         {
           success: false,
-          message: "الحالة المطلوبة غير مسموحة.",
+          message:
+            "الحالة المطلوبة غير مسموحة.",
         },
         { status: 400 }
       );
     }
 
     const existingRequest =
-      await db.orm.public.SubscriptionRequest.first({
-        id: requestId,
-      });
+      await db.orm.public.SubscriptionRequest.first(
+        {
+          id: requestId,
+        }
+      );
 
     if (!existingRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "الطلب غير موجود.",
+          message:
+            "الطلب غير موجود.",
         },
         { status: 404 }
       );
     }
 
-    if (existingRequest.status !== "PENDING") {
+    if (
+      existingRequest.status !==
+      "PENDING"
+    ) {
       return NextResponse.json(
         {
           success: false,
-          message: "هذا الطلب تمت معالجته مسبقاً.",
+          message:
+            "هذا الطلب تمت معالجته مسبقاً.",
         },
         { status: 400 }
       );
@@ -138,16 +176,20 @@ export async function PATCH(
 
     const updated =
       await db.orm.public.SubscriptionRequest
-        .where({ id: requestId })
+        .where({
+          id: requestId,
+        })
         .update({
-          status: "REJECTED",
+          status:
+            "REJECTED",
         });
 
     if (!updated) {
       return NextResponse.json(
         {
           success: false,
-          message: "تعذر رفض الطلب.",
+          message:
+            "تعذر رفض الطلب.",
         },
         { status: 500 }
       );
@@ -156,8 +198,10 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       request: {
-        id: updated.id,
-        status: updated.status,
+        id:
+          updated.id,
+        status:
+          updated.status,
       },
     });
   } catch (error) {
@@ -169,7 +213,8 @@ export async function PATCH(
     return NextResponse.json(
       {
         success: false,
-        message: "حدث خطأ أثناء رفض الطلب.",
+        message:
+          "حدث خطأ أثناء رفض الطلب.",
       },
       { status: 500 }
     );

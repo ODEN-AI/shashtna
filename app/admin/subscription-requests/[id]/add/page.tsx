@@ -10,6 +10,7 @@ import {
   MonitorSmartphone,
   User,
   WalletCards,
+  CalendarDays,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -21,6 +22,8 @@ type RequestData = {
   customerEmail: string;
   planSlug: string;
   serviceName: string;
+  serviceType: string;
+  requestType?: string;
   price: number;
   durationMonths: number;
   durationLabel: string;
@@ -30,44 +33,244 @@ type RequestData = {
   updatedAt: string;
 };
 
+type ExistingSubscription = {
+  id: number;
+  userId: number;
+  serviceType: string;
+  username: string | null;
+  password: string | null;
+  macAddress: string | null;
+  deviceId: string | null;
+  packageName: string;
+  status: string;
+  startDate: string;
+  expiryDate: string;
+};
+
+const YEAR_OPTIONS = [1, 2, 3, 4, 5];
+
 function formatPrice(price: number) {
-  return new Intl.NumberFormat("en-US").format(price);
+  return new Intl.NumberFormat("en-US").format(
+    price
+  );
 }
 
-function formatDateOnly(date: string) {
-  return new Intl.DateTimeFormat("ar-IQ", {
-    dateStyle: "medium",
-  }).format(new Date(`${date}T00:00:00`));
+/*
+ * ==========================================================
+ * DATE HELPERS
+ * ==========================================================
+ *
+ * The API may return either:
+ *
+ * YYYY-MM-DD
+ *
+ * or:
+ *
+ * YYYY-MM-DDTHH:mm:ss.sssZ
+ *
+ * These helpers normalize both formats safely.
+ */
+
+function normalizeDateOnly(
+  value: unknown
+) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  const stringValue =
+    String(value).trim();
+
+  if (!stringValue) {
+    return "";
+  }
+
+  /*
+   * First try to extract the YYYY-MM-DD
+   * part from ISO/date strings.
+   */
+  const match =
+    stringValue.match(
+      /^(\d{4}-\d{2}-\d{2})/
+    );
+
+  if (match?.[1]) {
+    return match[1];
+  }
+
+  /*
+   * Fallback for other valid date strings.
+   */
+  const parsed =
+    new Date(stringValue);
+
+  if (
+    Number.isNaN(
+      parsed.getTime()
+    )
+  ) {
+    return "";
+  }
+
+  const year =
+    parsed.getFullYear();
+
+  const month =
+    String(
+      parsed.getMonth() + 1
+    ).padStart(2, "0");
+
+  const day =
+    String(
+      parsed.getDate()
+    ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateOnly(
+  value: string
+) {
+  const normalized =
+    normalizeDateOnly(value);
+
+  if (!normalized) {
+    return "—";
+  }
+
+  const date =
+    new Date(
+      `${normalized}T00:00:00`
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat(
+    "ar-IQ",
+    {
+      dateStyle: "medium",
+    }
+  ).format(date);
+}
+
+function getTodayDate() {
+  const today =
+    new Date();
+
+  const year =
+    today.getFullYear();
+
+  const month =
+    String(
+      today.getMonth() + 1
+    ).padStart(2, "0");
+
+  const day =
+    String(
+      today.getDate()
+    ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function calculateExpiry(
   startDate: string,
   months: number
 ) {
-  if (!startDate) {
+  const normalizedStart =
+    normalizeDateOnly(
+      startDate
+    );
+
+  if (
+    !normalizedStart ||
+    !months
+  ) {
     return "";
   }
 
-  const date = new Date(`${startDate}T00:00:00`);
+  const date =
+    new Date(
+      `${normalizedStart}T00:00:00`
+    );
 
-  if (Number.isNaN(date.getTime())) {
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
     return "";
   }
 
-  date.setFullYear(
-    date.getFullYear(),
-    date.getMonth() + months,
-    date.getDate()
+  /*
+   * Add months while preserving
+   * normal calendar behavior.
+   */
+  date.setMonth(
+    date.getMonth() + months
   );
 
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(
-    2,
-    "0"
-  );
-  const day = String(date.getDate()).padStart(2, "0");
+  const year =
+    date.getFullYear();
+
+  const month =
+    String(
+      date.getMonth() + 1
+    ).padStart(2, "0");
+
+  const day =
+    String(
+      date.getDate()
+    ).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+function getYearLabel(years: number) {
+  if (years === 1) {
+    return "سنة واحدة";
+  }
+
+  if (years === 2) {
+    return "سنتين";
+  }
+
+  return `${years} سنوات`;
+}
+
+function normalizeStatus(
+  value: unknown
+) {
+  return String(value ?? "")
+    .trim()
+    .toUpperCase();
+}
+
+function isDateBeforeToday(
+  dateString: string
+) {
+  const normalized =
+    normalizeDateOnly(
+      dateString
+    );
+
+  if (!normalized) {
+    return false;
+  }
+
+  const today =
+    getTodayDate();
+
+  return normalized < today;
 }
 
 export default function AddSubscriptionPage({
@@ -75,94 +278,327 @@ export default function AddSubscriptionPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const [requestId, setRequestId] = useState("");
-  const [requestData, setRequestData] =
-    useState<RequestData | null>(null);
+  const [
+    requestData,
+    setRequestData,
+  ] = useState<RequestData | null>(
+    null
+  );
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [
+    existingSubscription,
+    setExistingSubscription,
+  ] =
+    useState<ExistingSubscription | null>(
+      null
+    );
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [macAddress, setMacAddress] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [price, setPrice] = useState("");
+  const [loading, setLoading] =
+    useState(true);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [success, setSuccess] =
+    useState("");
+
+  const [username, setUsername] =
+    useState("");
+
+  const [password, setPassword] =
+    useState("");
+
+  const [macAddress, setMacAddress] =
+    useState("");
+
+  const [deviceId, setDeviceId] =
+    useState("");
+
+  const [startDate, setStartDate] =
+    useState("");
+
+  const [price, setPrice] =
+    useState("");
+
+  const [durationYears, setDurationYears] =
+    useState(1);
 
   useEffect(() => {
-    const userRaw = localStorage.getItem("user");
+    const userRaw =
+      localStorage.getItem(
+        "user"
+      );
 
     if (!userRaw) {
-      window.location.href = "/login";
+      window.location.href =
+        "/login";
       return;
     }
 
     try {
-      const user = JSON.parse(userRaw);
+      const user =
+        JSON.parse(userRaw);
 
-      if (user?.role !== "ADMIN") {
-        window.location.href = "/dashboard";
+      if (
+        user?.role !==
+        "ADMIN"
+      ) {
+        window.location.href =
+          "/dashboard";
         return;
       }
     } catch {
-      window.location.href = "/login";
+      window.location.href =
+        "/login";
       return;
     }
 
     async function load() {
       try {
-        const routeParams = await params;
-        setRequestId(routeParams.id);
+        const routeParams =
+          await params;
 
-        const response = await fetch(
-          `/api/admin/subscription-requests/${routeParams.id}`,
-          {
-            cache: "no-store",
-          }
-        );
+        const response =
+          await fetch(
+            `/api/admin/subscription-requests/${routeParams.id}`,
+            {
+              cache: "no-store",
+            }
+          );
 
-        const data = await response.json();
+        const data =
+          await response.json();
 
-        if (!response.ok || !data.success) {
+        if (
+          !response.ok ||
+          !data.success
+        ) {
           throw new Error(
-            data.message || "تعذر تحميل الطلب."
+            data.message ||
+              "تعذر تحميل الطلب."
           );
         }
 
-        setRequestData(data.request);
-        setPrice(String(data.request.price));
+        const request =
+          data.request as RequestData;
 
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(
-          today.getMonth() + 1
-        ).padStart(2, "0");
-        const day = String(today.getDate()).padStart(
-          2,
-          "0"
+        setRequestData(
+          request
         );
+
+        setPrice(
+          String(
+            request.price
+          )
+        );
+
+        const today =
+          getTodayDate();
 
         setStartDate(
-          `${year}-${month}-${day}`
+          today
         );
+
+        const requestType =
+          normalizeStatus(
+            request.requestType
+          );
+
+        if (
+          requestType ===
+          "RENEW"
+        ) {
+          setDurationYears(
+            1
+          );
+
+          /*
+           * Load the customer's
+           * current subscription.
+           */
+          const subscriptionsResponse =
+            await fetch(
+              "/api/admin/subscriptions",
+              {
+                cache:
+                  "no-store",
+              }
+            );
+
+          if (
+            subscriptionsResponse.ok
+          ) {
+            const subscriptionsData =
+              await subscriptionsResponse.json();
+
+            if (
+              subscriptionsData.success
+            ) {
+              const customerSubscriptions =
+                (
+                  subscriptionsData.subscriptions ??
+                  []
+                ) as ExistingSubscription[];
+
+              const matched =
+                customerSubscriptions
+                  .filter(
+                    (
+                      subscription
+                    ) =>
+                      subscription.userId ===
+                      request.userId
+                  )
+                  .sort(
+                    (
+                      a,
+                      b
+                    ) => {
+                      const expiryA =
+                        normalizeDateOnly(
+                          a.expiryDate
+                        );
+
+                      const expiryB =
+                        normalizeDateOnly(
+                          b.expiryDate
+                        );
+
+                      return expiryB.localeCompare(
+                        expiryA
+                      );
+                    }
+                  )[0];
+
+              if (matched) {
+                setExistingSubscription(
+                  matched
+                );
+
+                setUsername(
+                  matched.username ??
+                    ""
+                );
+
+                setPassword(
+                  matched.password ??
+                    ""
+                );
+
+                setMacAddress(
+                  matched.macAddress ??
+                    ""
+                );
+
+                setDeviceId(
+                  matched.deviceId ??
+                    ""
+                );
+              }
+            }
+          }
+        } else {
+          const originalYears =
+            request.durationMonths /
+            12;
+
+          if (
+            Number.isInteger(
+              originalYears
+            ) &&
+            YEAR_OPTIONS.includes(
+              originalYears
+            )
+          ) {
+            setDurationYears(
+              originalYears
+            );
+          } else {
+            setDurationYears(
+              1
+            );
+          }
+        }
       } catch (error) {
-        console.error(error);
-        setError("تعذر تحميل بيانات الطلب.");
+        console.error(
+          error
+        );
+
+        setError(
+          "تعذر تحميل بيانات الطلب."
+        );
       } finally {
-        setLoading(false);
+        setLoading(
+          false
+        );
       }
     }
 
     load();
   }, [params]);
 
-  const expiryDate = useMemo(() => {
-    return calculateExpiry(
-      startDate,
-      requestData?.durationMonths ?? 12
+  const requestType =
+    normalizeStatus(
+      requestData?.requestType
     );
-  }, [startDate, requestData]);
+
+  const isRenewal =
+    requestType ===
+    "RENEW";
+
+  const finalDurationMonths =
+    isRenewal
+      ? durationYears * 12
+      : requestData?.durationMonths ??
+        12;
+
+  /*
+   * Renewal preview:
+   *
+   * Active subscription:
+   * current expiry + selected years
+   *
+   * Expired subscription:
+   * selected start date + selected years
+   *
+   * New subscription:
+   * start date + package duration
+   */
+
+  const normalizedExistingExpiry =
+    existingSubscription
+      ? normalizeDateOnly(
+          existingSubscription.expiryDate
+        )
+      : "";
+
+  const hasActiveExistingSubscription =
+    isRenewal &&
+    Boolean(
+      normalizedExistingExpiry
+    ) &&
+    !isDateBeforeToday(
+      normalizedExistingExpiry
+    );
+
+  const expiryBaseDate =
+    hasActiveExistingSubscription
+      ? normalizedExistingExpiry
+      : startDate;
+
+  const expiryDate =
+    useMemo(() => {
+      return calculateExpiry(
+        expiryBaseDate,
+        finalDurationMonths
+      );
+    }, [
+      expiryBaseDate,
+      finalDurationMonths,
+    ]);
 
   async function submitSubscription(
     event: React.FormEvent<HTMLFormElement>
@@ -174,72 +610,192 @@ export default function AddSubscriptionPage({
     }
 
     if (
-      !username.trim() ||
-      !password.trim() ||
       !startDate ||
       !price
     ) {
-      setError("يرجى تعبئة جميع الحقول المطلوبة.");
+      setError(
+        "يرجى تعبئة جميع الحقول المطلوبة."
+      );
       return;
     }
 
-    const numericPrice = Number(price);
-
-    if (!Number.isFinite(numericPrice) || numericPrice < 0) {
-      setError("السعر غير صحيح.");
+    if (
+      isRenewal &&
+      (!Number.isInteger(
+        durationYears
+      ) ||
+        durationYears < 1 ||
+        durationYears > 5)
+    ) {
+      setError(
+        "مدة التجديد غير صحيحة."
+      );
       return;
+    }
+
+    const numericPrice =
+      Number(price);
+
+    if (
+      !Number.isFinite(
+        numericPrice
+      ) ||
+      numericPrice < 0
+    ) {
+      setError(
+        "السعر غير صحيح."
+      );
+      return;
+    }
+
+    /*
+     * For NEW subscriptions:
+     * IPTV requires username/password.
+     * VIP requires device ID.
+     *
+     * For RENEW:
+     * Existing subscription credentials
+     * are reused by the API.
+     */
+
+    if (!isRenewal) {
+      const serviceType =
+        normalizeStatus(
+          requestData.serviceType
+        );
+
+      if (
+        serviceType ===
+        "IPTV"
+      ) {
+        if (
+          !username.trim() ||
+          !password.trim()
+        ) {
+          setError(
+            "اشتراك IPTV يحتاج Username و Password."
+          );
+          return;
+        }
+      }
+
+      if (
+        serviceType ===
+        "VIP"
+      ) {
+        if (
+          !deviceId.trim()
+        ) {
+          setError(
+            "اشتراك VIP يحتاج Device ID أو Serial Number."
+          );
+          return;
+        }
+      }
     }
 
     try {
-      setSaving(true);
+      setSaving(
+        true
+      );
+
       setError("");
       setSuccess("");
 
-      const response = await fetch(
-        "/api/admin/subscriptions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            requestId: requestData.id,
-            userId: requestData.userId,
-            serviceName: requestData.serviceName,
-            username: username.trim(),
-            password: password.trim(),
-            macAddress: macAddress.trim(),
-            startDate,
-            price: numericPrice,
-          }),
-        }
-      );
+      const response =
+        await fetch(
+          "/api/admin/subscriptions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              requestId:
+                requestData.id,
 
-      const data = await response.json();
+              userId:
+                requestData.userId,
 
-      if (!response.ok || !data.success) {
+              serviceName:
+                requestData.serviceName,
+
+              serviceType:
+                requestData.serviceType,
+
+              username:
+                username.trim(),
+
+              password:
+                password.trim(),
+
+              macAddress:
+                macAddress.trim(),
+
+              deviceId:
+                deviceId.trim(),
+
+              startDate,
+
+              price:
+                numericPrice,
+
+              durationMonths:
+                finalDurationMonths,
+
+              durationLabel:
+                isRenewal
+                  ? getYearLabel(
+                      durationYears
+                    )
+                  : requestData.durationLabel,
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
         throw new Error(
-          data.message || "تعذر إنشاء الاشتراك."
+          data.message ||
+            "تعذر إنشاء الاشتراك."
         );
       }
 
       setSuccess(
-        `تم إنشاء الاشتراك بنجاح. رقم الاشتراك #${data.subscription.id}`
+        isRenewal
+          ? `تم تجديد الاشتراك بنجاح لمدة ${getYearLabel(
+              durationYears
+            )}. رقم الاشتراك #${data.subscription.id}`
+          : `تم إنشاء الاشتراك بنجاح. رقم الاشتراك #${data.subscription.id}`
       );
 
-      window.setTimeout(() => {
-        window.location.href =
-          "/admin/subscription-requests";
-      }, 900);
+      window.setTimeout(
+        () => {
+          window.location.href =
+            "/admin/subscription-requests";
+        },
+        900
+      );
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
+
       setError(
         error instanceof Error
           ? error.message
-          : "حدث خطأ أثناء إنشاء الاشتراك."
+          : "حدث خطأ أثناء معالجة الاشتراك."
       );
     } finally {
-      setSaving(false);
+      setSaving(
+        false
+      );
     }
   }
 
@@ -248,6 +804,7 @@ export default function AddSubscriptionPage({
       <main className="min-h-screen px-4 py-10">
         <div className="mx-auto max-w-5xl rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
+
           <p className="mt-4 text-sm font-semibold text-slate-500">
             جاري تحميل بيانات الطلب...
           </p>
@@ -263,8 +820,10 @@ export default function AddSubscriptionPage({
           <h1 className="text-2xl font-black">
             تعذر العثور على الطلب
           </h1>
+
           <p className="mt-2 text-sm text-rose-700 dark:text-rose-300">
-            {error || "الطلب غير موجود."}
+            {error ||
+              "الطلب غير موجود."}
           </p>
         </div>
       </main>
@@ -278,16 +837,22 @@ export default function AddSubscriptionPage({
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/80 px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm dark:border-blue-900/40 dark:bg-slate-900/70 dark:text-blue-300">
               <CreditCard className="h-4 w-4" />
-              إضافة اشتراك
+
+              {isRenewal
+                ? "تجديد اشتراك"
+                : "إضافة اشتراك"}
             </div>
 
             <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
-              قبول الطلب #{requestData.id}
+              {isRenewal
+                ? `تجديد الطلب #${requestData.id}`
+                : `قبول الطلب #${requestData.id}`}
             </h1>
 
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              أدخل بيانات الاشتراك الفعلية للعميل وسيتم
-              تفعيله مباشرة.
+              {isRenewal
+                ? "حدد مدة التجديد التي تريد منحها للعميل ثم أكد العملية."
+                : "أدخل بيانات الاشتراك الفعلية للعميل وسيتم تفعيله مباشرة."}
             </p>
           </div>
 
@@ -296,6 +861,7 @@ export default function AddSubscriptionPage({
             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           >
             <ArrowLeft className="h-4 w-4" />
+
             رجوع للطلبات
           </Link>
         </div>
@@ -306,16 +872,22 @@ export default function AddSubscriptionPage({
               <p className="text-xs font-bold text-slate-400">
                 العميل
               </p>
+
               <div className="mt-1 flex items-center gap-2">
                 <User className="h-5 w-5 text-blue-600" />
+
                 <h2 className="text-xl font-black">
-                  {requestData.customerName}
+                  {
+                    requestData.customerName
+                  }
                 </h2>
               </div>
 
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                {requestData.customerPhone || "بدون هاتف"}{" "}
-                • {requestData.customerEmail}
+                {requestData.customerPhone ||
+                  "بدون هاتف"}{" "}
+                •{" "}
+                {requestData.customerEmail}
               </p>
             </div>
 
@@ -323,11 +895,18 @@ export default function AddSubscriptionPage({
               <p className="text-xs font-bold text-blue-500">
                 الخدمة المطلوبة
               </p>
+
               <p className="mt-1 text-lg font-black text-blue-800 dark:text-blue-200">
-                {requestData.serviceName}
+                {
+                  requestData.serviceName
+                }
               </p>
+
               <p className="mt-1 text-sm font-bold text-blue-700 dark:text-blue-300">
-                {formatPrice(requestData.price)} د.ع •{" "}
+                {formatPrice(
+                  requestData.price
+                )}{" "}
+                د.ع •{" "}
                 {requestData.durationLabel}
               </p>
             </div>
@@ -343,12 +922,15 @@ export default function AddSubscriptionPage({
         {success ? (
           <div className="mb-5 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
             <CheckCircle2 className="h-5 w-5 shrink-0" />
+
             {success}
           </div>
         ) : null}
 
         <form
-          onSubmit={submitSubscription}
+          onSubmit={
+            submitSubscription
+          }
           className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8"
         >
           <div className="grid gap-6 md:grid-cols-2">
@@ -359,10 +941,18 @@ export default function AddSubscriptionPage({
 
               <div className="relative">
                 <KeyRound className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+
                 <input
-                  value={username}
-                  onChange={(event) =>
-                    setUsername(event.target.value)
+                  value={
+                    username
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setUsername(
+                      event.target
+                        .value
+                    )
                   }
                   placeholder="مثال: STAR001"
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-12 py-3.5 text-sm font-semibold outline-none transition focus:border-blue-400 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:focus:bg-slate-900"
@@ -377,10 +967,18 @@ export default function AddSubscriptionPage({
 
               <div className="relative">
                 <KeyRound className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+
                 <input
-                  value={password}
-                  onChange={(event) =>
-                    setPassword(event.target.value)
+                  value={
+                    password
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setPassword(
+                      event.target
+                        .value
+                    )
                   }
                   placeholder="كلمة مرور الاشتراك"
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-12 py-3.5 text-sm font-semibold outline-none transition focus:border-blue-400 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:focus:bg-slate-900"
@@ -395,16 +993,55 @@ export default function AddSubscriptionPage({
 
               <div className="relative">
                 <MonitorSmartphone className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+
                 <input
-                  value={macAddress}
-                  onChange={(event) =>
-                    setMacAddress(event.target.value)
+                  value={
+                    macAddress
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setMacAddress(
+                      event.target
+                        .value
+                    )
                   }
                   placeholder="00:11:22:33:44:55"
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-12 py-3.5 text-sm font-semibold outline-none transition focus:border-blue-400 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:focus:bg-slate-900"
                 />
               </div>
             </div>
+
+            {!isRenewal &&
+            normalizeStatus(
+              requestData.serviceType
+            ) === "VIP" ? (
+              <div>
+                <label className="mb-2 block text-sm font-black">
+                  Device ID / Serial Number
+                </label>
+
+                <div className="relative">
+                  <MonitorSmartphone className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+
+                  <input
+                    value={
+                      deviceId
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setDeviceId(
+                        event.target
+                          .value
+                      )
+                    }
+                    placeholder="أدخل Device ID أو Serial Number"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-12 py-3.5 text-sm font-semibold outline-none transition focus:border-blue-400 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:focus:bg-slate-900"
+                  />
+                </div>
+              </div>
+            ) : null}
 
             <div>
               <label className="mb-2 block text-sm font-black">
@@ -413,17 +1050,71 @@ export default function AddSubscriptionPage({
 
               <div className="relative">
                 <WalletCards className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+
                 <input
                   type="number"
                   min="0"
-                  value={price}
-                  onChange={(event) =>
-                    setPrice(event.target.value)
+                  value={
+                    price
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setPrice(
+                      event.target
+                        .value
+                    )
                   }
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-12 py-3.5 text-sm font-semibold outline-none transition focus:border-blue-400 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:focus:bg-slate-900"
                 />
               </div>
             </div>
+
+            {isRenewal ? (
+              <div>
+                <label className="mb-2 block text-sm font-black">
+                  مدة التجديد
+                </label>
+
+                <div className="relative">
+                  <CalendarDays className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+
+                  <select
+                    value={
+                      durationYears
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setDurationYears(
+                        Number(
+                          event.target
+                            .value
+                        )
+                      )
+                    }
+                    className="w-full appearance-none rounded-2xl border border-blue-200 bg-blue-50 px-12 py-3.5 text-sm font-black text-blue-900 outline-none transition focus:border-blue-400 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-100"
+                  >
+                    {YEAR_OPTIONS.map(
+                      (years) => (
+                        <option
+                          key={
+                            years
+                          }
+                          value={
+                            years
+                          }
+                        >
+                          {getYearLabel(
+                            years
+                          )}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+              </div>
+            ) : null}
 
             <div>
               <label className="mb-2 block text-sm font-black">
@@ -432,9 +1123,16 @@ export default function AddSubscriptionPage({
 
               <input
                 type="date"
-                value={startDate}
-                onChange={(event) =>
-                  setStartDate(event.target.value)
+                value={
+                  startDate
+                }
+                onChange={(
+                  event
+                ) =>
+                  setStartDate(
+                    event.target
+                      .value
+                  )
                 }
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold outline-none transition focus:border-blue-400 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:focus:bg-slate-900"
               />
@@ -447,32 +1145,74 @@ export default function AddSubscriptionPage({
 
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 text-sm font-black text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
                 {expiryDate
-                  ? formatDateOnly(expiryDate)
+                  ? formatDateOnly(
+                      expiryDate
+                    )
                   : "سيتم حسابه تلقائياً"}
               </div>
             </div>
           </div>
 
           <div className="mt-8 rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-sm leading-7 text-blue-900 dark:border-blue-900/30 dark:bg-blue-950/20 dark:text-blue-200">
-            <strong>ملاحظة:</strong> مدة الاشتراك{" "}
-            {requestData.durationLabel}، لذلك النظام يحسب
-            تاريخ الانتهاء تلقائياً من تاريخ البداية.
+            <strong>
+              ملاحظة:
+            </strong>{" "}
+            {isRenewal ? (
+              <>
+                سيتم منح العميل{" "}
+                <strong>
+                  {getYearLabel(
+                    durationYears
+                  )}
+                </strong>
+                ، أي{" "}
+                <strong>
+                  {
+                    finalDurationMonths
+                  }
+                </strong>{" "}
+                شهر.
+                <br />
+
+                {hasActiveExistingSubscription
+                  ? `سيتم إضافة المدة إلى تاريخ انتهاء الاشتراك الحالي: ${formatDateOnly(
+                      normalizedExistingExpiry
+                    )}.`
+                  : "الاشتراك الحالي منتهي، لذلك سيبدأ التجديد من تاريخ البداية المحدد أعلاه."}
+              </>
+            ) : (
+              <>
+                مدة الاشتراك{" "}
+                {
+                  requestData.durationLabel
+                }
+                ، لذلك النظام يحسب
+                تاريخ الانتهاء تلقائياً
+                من تاريخ البداية.
+              </>
+            )}
           </div>
 
           <button
             type="submit"
-            disabled={saving}
+            disabled={
+              saving
+            }
             className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-4 text-sm font-black text-white shadow-xl shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin" />
-                جاري إنشاء الاشتراك...
+
+                جاري معالجة الاشتراك...
               </>
             ) : (
               <>
                 <CheckCircle2 className="h-5 w-5" />
-                تأكيد وإنشاء الاشتراك
+
+                {isRenewal
+                  ? "تأكيد التجديد"
+                  : "تأكيد وإنشاء الاشتراك"}
               </>
             )}
           </button>

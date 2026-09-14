@@ -184,13 +184,6 @@
           },
           "Device": {
             "fields": {
-              "createdAt": {
-                "nullable": false,
-                "type": {
-                  "codecId": "pg/timestamptz-string@1",
-                  "kind": "scalar"
-                }
-              },
               "description": {
                 "nullable": false,
                 "type": {
@@ -288,9 +281,6 @@
             },
             "storage": {
               "fields": {
-                "createdAt": {
-                  "column": "createdAt"
-                },
                 "description": {
                   "column": "description"
                 },
@@ -948,6 +938,13 @@
                   "kind": "scalar"
                 }
               },
+              "requestType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "serviceName": {
                 "nullable": false,
                 "type": {
@@ -1032,6 +1029,9 @@
                 },
                 "price": {
                   "column": "price"
+                },
+                "requestType": {
+                  "column": "requestType"
                 },
                 "serviceName": {
                   "column": "serviceName"
@@ -1281,15 +1281,6 @@
             },
             "device": {
               "columns": {
-                "createdAt": {
-                  "codecId": "pg/timestamptz-string@1",
-                  "default": {
-                    "expression": "now()",
-                    "kind": "function"
-                  },
-                  "nativeType": "timestamptz",
-                  "nullable": false
-                },
                 "description": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -1883,6 +1874,15 @@
                   "nativeType": "int4",
                   "nullable": false
                 },
+                "requestType": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "NEW"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
                 "serviceName": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -1908,6 +1908,10 @@
                 },
                 "updatedAt": {
                   "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
@@ -2033,10 +2037,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "4e51b906a518f515be3d6cf923300cc2ea1e0c5ed238c6a6403cdc524fcea623"
+    "storageHash": "1b8422414561e16bebdffafd727686bdaedebfbc48f102cc66aefca411806ace"
   },
   "execution": {
-    "executionHash": "d418553b5fe8071fe8e9b98bbd6ea8198188714b679f9c66d0a1f22b53d91a13",
+    "executionHash": "fbdb71ed0c52305855af1647d232d528ab3826f5c602272855b4f225f1d710b3",
     "mutations": {
       "defaults": [
         {
@@ -2097,21 +2101,6 @@
             "column": "updatedAt",
             "namespace": "public",
             "table": "subscription"
-          }
-        },
-        {
-          "onCreate": {
-            "id": "timestampNow",
-            "kind": "generator"
-          },
-          "onUpdate": {
-            "id": "timestampNow",
-            "kind": "generator"
-          },
-          "ref": {
-            "column": "updatedAt",
-            "namespace": "public",
-            "table": "subscriptionRequest"
           }
         },
         {

@@ -16,90 +16,62 @@ model User {
 
 model Subscription {
   id              Int      @id @default(autoincrement())
-
   userId          Int
   user             User     @relation(fields: [userId], references: [id])
-
   serviceType     String   @default("IPTV")
-
   username        String?  @unique
   password        String?
   macAddress      String?
   deviceId        String?  @unique
-
   status          String   @default("ACTIVE")
-
   packageName     String
-
   startDate       TimestamptzString
   expiryDate      TimestamptzString
-
   connections     Int      @default(0)
   maxConnections  Int      @default(1)
-
   createdAt       TimestamptzString @default(now())
   updatedAt       temporal.updatedAtString()
 }
 
 model Package {
   id              Int      @id @default(autoincrement())
-
   name            String
   slug            String   @unique
-
   serviceType     String   @default("IPTV")
-
   price           Int
   durationMonths  Int
   durationLabel   String
-
   description     String
   specifications  String
   notes           String?
-
   imageUrl        String?
-
   isActive        Boolean  @default(true)
-
   createdAt       TimestamptzString @default(now())
   updatedAt       temporal.updatedAtString()
-
   devices         PackageDevice[]
 }
 
 model Device {
   id              Int      @id @default(autoincrement())
-
   name            String
   slug            String   @unique
-
   serviceType     String   @default("IPTV")
-
   price           Int
-
   description     String
   specifications  String
   notes           String?
-
   imageUrl        String?
-
   isActive        Boolean  @default(true)
-
-  createdAt       TimestamptzString @default(now())
   updatedAt       temporal.updatedAtString()
-
   packages        PackageDevice[]
 }
 
 model PackageDevice {
   id              Int      @id @default(autoincrement())
-
   packageId       Int
   package         Package  @relation(fields: [packageId], references: [id])
-
   deviceId        Int
   device          Device   @relation(fields: [deviceId], references: [id])
-
   createdAt       TimestamptzString @default(now())
 
   @@unique([packageId, deviceId])
@@ -123,48 +95,34 @@ model App {
 
 model SubscriptionRequest {
   id              Int      @id @default(autoincrement())
-
   userId          Int
   user            User     @relation(fields: [userId], references: [id])
-
   planSlug        String
   serviceType     String   @default("IPTV")
-
   serviceName     String
-
+  requestType     String   @default("NEW")
   price           Int
   durationMonths  Int      @default(12)
   durationLabel   String   @default("1 Year")
-
   deviceId        String?
   deviceName      String?
   devicePrice     Int?
-
   contactMethod   String   @default("PENDING")
-
   status          String   @default("PENDING")
-
   createdAt       TimestamptzString @default(now())
-  updatedAt       temporal.updatedAtString()
+  updatedAt       TimestamptzString @default(now())
 }
 
 model Receipt {
   id              Int      @id @default(autoincrement())
-
   receiptNumber   String   @unique
-
   userId          Int
   subscriptionId  Int
-
   serviceType     String   @default("IPTV")
-
   serviceName     String
   price           Int
-
   durationMonths  Int
   durationLabel   String
-
   status          String   @default("PAID")
-
   createdAt       TimestamptzString @default(now())
 }

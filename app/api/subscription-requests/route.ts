@@ -33,20 +33,14 @@ const VALID_REQUEST_TYPES = new Set([
   "DEVICE_PURCHASE",
 ]);
 
-function normalizeServiceType(
-  value: unknown
-) {
+function normalizeServiceType(value: unknown) {
   return String(value ?? "")
     .trim()
     .toUpperCase();
 }
 
-function normalizeRequestType(
-  value: unknown
-) {
-  const normalized = String(
-    value ?? ""
-  )
+function normalizeRequestType(value: unknown) {
+  const normalized = String(value ?? "")
     .trim()
     .toUpperCase();
 
@@ -61,9 +55,7 @@ function normalizeRequestType(
   return "";
 }
 
-function normalizeDeviceId(
-  value: unknown
-) {
+function normalizeDeviceId(value: unknown) {
   if (
     value === null ||
     value === undefined ||
@@ -89,8 +81,7 @@ export async function POST(request: Request) {
 
     const contactMethod =
       String(
-        body.contactMethod ??
-          "PENDING"
+        body.contactMethod ?? "PENDING"
       )
         .trim()
         .toUpperCase();
@@ -146,7 +137,6 @@ export async function POST(request: Request) {
     }
 
     if (
-      requestType &&
       !VALID_REQUEST_TYPES.has(
         requestType
       )
@@ -181,12 +171,8 @@ export async function POST(request: Request) {
      * ==========================================================
      * DEVICE PURCHASE
      * ==========================================================
-     *
-     * For a standalone device purchase, planSlug is stored as:
-     * device:<device-slug>
-     *
-     * No Package lookup is required.
      */
+
     if (
       requestType ===
       "DEVICE_PURCHASE"
@@ -227,6 +213,8 @@ export async function POST(request: Request) {
           {
             userId,
             planSlug: devicePlanSlug,
+            requestType:
+              "DEVICE_PURCHASE",
             status: "PENDING",
           }
         );
@@ -241,6 +229,8 @@ export async function POST(request: Request) {
               serviceType: "DEVICE",
               serviceName:
                 device.name,
+              requestType:
+                "DEVICE_PURCHASE",
               price: device.price,
               durationMonths: 0,
               durationLabel: "Device",
@@ -286,6 +276,8 @@ export async function POST(request: Request) {
             serviceType: "DEVICE",
             serviceName:
               device.name,
+            requestType:
+              "DEVICE_PURCHASE",
             price: device.price,
             durationMonths: 0,
             durationLabel: "Device",
@@ -355,6 +347,12 @@ export async function POST(request: Request) {
       | number
       | null = null;
 
+    /*
+     * ==========================================================
+     * VIP NEW
+     * ==========================================================
+     */
+
     if (
       serviceType === "VIP" &&
       requestType === "NEW"
@@ -371,14 +369,12 @@ export async function POST(request: Request) {
       }
 
       const vipDevice =
-        await db.orm.public.Device.first(
-          {
-            id: Number(
-              finalDeviceId
-            ),
-            isActive: true,
-          }
-        );
+        await db.orm.public.Device.first({
+          id: Number(
+            finalDeviceId
+          ),
+          isActive: true,
+        });
 
       if (!vipDevice) {
         return NextResponse.json(
@@ -436,6 +432,12 @@ export async function POST(request: Request) {
         vipDevice.price;
     }
 
+    /*
+     * ==========================================================
+     * PRICE
+     * ==========================================================
+     */
+
     const finalPrice =
       serviceType === "VIP" &&
       requestType === "NEW" &&
@@ -444,11 +446,21 @@ export async function POST(request: Request) {
           finalDevicePrice
         : plan.price;
 
+    /*
+     * ==========================================================
+     * FIND EXISTING PENDING REQUEST
+     * ==========================================================
+     *
+     * requestType is now part of the lookup, so NEW and RENEW
+     * are treated as separate request types.
+     */
+
     const existingRequest =
       await db.orm.public.SubscriptionRequest.first(
         {
           userId,
           planSlug,
+          requestType,
           status: "PENDING",
         }
       );
@@ -463,6 +475,7 @@ export async function POST(request: Request) {
             serviceType,
             serviceName:
               plan.name,
+            requestType,
             price: finalPrice,
             durationMonths:
               plan.durationMonths,
@@ -494,10 +507,17 @@ export async function POST(request: Request) {
           requestId: updated.id,
           alreadyExists: true,
           updated: true,
+          requestType,
         },
         { status: 200 }
       );
     }
+
+    /*
+     * ==========================================================
+     * CREATE REQUEST
+     * ==========================================================
+     */
 
     const created =
       await db.orm.public.SubscriptionRequest.create(
@@ -507,6 +527,7 @@ export async function POST(request: Request) {
           serviceType,
           serviceName:
             plan.name,
+          requestType,
           price: finalPrice,
           durationMonths:
             plan.durationMonths,
@@ -527,6 +548,7 @@ export async function POST(request: Request) {
       {
         success: true,
         requestId: created.id,
+        requestType,
       },
       { status: 201 }
     );

@@ -19,8 +19,25 @@ type UserData = {
   id: number;
   name: string;
   phone: string;
-  email: string;
+  email?: string;
   role: string;
+};
+
+type SubscriptionData = {
+  id: number;
+  serviceType: string;
+  username: string | null;
+  password: string | null;
+  macAddress: string | null;
+  deviceId: string | null;
+  status: string;
+  packageName: string;
+  startDate: string;
+  expiryDate: string;
+  connections: number;
+  maxConnections: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export default function DashboardPage() {
@@ -34,6 +51,12 @@ export default function DashboardPage() {
   const [mounted, setMounted] =
     useState(false);
 
+  const [currentSubscription, setCurrentSubscription] =
+    useState<SubscriptionData | null>(null);
+
+  const [subscriptionLoading, setSubscriptionLoading] =
+    useState(false);
+
   useEffect(() => {
     setMounted(true);
 
@@ -42,13 +65,123 @@ export default function DashboardPage() {
         localStorage.getItem("user");
 
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        const parsedUser =
+          JSON.parse(storedUser) as UserData;
+
+        setUser(parsedUser);
       }
     } catch {
       localStorage.removeItem("user");
       setUser(null);
     }
   }, []);
+
+  useEffect(() => {
+    const currentUserId = user?.id;
+
+    if (
+      !currentUserId ||
+      !Number.isInteger(currentUserId) ||
+      currentUserId <= 0
+    ) {
+      setCurrentSubscription(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadCurrentSubscription() {
+      try {
+        setSubscriptionLoading(true);
+
+        const response = await fetch(
+          `/api/subscriptions?userId=${encodeURIComponent(
+            String(currentUserId)
+          )}`,
+          {
+            method: "GET",
+            cache: "no-store",
+            headers: {
+              "Cache-Control": "no-cache",
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (
+          !response.ok ||
+          !data.success ||
+          !Array.isArray(data.subscriptions)
+        ) {
+          if (!cancelled) {
+            setCurrentSubscription(null);
+          }
+
+          return;
+        }
+
+        const now = Date.now();
+
+        const activeSubscriptions =
+          data.subscriptions.filter(
+            (subscription: SubscriptionData) => {
+              const status =
+                subscription.status?.toUpperCase();
+
+              const expiryTime =
+                new Date(
+                  subscription.expiryDate
+                ).getTime();
+
+              return (
+                status === "ACTIVE" &&
+                Number.isFinite(expiryTime) &&
+                expiryTime >= now
+              );
+            }
+          );
+
+        activeSubscriptions.sort(
+          (
+            a: SubscriptionData,
+            b: SubscriptionData
+          ) =>
+            new Date(
+              b.expiryDate
+            ).getTime() -
+            new Date(
+              a.expiryDate
+            ).getTime()
+        );
+
+        if (!cancelled) {
+          setCurrentSubscription(
+            activeSubscriptions[0] ?? null
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Dashboard subscription error:",
+          error
+        );
+
+        if (!cancelled) {
+          setCurrentSubscription(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setSubscriptionLoading(false);
+        }
+      }
+    }
+
+    loadCurrentSubscription();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   function logout() {
     localStorage.removeItem("user");
@@ -57,16 +190,84 @@ export default function DashboardPage() {
     window.location.href = "/";
   }
 
+  function formatExpiryDate(
+    expiryDate: string
+  ) {
+    const date =
+      new Date(expiryDate);
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return "";
+    }
+
+    return new Intl.DateTimeFormat(
+      isArabic
+        ? "ar-IQ"
+        : "en-US",
+      {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }
+    ).format(date);
+  }
+
   const userName =
     user?.name ||
-    (isArabic ? "عميلنا" : "Customer");
+    (isArabic
+      ? "عميلنا"
+      : "Customer");
 
   const isAdmin =
-    user?.role?.toUpperCase() === "ADMIN";
+    user?.role?.toUpperCase() ===
+    "ADMIN";
+
+  let subscriptionValue =
+    isArabic
+      ? "لا يوجد اشتراك"
+      : "No subscription";
+
+  let subscriptionSecondary =
+    "";
+
+  if (subscriptionLoading) {
+    subscriptionValue =
+      isArabic
+        ? "جاري التحميل..."
+        : "Loading...";
+  } else if (
+    currentSubscription
+  ) {
+    subscriptionValue =
+      currentSubscription.packageName ||
+      (isArabic
+        ? "اشتراك IPTV"
+        : "IPTV Subscription");
+
+    const expiry =
+      formatExpiryDate(
+        currentSubscription.expiryDate
+      );
+
+    if (expiry) {
+      subscriptionSecondary =
+        isArabic
+          ? `ينتهي في ${expiry}`
+          : `Expires ${expiry}`;
+    }
+  }
 
   return (
     <main
-      dir={isArabic ? "rtl" : "ltr"}
+      dir={
+        isArabic
+          ? "rtl"
+          : "ltr"
+      }
       className="min-h-screen bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-white"
     >
       <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
@@ -92,33 +293,43 @@ export default function DashboardPage() {
 
         {!mounted ? (
           <div className="mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4].map((item) => (
-              <div
-                key={item}
-                className="h-36 animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
-              />
-            ))}
+            {[1, 2, 3, 4].map(
+              (item) => (
+                <div
+                  key={item}
+                  className="h-36 animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                />
+              )
+            )}
           </div>
         ) : (
           <>
             <div className="mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               <DashboardCard
-                icon={<Tv size={22} />}
+                icon={
+                  <Tv size={22} />
+                }
                 title={
                   isArabic
                     ? "الاشتراك الحالي"
                     : "Current subscription"
                 }
                 value={
-                  isArabic
-                    ? "لا يوجد اشتراك"
-                    : "No subscription"
+                  subscriptionValue
+                }
+                secondaryValue={
+                  subscriptionSecondary ||
+                  undefined
                 }
                 iconClass="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
               />
 
               <DashboardCard
-                icon={<Smartphone size={22} />}
+                icon={
+                  <Smartphone
+                    size={22}
+                  />
+                }
                 title={
                   isArabic
                     ? "الأجهزة المتصلة"
@@ -133,7 +344,11 @@ export default function DashboardPage() {
               />
 
               <DashboardCard
-                icon={<CreditCard size={22} />}
+                icon={
+                  <CreditCard
+                    size={22}
+                  />
+                }
                 title={
                   isArabic
                     ? "الطلبات"
@@ -148,7 +363,11 @@ export default function DashboardPage() {
               />
 
               <DashboardCard
-                icon={<Headphones size={22} />}
+                icon={
+                  <Headphones
+                    size={22}
+                  />
+                }
                 title={
                   isArabic
                     ? "الدعم"
@@ -174,7 +393,7 @@ export default function DashboardPage() {
                 description={
                   isArabic
                     ? "تصفح الباقات المتوفرة واختر الاشتراك المناسب."
-                    : "Browse available plans and choose the right subscription."
+                    : "تصفح الباقات المتوفرة واختر الاشتراك المناسب."
                 }
               />
 
@@ -304,7 +523,9 @@ export default function DashboardPage() {
               {user && (
                 <div className="flex flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                    <CircleUserRound size={19} />
+                    <CircleUserRound
+                      size={19}
+                    />
                   </div>
 
                   <div>
@@ -313,7 +534,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="mt-1 text-xs text-slate-400">
-                      {user.email}
+                      {user.phone}
                     </div>
                   </div>
 
@@ -336,7 +557,9 @@ export default function DashboardPage() {
                 onClick={logout}
                 className="flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-600 transition hover:bg-red-100 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
               >
-                <LogOut size={17} />
+                <LogOut
+                  size={17}
+                />
 
                 {isArabic
                   ? "تسجيل الخروج"
@@ -354,11 +577,13 @@ function DashboardCard({
   icon,
   title,
   value,
+  secondaryValue,
   iconClass,
 }: {
   icon: React.ReactNode;
   title: string;
   value: string;
+  secondaryValue?: string;
   iconClass: string;
 }) {
   return (
@@ -373,9 +598,15 @@ function DashboardCard({
         {title}
       </p>
 
-      <p className="mt-1 text-xl font-black">
+      <p className="mt-1 truncate text-xl font-black">
         {value}
       </p>
+
+      {secondaryValue && (
+        <p className="mt-2 text-xs font-bold text-slate-400 dark:text-slate-500">
+          {secondaryValue}
+        </p>
+      )}
     </div>
   );
 }

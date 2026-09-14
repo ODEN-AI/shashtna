@@ -102,7 +102,9 @@ export async function GET(
       );
     }
 
-    console.log("Checking user...");
+    console.log(
+      "Checking user..."
+    );
 
     const user =
       await Promise.race([

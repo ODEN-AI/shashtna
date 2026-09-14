@@ -23,6 +23,7 @@ import {
   Sun,
   Moon,
   MessageCircle,
+  Cpu,
 } from "lucide-react";
 
 type UserData = {
@@ -103,6 +104,12 @@ const menuItems = [
     titleEn: "Plans",
     href: "/admin/packages",
     icon: Package,
+  },
+  {
+    titleAr: "الأجهزة",
+    titleEn: "Devices",
+    href: "/admin/devices",
+    icon: Cpu,
   },
   {
     titleAr: "التطبيقات",
@@ -223,7 +230,7 @@ export default function AdminDashboardPage() {
       }
     }
 
-    loadStats();
+    void loadStats();
   }, []);
 
   useEffect(() => {
@@ -383,7 +390,6 @@ export default function AdminDashboardPage() {
       }
       className="min-h-screen bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-white"
     >
-      {/* Sidebar */}
       <aside
         className={`fixed top-0 hidden h-screen w-72 border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:block ${
           isArabic
@@ -479,9 +485,7 @@ export default function AdminDashboardPage() {
               onClick={logout}
               className="mt-1 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-50 dark:hover:bg-red-950/30"
             >
-              <LogOut
-                size={18}
-              />
+              <LogOut size={18} />
 
               {isArabic
                 ? "تسجيل الخروج"
@@ -491,7 +495,6 @@ export default function AdminDashboardPage() {
         </div>
       </aside>
 
-      {/* Main */}
       <div
         className={
           isArabic
@@ -524,9 +527,7 @@ export default function AdminDashboardPage() {
                   }
                   className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-blue-500/30 dark:hover:bg-slate-800 dark:hover:text-blue-400"
                 >
-                  <Languages
-                    size={16}
-                  />
+                  <Languages size={16} />
 
                   {isArabic
                     ? "EN"
@@ -543,20 +544,18 @@ export default function AdminDashboardPage() {
                   className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-blue-500/30"
                 >
                   {darkMode ? (
-                    <Sun
-                      size={17}
-                    />
+                    <Sun size={17} />
                   ) : (
-                    <Moon
-                      size={17}
-                    />
+                    <Moon size={17} />
                   )}
                 </button>
               )}
 
               <button
                 type="button"
-                onClick={loadStats}
+                onClick={() => {
+                  void loadStats();
+                }}
                 disabled={
                   loadingStats
                 }
@@ -603,7 +602,6 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          {/* Stats */}
           <div className="mb-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               title={
@@ -686,13 +684,10 @@ export default function AdminDashboardPage() {
             />
           </div>
 
-          {/* Quick actions */}
-          <div className="mb-8 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+          <div className="mb-8 grid gap-5 md:grid-cols-2 xl:grid-cols-6">
             <QuickAction
               href="/admin/subscription-requests"
-              icon={
-                MessageCircle
-              }
+              icon={MessageCircle}
               title={
                 isArabic
                   ? "طلبات الاشتراك"
@@ -751,6 +746,21 @@ export default function AdminDashboardPage() {
             />
 
             <QuickAction
+              href="/admin/devices"
+              icon={Cpu}
+              title={
+                isArabic
+                  ? "إدارة الأجهزة"
+                  : "Manage devices"
+              }
+              description={
+                isArabic
+                  ? "إضافة الأجهزة وربطها بالباقات"
+                  : "Add devices and link them to plans"
+              }
+            />
+
+            <QuickAction
               href="/admin/apps"
               icon={AppWindow}
               title={
@@ -767,7 +777,6 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-3">
-            {/* Activity */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 xl:col-span-2">
               <div className="mb-6 flex items-center justify-between">
                 <div>
@@ -810,7 +819,6 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Fast actions */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <div className="mb-6">
                 <h2 className="text-lg font-black">
@@ -845,6 +853,21 @@ export default function AdminDashboardPage() {
                 />
 
                 <QuickAction
+                  href="/admin/devices"
+                  icon={Cpu}
+                  title={
+                    isArabic
+                      ? "الأجهزة"
+                      : "Devices"
+                  }
+                  description={
+                    isArabic
+                      ? "إدارة أجهزة الموقع"
+                      : "Manage website devices"
+                  }
+                />
+
+                <QuickAction
                   href="/admin/lookup"
                   icon={Search}
                   title={
@@ -861,7 +884,9 @@ export default function AdminDashboardPage() {
 
                 <QuickAction
                   href="/admin/live-connections"
-                  icon={Smartphone}
+                  icon={
+                    Smartphone
+                  }
                   title={
                     isArabic
                       ? "الاتصالات المباشرة"
@@ -876,7 +901,9 @@ export default function AdminDashboardPage() {
 
                 <QuickAction
                   href="/admin/orders"
-                  icon={CreditCard}
+                  icon={
+                    CreditCard
+                  }
                   title={
                     isArabic
                       ? "الطلبات"
@@ -891,7 +918,9 @@ export default function AdminDashboardPage() {
 
                 <QuickAction
                   href="/admin/support"
-                  icon={Headphones}
+                  icon={
+                    Headphones
+                  }
                   title={
                     isArabic
                       ? "الدعم"

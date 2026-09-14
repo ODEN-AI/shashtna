@@ -26,6 +26,7 @@ export async function GET() {
           id: pkg.id,
           name: pkg.name,
           slug: pkg.slug,
+          serviceType: pkg.serviceType,
           price: pkg.price,
           durationMonths: pkg.durationMonths,
           durationLabel: pkg.durationLabel,

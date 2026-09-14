@@ -14,19 +14,16 @@ export const db = postgres<Contract>({
   url: databaseUrl,
 });
 
-let connectionPromise: ReturnType<typeof db.connect> | null = null;
-
+/**
+ * The Prisma Postgres runtime manages the client connection itself.
+ *
+ * Calling db.connect() manually can cause:
+ * DRIVER.ALREADY_CONNECTED
+ * when multiple API routes are loaded or requested during development.
+ *
+ * Keep this function for compatibility with the existing API routes,
+ * but intentionally do not call connect() here.
+ */
 export async function ensureDatabaseConnection() {
-  if (!connectionPromise) {
-    connectionPromise = db
-      .connect({
-        url: databaseUrl as string,
-      })
-      .catch((error) => {
-        connectionPromise = null;
-        throw error;
-      });
-  }
-
-  await connectionPromise;
+  return;
 }

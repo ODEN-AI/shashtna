@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
-import { db } from "@/src/prisma/db";
+import {
+  db,
+  ensureDatabaseConnection,
+} from "@/src/prisma/db";
 
 type RequestBody = {
   requestId?: number;
   userId?: number;
   serviceName?: string;
+  serviceType?: string;
   username?: string;
   password?: string;
   macAddress?: string;
+  deviceId?: string;
   startDate?: string;
   price?: number;
 };
@@ -77,55 +82,84 @@ function generateReceiptNumber() {
 
 export async function GET() {
   try {
+    await ensureDatabaseConnection();
+
     const subscriptions =
       await db.orm.public.Subscription.all();
 
-    const customers = await Promise.all(
-      subscriptions.map(async (subscription) => {
-        const user =
-          await db.orm.public.User.first({
-            id: subscription.userId,
-          });
+    const customers =
+      await Promise.all(
+        subscriptions.map(
+          async (subscription) => {
+            const user =
+              await db.orm.public.User.first({
+                id: subscription.userId,
+              });
 
-        return {
-          id: subscription.id,
-          userId: subscription.userId,
-          customerName:
-            user?.name ?? "Unknown",
-          customerEmail:
-            user?.email ?? "",
-          customerPhone:
-            user?.phone ?? "",
-          username:
-            subscription.username,
-          password:
-            subscription.password,
-          macAddress:
-            subscription.macAddress,
-          status:
-            subscription.status,
-          packageName:
-            subscription.packageName,
-          startDate:
-            subscription.startDate,
-          expiryDate:
-            subscription.expiryDate,
-          connections:
-            subscription.connections,
-          maxConnections:
-            subscription.maxConnections,
-          createdAt:
-            subscription.createdAt,
-          updatedAt:
-            subscription.updatedAt,
-        };
-      })
-    );
+            return {
+              id: subscription.id,
+              userId: subscription.userId,
+
+              customerName:
+                user?.name ?? "Unknown",
+
+              customerEmail:
+                user?.email ?? "",
+
+              customerPhone:
+                user?.phone ?? "",
+
+              serviceType:
+                subscription.serviceType,
+
+              username:
+                subscription.username,
+
+              password:
+                subscription.password,
+
+              macAddress:
+                subscription.macAddress,
+
+              deviceId:
+                subscription.deviceId,
+
+              status:
+                subscription.status,
+
+              packageName:
+                subscription.packageName,
+
+              startDate:
+                subscription.startDate,
+
+              expiryDate:
+                subscription.expiryDate,
+
+              connections:
+                subscription.connections,
+
+              maxConnections:
+                subscription.maxConnections,
+
+              createdAt:
+                subscription.createdAt,
+
+              updatedAt:
+                subscription.updatedAt,
+            };
+          }
+        )
+      );
 
     customers.sort(
       (a, b) =>
-        new Date(b.createdAt).getTime() -
-        new Date(a.createdAt).getTime()
+        new Date(
+          b.createdAt
+        ).getTime() -
+        new Date(
+          a.createdAt
+        ).getTime()
     );
 
     return NextResponse.json({
@@ -150,30 +184,52 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(
+  request: Request
+) {
   try {
+    await ensureDatabaseConnection();
+
     const body =
       (await request.json()) as RequestBody;
 
-    const requestId = body.requestId;
-    const userId = body.userId;
+    const requestId =
+      body.requestId;
+
+    const userId =
+      body.userId;
+
+    const serviceType =
+      body.serviceType?.trim().toUpperCase() ||
+      "IPTV";
+
     const serviceName =
       body.serviceName?.trim();
+
     const username =
-      body.username?.trim();
+      body.username?.trim() || null;
+
     const password =
-      body.password?.trim();
+      body.password?.trim() || null;
+
     const macAddress =
-      body.macAddress?.trim() || null;
-    const startDate = body.startDate;
-    const price = body.price;
+      body.macAddress?.trim() ||
+      null;
+
+    const deviceId =
+      body.deviceId?.trim() ||
+      null;
+
+    const startDate =
+      body.startDate;
+
+    const price =
+      body.price;
 
     if (
       !requestId ||
       !userId ||
       !serviceName ||
-      !username ||
-      !password ||
       !startDate ||
       typeof price !== "number"
     ) {
@@ -187,14 +243,58 @@ export async function POST(request: Request) {
       );
     }
 
+    if (
+      serviceType !== "IPTV" &&
+      serviceType !== "VIP"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "نوع الخدمة غير صحيح.",
+        },
+        { status: 400 }
+      );
+    }
+
     if (price < 0) {
       return NextResponse.json(
         {
           success: false,
-          message: "السعر غير صحيح.",
+          message:
+            "السعر غير صحيح.",
         },
         { status: 400 }
       );
+    }
+
+    if (serviceType === "IPTV") {
+      if (
+        !username ||
+        !password
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "اشتراك IPTV يحتاج Username و Password.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (serviceType === "VIP") {
+      if (!deviceId) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "اشتراك VIP يحتاج Device ID أو Serial Number.",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const subscriptionRequest =
@@ -243,6 +343,34 @@ export async function POST(request: Request) {
       );
     }
 
+    if (
+      subscriptionRequest.serviceType.toUpperCase() !==
+      serviceType
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "نوع الخدمة لا يطابق نوع الطلب.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      serviceType === "VIP" &&
+      subscriptionRequest.durationMonths !== 3
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "اشتراك VIP متوفر لمدة 3 أشهر فقط.",
+        },
+        { status: 400 }
+      );
+    }
+
     const user =
       await db.orm.public.User.first({
         id: userId,
@@ -252,33 +380,57 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "العميل غير موجود.",
+          message:
+            "العميل غير موجود.",
         },
         { status: 404 }
       );
     }
 
-    const existingSubscription =
-      await db.orm.public.Subscription.first(
-        {
-          username,
-        }
-      );
+    if (username) {
+      const existingUsername =
+        await db.orm.public.Subscription.first(
+          {
+            username,
+          }
+        );
 
-    if (existingSubscription) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "اسم المستخدم هذا مستخدم مسبقاً.",
-        },
-        { status: 409 }
-      );
+      if (existingUsername) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "اسم المستخدم هذا مستخدم مسبقاً.",
+          },
+          { status: 409 }
+        );
+      }
     }
 
-    const startDateValue = new Date(
-      `${startDate}T00:00:00`
-    );
+    if (deviceId) {
+      const existingDevice =
+        await db.orm.public.Subscription.first(
+          {
+            deviceId,
+          }
+        );
+
+      if (existingDevice) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Device ID أو Serial Number هذا مرتبط باشتراك آخر.",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    const startDateValue =
+      new Date(
+        `${startDate}T00:00:00`
+      );
 
     if (
       Number.isNaN(
@@ -316,15 +468,44 @@ export async function POST(request: Request) {
       await db.orm.public.Subscription.create(
         {
           userId,
-          username,
-          password,
-          macAddress,
+
+          serviceType,
+
+          username:
+            serviceType === "IPTV"
+              ? username
+              : null,
+
+          password:
+            serviceType === "IPTV"
+              ? password
+              : null,
+
+          macAddress:
+            serviceType === "IPTV"
+              ? macAddress
+              : null,
+
+          deviceId:
+            serviceType === "VIP"
+              ? deviceId
+              : null,
+
           status: "ACTIVE",
-          packageName: serviceName,
+
+          packageName:
+            serviceName,
+
           startDate,
+
           expiryDate,
+
           connections: 0,
-          maxConnections: 1,
+
+          maxConnections:
+            serviceType === "VIP"
+              ? 1
+              : 1,
         }
       );
 
@@ -335,22 +516,33 @@ export async function POST(request: Request) {
       await db.orm.public.Receipt.create(
         {
           receiptNumber,
+
           userId,
+
           subscriptionId:
             created.id,
+
+          serviceType,
+
           serviceName,
+
           price,
+
           durationMonths:
             subscriptionRequest.durationMonths,
+
           durationLabel:
             subscriptionRequest.durationLabel,
+
           status: "PAID",
         }
       );
 
     const updatedRequest =
       await db.orm.public.SubscriptionRequest
-        .where({ id: requestId })
+        .where({
+          id: requestId,
+        })
         .update({
           status: "ACCEPTED",
         });
@@ -373,37 +565,70 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
+
         message:
           "تم إنشاء الاشتراك والإيصال بنجاح.",
+
         subscription: {
           id: created.id,
+
+          serviceType:
+            created.serviceType,
+
           username:
             created.username,
+
+          password:
+            created.password,
+
+          macAddress:
+            created.macAddress,
+
+          deviceId:
+            created.deviceId,
+
           packageName:
             created.packageName,
+
           startDate:
             created.startDate,
+
           expiryDate:
             created.expiryDate,
         },
+
         receipt: {
           id: receipt.id,
+
           receiptNumber:
             receipt.receiptNumber,
+
+          serviceType:
+            receipt.serviceType,
+
           serviceName:
             receipt.serviceName,
-          price: receipt.price,
+
+          price:
+            receipt.price,
+
           durationMonths:
             receipt.durationMonths,
+
           durationLabel:
             receipt.durationLabel,
+
           status:
             receipt.status,
+
           createdAt:
             receipt.createdAt,
         },
+
         request: {
-          id: updatedRequest.id,
+          id:
+            updatedRequest.id,
+
           status:
             updatedRequest.status,
         },

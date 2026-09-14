@@ -10,7 +10,7 @@ import {
   LogOut,
   ChevronLeft,
   CircleUserRound,
-  ReceiptText,
+  Settings,
 } from "lucide-react";
 
 import { useLanguage } from "../components/LanguageProvider";
@@ -210,13 +210,13 @@ export default function DashboardPage() {
                 href="/devices"
                 title={
                   isArabic
-                    ? "أجهزتي"
-                    : "My devices"
+                    ? "الأجهزة"
+                    : "Devices"
                 }
                 description={
                   isArabic
-                    ? "تابع الأجهزة المرتبطة باشتراكاتك."
-                    : "Track the devices connected to your subscriptions."
+                    ? "شوف الأجهزة المتوفرة وتفاصيلها وأسعارها."
+                    : "Browse available devices, details, and prices."
                 }
               />
 
@@ -236,46 +236,67 @@ export default function DashboardPage() {
             </div>
 
             {isAdmin && (
-              <div className="rounded-3xl border border-blue-100 bg-gradient-to-l from-blue-600 to-cyan-500 p-6 text-white shadow-xl shadow-blue-600/20 dark:border-blue-500/20">
-                <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-blue-100">
-                      {isArabic
-                        ? "صلاحيات المدير"
-                        : "Administrator access"}
+              <div className="mb-8 grid gap-5 md:grid-cols-2">
+                <div className="rounded-3xl border border-blue-100 bg-gradient-to-l from-blue-600 to-cyan-500 p-6 text-white shadow-xl shadow-blue-600/20 dark:border-blue-500/20">
+                  <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-blue-100">
+                        {isArabic
+                          ? "صلاحيات المدير"
+                          : "Administrator access"}
+                      </div>
+
+                      <h2 className="mt-2 text-2xl font-black">
+                        {isArabic
+                          ? "لوحة الإدارة"
+                          : "Admin panel"}
+                      </h2>
+
+                      <p className="mt-2 max-w-xl text-sm leading-7 text-blue-100">
+                        {isArabic
+                          ? "تقدر من لوحة الإدارة إدارة العملاء والاشتراكات والباقات والطلبات والأجهزة وباقي أقسام النظام."
+                          : "Manage customers, subscriptions, plans, orders, devices, and the rest of the system."}
+                      </p>
                     </div>
 
-                    <h2 className="mt-2 text-2xl font-black">
+                    <Link
+                      href="/admin"
+                      className="flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-black text-blue-700 transition hover:bg-blue-50"
+                    >
                       {isArabic
-                        ? "أنت مسجل كمدير للنظام"
-                        : "You are signed in as an administrator"}
-                    </h2>
+                        ? "الدخول إلى لوحة الإدارة"
+                        : "Open admin panel"}
 
-                    <p className="mt-2 max-w-xl text-sm leading-7 text-blue-100">
-                      {isArabic
-                        ? "تقدر من لوحة الإدارة إدارة العملاء والاشتراكات والباقات والطلبات وباقي أقسام النظام."
-                        : "From the admin panel, you can manage customers, subscriptions, plans, orders, and the rest of the system."}
-                    </p>
+                      <ChevronLeft
+                        size={18}
+                        className={
+                          isArabic
+                            ? ""
+                            : "rotate-180"
+                        }
+                      />
+                    </Link>
                   </div>
-
-                  <Link
-                    href="/admin"
-                    className="flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-black text-blue-700 transition hover:bg-blue-50"
-                  >
-                    {isArabic
-                      ? "الدخول إلى لوحة الإدارة"
-                      : "Open admin panel"}
-
-                    <ChevronLeft
-                      size={18}
-                      className={
-                        isArabic
-                          ? ""
-                          : "rotate-180"
-                      }
-                    />
-                  </Link>
                 </div>
+
+                <DashboardLink
+                  href="/admin/devices"
+                  title={
+                    isArabic
+                      ? "إدارة الأجهزة"
+                      : "Manage devices"
+                  }
+                  description={
+                    isArabic
+                      ? "أضف الأجهزة وعدّلها واحذفها وربطها بباقات VIP."
+                      : "Add, edit, delete, and link devices to VIP packages."
+                  }
+                  icon={
+                    <Settings
+                      size={22}
+                    />
+                  }
+                />
               </div>
             )}
 
@@ -363,10 +384,12 @@ function DashboardLink({
   href,
   title,
   description,
+  icon,
 }: {
   href: string;
   title: string;
   description: string;
+  icon?: React.ReactNode;
 }) {
   return (
     <Link
@@ -374,14 +397,22 @@ function DashboardLink({
       className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-500/30"
     >
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-black">
-            {title}
-          </h2>
+        <div className="flex min-w-0 items-start gap-4">
+          {icon && (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+              {icon}
+            </div>
+          )}
 
-          <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-            {description}
-          </p>
+          <div>
+            <h2 className="text-lg font-black">
+              {title}
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+              {description}
+            </p>
+          </div>
         </div>
 
         <ChevronLeft

@@ -1,20 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   ArrowLeft,
   Check,
   ChevronLeft,
+  CircleAlert,
+  Clock3,
   Copy,
+  Mail,
   MessageCircle,
+  Phone,
   Send,
   ShieldCheck,
-  UserRound,
-  Mail,
-  Phone,
+  Sparkles,
   Tv,
-  Clock3,
+  UserRound,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -32,9 +39,23 @@ type PackageData = {
   id: number;
   name: string;
   slug: string;
+  serviceType: string;
   price: number;
   durationMonths: number;
   durationLabel: string;
+  description: string;
+  specifications: string;
+  notes: string | null;
+  imageUrl: string | null;
+  isActive: boolean;
+};
+
+type DeviceData = {
+  id: number;
+  name: string;
+  slug: string;
+  serviceType: string;
+  price: number;
   description: string;
   specifications: string;
   notes: string | null;
@@ -46,11 +67,21 @@ type ContactMethod =
   | "TELEGRAM"
   | "FACEBOOK";
 
+type VipRequestType =
+  | "NEW"
+  | "RENEW";
+
 const TELEGRAM_URL =
   "https://t.me/shashtna";
 
 const FACEBOOK_MESSENGER_URL =
   "https://www.facebook.com/profile.php?id=61594341596034";
+
+function normalizeServiceType(value: unknown) {
+  return String(value ?? "IPTV")
+    .trim()
+    .toUpperCase();
+}
 
 function ContactPageContent() {
   const { language } = useLanguage();
@@ -71,6 +102,18 @@ function ContactPageContent() {
   const [loadingPackage, setLoadingPackage] =
     useState(true);
 
+  const [loadingDevices, setLoadingDevices] =
+    useState(false);
+
+  const [devices, setDevices] =
+    useState<DeviceData[]>([]);
+
+  const [selectedDevice, setSelectedDevice] =
+    useState<DeviceData | null>(null);
+
+  const [vipRequestType, setVipRequestType] =
+    useState<VipRequestType | null>(null);
+
   const [copied, setCopied] =
     useState(false);
 
@@ -78,7 +121,7 @@ function ContactPageContent() {
     useState<number | null>(null);
 
   const [savingRequest, setSavingRequest] =
-    useState(true);
+    useState(false);
 
   const [selectedContact, setSelectedContact] =
     useState<ContactMethod | null>(null);
@@ -87,6 +130,27 @@ function ContactPageContent() {
     useState("");
 
   const isArabic = language === "ar";
+
+  const isVip =
+    normalizeServiceType(
+      selectedPackage?.serviceType
+    ) === "VIP";
+
+  const canContact =
+    !isVip ||
+    vipRequestType === "RENEW" ||
+    (vipRequestType === "NEW" &&
+      selectedDevice !== null);
+
+  const currentPrice =
+    isVip &&
+    vipRequestType === "NEW" &&
+    selectedDevice
+      ? selectedPackage
+        ? selectedPackage.price +
+          selectedDevice.price
+        : selectedDevice.price
+      : selectedPackage?.price ?? 0;
 
   const message = useMemo(() => {
     if (!user || !selectedPackage) {
@@ -100,9 +164,63 @@ function ContactPageContent() {
       selectedPackage.durationLabel;
 
     const formattedPrice =
-      selectedPackage.price.toLocaleString(
-        "en-US"
-      );
+      currentPrice.toLocaleString("en-US");
+
+    if (isVip) {
+      if (vipRequestType === "NEW") {
+        return isArabic
+          ? `السلام عليكم، أريد الاشتراك بباقة VIP جديدة عن طريق موقع شاشتنا.
+
+بيانات المشترك:
+الاسم: ${user.name}
+رقم الهاتف: ${user.phone}
+البريد الإلكتروني: ${user.email}
+
+باقة VIP: ${serviceName}
+المدة: ${duration}
+سعر الباقة: ${selectedPackage.price.toLocaleString("en-US")} دينار
+الجهاز: ${selectedDevice?.name ?? "لم يتم اختيار جهاز بعد"}
+سعر الجهاز: ${selectedDevice?.price.toLocaleString("en-US") ?? "0"} دينار
+الإجمالي: ${formattedPrice} دينار`
+          : `Hello, I would like to subscribe to a new VIP plan through the Shashtna website.
+
+Subscriber details:
+Name: ${user.name}
+Phone: ${user.phone}
+Email: ${user.email}
+
+VIP Plan: ${serviceName}
+Duration: ${duration}
+Plan Price: ${selectedPackage.price.toLocaleString("en-US")} IQD
+Device: ${selectedDevice?.name ?? "No device selected yet"}
+Device Price: ${selectedDevice?.price.toLocaleString("en-US") ?? "0"} IQD
+Total: ${formattedPrice} IQD`;
+      }
+
+      if (vipRequestType === "RENEW") {
+        return isArabic
+          ? `السلام عليكم، أريد تجديد اشتراك VIP عن طريق موقع شاشتنا.
+
+بيانات المشترك:
+الاسم: ${user.name}
+رقم الهاتف: ${user.phone}
+البريد الإلكتروني: ${user.email}
+
+باقة VIP: ${serviceName}
+مدة التجديد: ${duration}
+السعر: ${selectedPackage.price.toLocaleString("en-US")} دينار`
+          : `Hello, I would like to renew my VIP subscription through the Shashtna website.
+
+Subscriber details:
+Name: ${user.name}
+Phone: ${user.phone}
+Email: ${user.email}
+
+VIP Plan: ${serviceName}
+Renewal duration: ${duration}
+Price: ${selectedPackage.price.toLocaleString("en-US")} IQD`;
+      }
+    }
 
     return isArabic
       ? `السلام عليكم، أريد الاشتراك بخدمة ${serviceName} لمدة ${duration} عن طريق موقع شاشتنا.
@@ -128,6 +246,10 @@ Price: ${formattedPrice} IQD`;
   }, [
     user,
     selectedPackage,
+    selectedDevice,
+    currentPrice,
+    isVip,
+    vipRequestType,
     isArabic,
   ]);
 
@@ -148,9 +270,8 @@ Price: ${formattedPrice} IQD`;
         return;
       }
 
-      const parsedUser = JSON.parse(
-        savedUser
-      ) as UserData;
+      const parsedUser =
+        JSON.parse(savedUser) as UserData;
 
       if (
         !parsedUser ||
@@ -207,10 +328,11 @@ Price: ${formattedPrice} IQD`;
           }
         );
 
-        const data = (await response.json()) as {
-          success?: boolean;
-          packages?: PackageData[];
-        };
+        const data =
+          (await response.json()) as {
+            success?: boolean;
+            packages?: PackageData[];
+          };
 
         if (!response.ok || !data.success) {
           throw new Error(
@@ -242,6 +364,17 @@ Price: ${formattedPrice} IQD`;
         setSelectedPackage(
           foundPackage
         );
+
+        const serviceType =
+          normalizeServiceType(
+            foundPackage.serviceType
+          );
+
+        if (serviceType !== "VIP") {
+          setVipRequestType(null);
+          setDevices([]);
+          setSelectedDevice(null);
+        }
       } catch (error) {
         console.error(
           "Load selected package error:",
@@ -275,10 +408,146 @@ Price: ${formattedPrice} IQD`;
   ]);
 
   useEffect(() => {
+    if (!selectedPackage) {
+      return;
+    }
+
+    if (
+      normalizeServiceType(
+        selectedPackage.serviceType
+      ) !== "VIP"
+    ) {
+      return;
+    }
+
+    setVipRequestType(null);
+    setDevices([]);
+    setSelectedDevice(null);
+    setRequestId(null);
+    setSelectedContact(null);
+    setRequestError("");
+  }, [selectedPackage]);
+
+  useEffect(() => {
+    if (
+      !selectedPackage ||
+      normalizeServiceType(
+        selectedPackage.serviceType
+      ) !== "VIP" ||
+      vipRequestType !== "NEW" ||
+      !planSlug
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadVipDevices() {
+      setLoadingDevices(true);
+      setRequestError("");
+
+      try {
+        const query =
+          `/api/devices?serviceType=VIP&packageSlug=${encodeURIComponent(
+            planSlug ?? ""
+          )}`;
+
+        const response =
+          await fetch(query, {
+            method: "GET",
+            cache: "no-store",
+          });
+
+        const data =
+          (await response.json()) as {
+            success?: boolean;
+            devices?: DeviceData[];
+          };
+
+        if (!response.ok || !data.success) {
+          throw new Error(
+            "Failed to load VIP devices."
+          );
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        const loadedDevices =
+          Array.isArray(data.devices)
+            ? data.devices.filter(
+                (device) =>
+                  device.isActive &&
+                  normalizeServiceType(
+                    device.serviceType
+                  ) === "VIP"
+              )
+            : [];
+
+        setDevices(loadedDevices);
+
+        setSelectedDevice((current) => {
+          if (
+            current &&
+            loadedDevices.some(
+              (device) =>
+                device.id === current.id
+            )
+          ) {
+            return current;
+          }
+
+          return null;
+        });
+
+        if (loadedDevices.length === 0) {
+          setRequestError(
+            isArabic
+              ? "ماكو أجهزة VIP مرتبطة بهذه الباقة حاليًا."
+              : "There are no VIP devices linked to this plan yet."
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Load VIP devices error:",
+          error
+        );
+
+        if (!cancelled) {
+          setDevices([]);
+          setSelectedDevice(null);
+          setRequestError(
+            isArabic
+              ? "تعذر تحميل أجهزة VIP حاليًا."
+              : "We could not load the VIP devices right now."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingDevices(false);
+        }
+      }
+    }
+
+    void loadVipDevices();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selectedPackage,
+    vipRequestType,
+    planSlug,
+    isArabic,
+  ]);
+
+  useEffect(() => {
     if (
       !user ||
       !selectedPackage ||
-      !planSlug
+      !planSlug ||
+      isVip
     ) {
       return;
     }
@@ -306,6 +575,7 @@ Price: ${formattedPrice} IQD`;
                 currentUser.id,
               planSlug:
                 currentPlanSlug,
+              serviceType: "IPTV",
               contactMethod: "PENDING",
             }),
           }
@@ -362,13 +632,135 @@ Price: ${formattedPrice} IQD`;
     user,
     selectedPackage,
     planSlug,
+    isVip,
     isArabic,
   ]);
+
+  async function createVipRequest(
+    method: ContactMethod
+  ) {
+    if (
+      !user ||
+      !selectedPackage ||
+      !planSlug ||
+      !isVip ||
+      !vipRequestType
+    ) {
+      return null;
+    }
+
+    if (
+      vipRequestType === "NEW" &&
+      !selectedDevice
+    ) {
+      return null;
+    }
+
+    setSavingRequest(true);
+    setRequestError("");
+
+    try {
+      const response = await fetch(
+        "/api/subscription-requests",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            planSlug,
+            serviceType: "VIP",
+            contactMethod: method,
+            requestType: vipRequestType,
+            deviceId:
+              vipRequestType === "NEW"
+                ? String(
+                    selectedDevice?.id ?? ""
+                  )
+                : null,
+            deviceName:
+              vipRequestType === "NEW"
+                ? selectedDevice?.name ??
+                  null
+                : null,
+            devicePrice:
+              vipRequestType === "NEW"
+                ? selectedDevice?.price ??
+                  null
+                : null,
+          }),
+        }
+      );
+
+      const data =
+        (await response.json()) as {
+          success?: boolean;
+          requestId?: number;
+          error?: string;
+        };
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ??
+            "Failed to create VIP request."
+        );
+      }
+
+      if (
+        typeof data.requestId ===
+        "number"
+      ) {
+        setRequestId(
+          data.requestId
+        );
+      }
+
+      return data.requestId ?? null;
+    } catch (error) {
+      console.error(
+        "Create VIP request error:",
+        error
+      );
+
+      setRequestError(
+        isArabic
+          ? "تعذر حفظ طلب VIP حاليًا. تقدر تكمل التواصل ويانا."
+          : "We could not save your VIP request right now. You can still contact us."
+      );
+
+      return null;
+    } finally {
+      setSavingRequest(false);
+    }
+  }
 
   async function saveContactMethod(
     method: ContactMethod
   ) {
     if (!user || !planSlug) {
+      return;
+    }
+
+    if (isVip) {
+      if (!vipRequestType) {
+        return;
+      }
+
+      if (
+        vipRequestType === "NEW" &&
+        !selectedDevice
+      ) {
+        return;
+      }
+
+      setSelectedContact(method);
+
+      await createVipRequest(
+        method
+      );
+
       return;
     }
 
@@ -387,6 +779,7 @@ Price: ${formattedPrice} IQD`;
           body: JSON.stringify({
             userId: user.id,
             planSlug,
+            serviceType: "IPTV",
             contactMethod: method,
           }),
         }
@@ -454,7 +847,7 @@ Price: ${formattedPrice} IQD`;
   }
 
   async function openTelegram() {
-    if (!message) {
+    if (!message || !canContact) {
       return;
     }
 
@@ -474,6 +867,10 @@ Price: ${formattedPrice} IQD`;
   }
 
   async function openFacebook() {
+    if (!canContact) {
+      return;
+    }
+
     await saveContactMethod(
       "FACEBOOK"
     );
@@ -483,6 +880,16 @@ Price: ${formattedPrice} IQD`;
       "_blank",
       "noopener,noreferrer"
     );
+  }
+
+  function chooseVipRequestType(
+    type: VipRequestType
+  ) {
+    setVipRequestType(type);
+    setSelectedDevice(null);
+    setSelectedContact(null);
+    setRequestId(null);
+    setRequestError("");
   }
 
   if (
@@ -565,26 +972,48 @@ Price: ${formattedPrice} IQD`;
                 : "Back to plans"}
             </Link>
 
-            <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-blue-200/70 bg-blue-50/70 px-4 py-2 text-xs font-black text-blue-700 dark:border-blue-400/10 dark:bg-blue-500/[0.07] dark:text-blue-400">
-              <MessageCircle
-                size={14}
-              />
+            <div
+              className={`mt-7 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-black ${
+                isVip
+                  ? "border-blue-200/70 bg-blue-50/70 text-blue-700 dark:border-blue-400/10 dark:bg-blue-500/[0.07] dark:text-blue-400"
+                  : "border-blue-200/70 bg-blue-50/70 text-blue-700 dark:border-blue-400/10 dark:bg-blue-500/[0.07] dark:text-blue-400"
+              }`}
+            >
+              {isVip ? (
+                <Sparkles size={14} />
+              ) : (
+                <MessageCircle
+                  size={14}
+                />
+              )}
 
-              {isArabic
-                ? "إكمال طلب الاشتراك"
-                : "Complete your subscription request"}
+              {isVip
+                ? isArabic
+                  ? "اشتراك VIP"
+                  : "VIP subscription"
+                : isArabic
+                  ? "إكمال طلب الاشتراك"
+                  : "Complete your subscription request"}
             </div>
 
             <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl dark:text-white">
-              {isArabic
-                ? "قريبين نكمّل اشتراكك."
-                : "You are one step away."}
+              {isVip
+                ? isArabic
+                  ? "خلينا نكمل اشتراك VIP."
+                  : "Let’s complete your VIP subscription."
+                : isArabic
+                  ? "قريبين نكمّل اشتراكك."
+                  : "You are one step away."}
             </h1>
 
             <p className="mt-5 max-w-2xl text-sm leading-8 text-slate-500 sm:text-base dark:text-slate-400">
-              {isArabic
-                ? "راجع بياناتك، وبعدها اختار طريقة التواصل المناسبة حتى نكمل إجراءات الاشتراك وياك."
-                : "Review your details, then choose your preferred way to contact us so we can complete your subscription."}
+              {isVip
+                ? isArabic
+                  ? "اختار نوع العملية أولًا، وبعدها نكمل وياك الخطوات المناسبة."
+                  : "Choose the type of VIP request first, then we’ll continue with the right flow."
+                : isArabic
+                  ? "راجع بياناتك، وبعدها اختار طريقة التواصل المناسبة حتى نكمل إجراءات الاشتراك وياك."
+                  : "Review your details, then choose your preferred way to contact us so we can complete your subscription."}
             </p>
 
             {requestId && (
@@ -604,15 +1033,29 @@ Price: ${formattedPrice} IQD`;
         <div className="mx-auto grid max-w-7xl gap-6 px-5 py-12 lg:grid-cols-[0.9fr_1.1fr] lg:px-8 lg:py-16">
           <div className="euclid-glass euclid-surface h-fit rounded-[30px] p-7">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/[0.08] dark:text-blue-400">
-                <Tv size={22} />
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                  isVip
+                    ? "bg-blue-50 text-blue-600 dark:bg-blue-500/[0.08] dark:text-blue-400"
+                    : "bg-blue-50 text-blue-600 dark:bg-blue-500/[0.08] dark:text-blue-400"
+                }`}
+              >
+                {isVip ? (
+                  <Sparkles size={22} />
+                ) : (
+                  <Tv size={22} />
+                )}
               </div>
 
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-600 dark:text-blue-400">
                   {isArabic
-                    ? "الباقة المختارة"
-                    : "SELECTED PACKAGE"}
+                    ? isVip
+                      ? "باقة VIP المختارة"
+                      : "الباقة المختارة"
+                    : isVip
+                      ? "SELECTED VIP PLAN"
+                      : "SELECTED PACKAGE"}
                 </div>
 
                 <h2 className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
@@ -635,13 +1078,23 @@ Price: ${formattedPrice} IQD`;
               />
 
               <InfoRow
-                icon={<Tv size={17} />}
+                icon={
+                  isVip ? (
+                    <Sparkles size={17} />
+                  ) : (
+                    <Tv size={17} />
+                  )
+                }
                 label={
                   isArabic
-                    ? "الباقة"
-                    : "Package"
+                    ? "النوع"
+                    : "Type"
                 }
-                value={serviceName}
+                value={
+                  isVip
+                    ? "VIP"
+                    : "IPTV"
+                }
               />
 
               <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-4 dark:border-blue-500/10 dark:bg-blue-500/[0.06]">
@@ -653,7 +1106,7 @@ Price: ${formattedPrice} IQD`;
 
                 <div className="mt-1 flex items-baseline gap-2">
                   <span className="text-3xl font-black text-slate-950 dark:text-white">
-                    {selectedPackage.price.toLocaleString(
+                    {currentPrice.toLocaleString(
                       "en-US"
                     )}
                   </span>
@@ -662,6 +1115,17 @@ Price: ${formattedPrice} IQD`;
                     IQD
                   </span>
                 </div>
+
+                {isVip &&
+                  vipRequestType ===
+                    "NEW" &&
+                  selectedDevice && (
+                    <p className="mt-2 text-[11px] font-bold leading-5 text-blue-700/80 dark:text-blue-300/70">
+                      {isArabic
+                        ? `الباقة ${selectedPackage.price.toLocaleString("en-US")} + الجهاز ${selectedDevice.price.toLocaleString("en-US")}`
+                        : `Plan ${selectedPackage.price.toLocaleString("en-US")} + device ${selectedDevice.price.toLocaleString("en-US")}`}
+                    </p>
+                  )}
               </div>
 
               {selectedPackage.description && (
@@ -677,6 +1141,23 @@ Price: ${formattedPrice} IQD`;
                   </p>
                 </div>
               )}
+
+              {isVip &&
+                vipRequestType ===
+                  "NEW" &&
+                selectedDevice && (
+                  <div className="rounded-2xl border border-cyan-200/70 bg-cyan-50/70 px-4 py-4 dark:border-cyan-500/10 dark:bg-cyan-500/[0.05]">
+                    <div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-600 dark:text-cyan-400">
+                      {isArabic
+                        ? "الجهاز المختار"
+                        : "SELECTED DEVICE"}
+                    </div>
+
+                    <div className="mt-1 text-sm font-black text-slate-900 dark:text-white">
+                      {selectedDevice.name}
+                    </div>
+                  </div>
+                )}
             </div>
 
             <div className="mt-7 rounded-2xl border border-emerald-200/70 bg-emerald-50/70 px-4 py-4 dark:border-emerald-500/10 dark:bg-emerald-500/[0.05]">
@@ -696,6 +1177,285 @@ Price: ${formattedPrice} IQD`;
           </div>
 
           <div className="space-y-6">
+            {isVip && (
+              <div className="euclid-glass rounded-[30px] p-7">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/[0.08] dark:text-blue-400">
+                    <Sparkles size={19} />
+                  </div>
+
+                  <div>
+                    <h2 className="text-lg font-black text-slate-950 dark:text-white">
+                      {isArabic
+                        ? "شنو نوع طلبك؟"
+                        : "What would you like to do?"}
+                    </h2>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      {isArabic
+                        ? "اختار الخيار المناسب حتى نكمل وياك."
+                        : "Choose the option that matches your request."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      chooseVipRequestType(
+                        "NEW"
+                      )
+                    }
+                    className={`rounded-2xl border p-5 text-start transition-all duration-300 hover:-translate-y-0.5 ${
+                      vipRequestType ===
+                      "NEW"
+                        ? "border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/10 dark:border-blue-400 dark:bg-blue-500/[0.08]"
+                        : "border-slate-200 bg-white hover:border-blue-300 dark:border-slate-700 dark:bg-slate-900/60 dark:hover:border-blue-500/30"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/[0.08] dark:text-blue-400">
+                        <Sparkles size={20} />
+                      </div>
+
+                      {vipRequestType ===
+                        "NEW" && (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white">
+                          <Check
+                            size={14}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <h3 className="mt-4 text-base font-black text-slate-900 dark:text-white">
+                      {isArabic
+                        ? "اشتراك جديد"
+                        : "New subscription"}
+                    </h3>
+
+                    <p className="mt-2 text-xs leading-6 text-slate-500 dark:text-slate-400">
+                      {isArabic
+                        ? "تختار جهاز VIP متوافق مع الباقة."
+                        : "Choose a compatible VIP device for this plan."}
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      chooseVipRequestType(
+                        "RENEW"
+                      )
+                    }
+                    className={`rounded-2xl border p-5 text-start transition-all duration-300 hover:-translate-y-0.5 ${
+                      vipRequestType ===
+                      "RENEW"
+                        ? "border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/10 dark:border-blue-400 dark:bg-blue-500/[0.08]"
+                        : "border-slate-200 bg-white hover:border-blue-300 dark:border-slate-700 dark:bg-slate-900/60 dark:hover:border-blue-500/30"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        <Clock3 size={20} />
+                      </div>
+
+                      {vipRequestType ===
+                        "RENEW" && (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white">
+                          <Check
+                            size={14}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <h3 className="mt-4 text-base font-black text-slate-900 dark:text-white">
+                      {isArabic
+                        ? "تجديد اشتراك"
+                        : "Renew subscription"}
+                    </h3>
+
+                    <p className="mt-2 text-xs leading-6 text-slate-500 dark:text-slate-400">
+                      {isArabic
+                        ? "تجديد اشتراكك الحالي بدون اختيار جهاز."
+                        : "Renew your current VIP subscription without choosing a device."}
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isVip &&
+              vipRequestType ===
+                "NEW" && (
+                <div className="euclid-glass rounded-[30px] p-7">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600 dark:bg-cyan-500/[0.08] dark:text-cyan-400">
+                        <Tv size={19} />
+                      </div>
+
+                      <div>
+                        <h2 className="text-lg font-black text-slate-950 dark:text-white">
+                          {isArabic
+                            ? "اختار جهازك"
+                            : "Choose your device"}
+                        </h2>
+
+                        <p className="mt-1 text-xs text-slate-400">
+                          {isArabic
+                            ? "الأجهزة التالية متوافقة مع باقة VIP المختارة."
+                            : "These devices are compatible with your selected VIP plan."}
+                        </p>
+                      </div>
+                    </div>
+
+                    {selectedDevice && (
+                      <div className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-black text-emerald-700 sm:inline-flex dark:border-emerald-500/10 dark:bg-emerald-500/[0.05] dark:text-emerald-400">
+                        {isArabic
+                          ? "تم الاختيار"
+                          : "Selected"}
+                      </div>
+                    )}
+                  </div>
+
+                  {loadingDevices ? (
+                    <div className="mt-6 flex min-h-32 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/40">
+                      <div className="flex items-center gap-3 text-sm font-bold text-slate-500 dark:text-slate-400">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-100 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
+
+                        {isArabic
+                          ? "جاري تحميل الأجهزة..."
+                          : "Loading devices..."}
+                      </div>
+                    </div>
+                  ) : devices.length ===
+                    0 ? (
+                    <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold leading-7 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/[0.06] dark:text-amber-300">
+                      {isArabic
+                        ? "حاليًا ماكو أجهزة مرتبطة بهذه الباقة. جرّب التجديد أو تواصل ويانا."
+                        : "There are currently no devices linked to this plan. You can renew instead or contact us."}
+                    </div>
+                  ) : (
+                    <div className="mt-6 grid gap-4">
+                      {devices.map(
+                        (device) => {
+                          const selected =
+                            selectedDevice?.id ===
+                            device.id;
+
+                          return (
+                            <button
+                              key={
+                                device.id
+                              }
+                              type="button"
+                              onClick={() =>
+                                setSelectedDevice(
+                                  device
+                                )
+                              }
+                              className={`overflow-hidden rounded-2xl border text-start transition-all duration-300 hover:-translate-y-0.5 ${
+                                selected
+                                  ? "border-blue-500 bg-blue-50/60 shadow-lg shadow-blue-500/10 dark:border-blue-400 dark:bg-blue-500/[0.07]"
+                                  : "border-slate-200 bg-white hover:border-blue-300 dark:border-slate-700 dark:bg-slate-900/60 dark:hover:border-blue-500/30"
+                              }`}
+                            >
+                              <div className="flex flex-col sm:flex-row">
+                                <div className="relative h-44 shrink-0 overflow-hidden bg-slate-100 sm:h-32 sm:w-44 dark:bg-slate-800">
+                                  {device.imageUrl ? (
+                                    <img
+                                      src={
+                                        device.imageUrl
+                                      }
+                                      alt={
+                                        device.name
+                                      }
+                                      className="h-full w-full object-cover transition duration-500 hover:scale-105"
+                                    />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 text-blue-300 dark:from-blue-950/20 dark:via-slate-900 dark:to-cyan-950/20 dark:text-blue-500">
+                                      <Tv
+                                        size={
+                                          34
+                                        }
+                                      />
+                                    </div>
+                                  )}
+
+                                  {selected && (
+                                    <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg">
+                                      <Check
+                                        size={
+                                          16
+                                        }
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex min-w-0 flex-1 flex-col justify-between p-5">
+                                  <div>
+                                    <div className="mb-2 flex items-center justify-between gap-3">
+                                      <h3 className="text-base font-black text-slate-900 dark:text-white">
+                                        {
+                                          device.name
+                                        }
+                                      </h3>
+
+                                      <span className="shrink-0 text-lg font-black text-blue-700 dark:text-blue-400">
+                                        {device.price.toLocaleString(
+                                          "en-US"
+                                        )}{" "}
+                                        <span className="text-[10px] text-slate-400">
+                                          IQD
+                                        </span>
+                                      </span>
+                                    </div>
+
+                                    {device.description && (
+                                      <p className="line-clamp-2 text-xs leading-6 text-slate-500 dark:text-slate-400">
+                                        {
+                                          device.description
+                                        }
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <div className="mt-4 flex items-center justify-between gap-3">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                                      VIP
+                                    </span>
+
+                                    <span
+                                      className={`text-xs font-black ${
+                                        selected
+                                          ? "text-blue-700 dark:text-blue-400"
+                                          : "text-slate-500 dark:text-slate-300"
+                                      }`}
+                                    >
+                                      {selected
+                                        ? isArabic
+                                          ? "هذا الجهاز محدد"
+                                          : "Device selected"
+                                        : isArabic
+                                          ? "اختيار الجهاز"
+                                          : "Select device"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        }
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
             <div className="euclid-glass rounded-[30px] p-7">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/[0.08] dark:text-blue-400">
@@ -752,171 +1512,231 @@ Price: ${formattedPrice} IQD`;
               </div>
             </div>
 
-            <div className="euclid-surface relative overflow-hidden rounded-[30px] border border-sky-200/70 bg-white p-7 shadow-sm dark:border-sky-500/10 dark:bg-slate-900">
-              <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-sky-400/[0.08] blur-3xl" />
-
-              <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/[0.09] dark:text-sky-400">
-                    <Send size={21} />
-                  </div>
-
-                  <div>
-                    <h2 className="text-lg font-black text-slate-950 dark:text-white">
-                      Telegram
-                    </h2>
-
-                    <p className="mt-1 text-xs text-slate-400">
-                      {isArabic
-                        ? "الأسرع لإرسال الطلب"
-                        : "Fastest way to send your request"}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    void openTelegram();
-                  }}
-                  disabled={savingRequest}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-500 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-sky-500/20 transition-all duration-300 hover:-translate-y-1 hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
+            {(!isVip ||
+              vipRequestType !==
+                null) && (
+              <>
+                <div
+                  className={`euclid-surface relative overflow-hidden rounded-[30px] border bg-white p-7 shadow-sm dark:bg-slate-900 ${
+                    canContact
+                      ? "border-sky-200/70 dark:border-sky-500/10"
+                      : "border-slate-200 dark:border-slate-700"
+                  }`}
                 >
-                  {isArabic
-                    ? "التوجه إلى Telegram"
-                    : "Open Telegram"}
+                  <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-sky-400/[0.08] blur-3xl" />
 
-                  <Send size={17} />
-                </button>
-              </div>
+                  <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/[0.09] dark:text-sky-400">
+                        <Send size={21} />
+                      </div>
 
-              <div className="relative mt-5 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-                <p className="text-xs leading-6 text-slate-500 dark:text-slate-300">
-                  {isArabic
-                    ? "راح تنفتح المحادثة والرسالة تكون مجهزة تلقائيًا."
-                    : "The conversation will open with your message prepared automatically."}
-                </p>
-              </div>
-            </div>
+                      <div>
+                        <h2 className="text-lg font-black text-slate-950 dark:text-white">
+                          Telegram
+                        </h2>
 
-            <div className="euclid-surface relative overflow-hidden rounded-[30px] border border-blue-200/70 bg-white p-7 shadow-sm dark:border-blue-500/10 dark:bg-slate-900">
-              <div className="pointer-events-none absolute -left-20 -bottom-20 h-44 w-44 rounded-full bg-blue-500/[0.08] blur-3xl" />
+                        <p className="mt-1 text-xs text-slate-400">
+                          {isArabic
+                            ? "الأسرع لإرسال الطلب"
+                            : "Fastest way to send your request"}
+                        </p>
+                      </div>
+                    </div>
 
-              <div className="relative">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/[0.09] dark:text-blue-400">
-                    <MessageCircle size={21} />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void openTelegram();
+                      }}
+                      disabled={
+                        savingRequest ||
+                        !canContact
+                      }
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-500 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-sky-500/20 transition-all duration-300 hover:-translate-y-1 hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isArabic
+                        ? "التوجه إلى Telegram"
+                        : "Open Telegram"}
+
+                      <Send size={17} />
+                    </button>
                   </div>
 
-                  <div>
-                    <h2 className="text-lg font-black text-slate-950 dark:text-white">
-                      Facebook
-                    </h2>
-
-                    <p className="mt-1 text-xs text-slate-400">
-                      {isArabic
-                        ? "انسخ الرسالة ثم افتح Messenger"
-                        : "Copy the message, then open Messenger"}
+                  <div className="relative mt-5 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                    <p className="text-xs leading-6 text-slate-500 dark:text-slate-300">
+                      {!canContact &&
+                      isVip &&
+                      vipRequestType ===
+                        "NEW"
+                        ? isArabic
+                          ? "اختار جهاز VIP أولًا حتى نكدر نجهز طلبك."
+                          : "Choose a VIP device first so we can prepare your request."
+                        : isVip &&
+                            vipRequestType ===
+                              "RENEW"
+                          ? isArabic
+                            ? "التجديد ما يحتاج اختيار جهاز."
+                            : "Renewal does not require device selection."
+                          : isArabic
+                            ? "راح تنفتح المحادثة والرسالة تكون مجهزة تلقائيًا."
+                            : "The conversation will open with your message prepared automatically."}
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-6 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-slate-700 dark:bg-slate-800/50">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-                      {isArabic
-                        ? "الرسالة الجاهزة"
-                        : "READY MESSAGE"}
+                <div
+                  className={`euclid-surface relative overflow-hidden rounded-[30px] border bg-white p-7 shadow-sm dark:bg-slate-900 ${
+                    canContact
+                      ? "border-blue-200/70 dark:border-blue-500/10"
+                      : "border-slate-200 dark:border-slate-700"
+                  }`}
+                >
+                  <div className="pointer-events-none absolute -left-20 -bottom-20 h-44 w-44 rounded-full bg-blue-500/[0.08] blur-3xl" />
+
+                  <div className="relative">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/[0.09] dark:text-blue-400">
+                        <MessageCircle
+                          size={21}
+                        />
+                      </div>
+
+                      <div>
+                        <h2 className="text-lg font-black text-slate-950 dark:text-white">
+                          Facebook
+                        </h2>
+
+                        <p className="mt-1 text-xs text-slate-400">
+                          {isArabic
+                            ? "انسخ الرسالة ثم افتح Messenger"
+                            : "Copy the message, then open Messenger"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-slate-700 dark:bg-slate-800/50">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                          {isArabic
+                            ? "الرسالة الجاهزة"
+                            : "READY MESSAGE"}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void copyMessage();
+                          }}
+                          disabled={!message}
+                          className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${
+                            copied
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+                              : "bg-white text-slate-700 shadow-sm hover:bg-blue-50 hover:text-blue-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                          }`}
+                        >
+                          {copied ? (
+                            <>
+                              <Check
+                                size={15}
+                              />
+
+                              {isArabic
+                                ? "تم النسخ"
+                                : "Copied"}
+                            </>
+                          ) : (
+                            <>
+                              <Copy
+                                size={15}
+                              />
+
+                              {isArabic
+                                ? "نسخ"
+                                : "Copy"}
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-4 text-sm leading-7 text-slate-700 shadow-sm dark:bg-slate-900 dark:text-slate-300">
+                        {message
+                          .split("\n")
+                          .map(
+                            (
+                              line,
+                              index
+                            ) => (
+                              <span
+                                key={`${line}-${index}`}
+                                className="block min-h-[1.5rem]"
+                              >
+                                {line}
+                              </span>
+                            )
+                          )}
+                      </div>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => {
                         void copyMessage();
+
+                        window.setTimeout(
+                          () => {
+                            void openFacebook();
+                          },
+                          150
+                        );
                       }}
-                      className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black transition-all duration-300 ${
-                        copied
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-                          : "bg-white text-slate-700 shadow-sm hover:bg-blue-50 hover:text-blue-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                      }`}
+                      disabled={
+                        savingRequest ||
+                        !canContact
+                      }
+                      className="relative mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-4 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition-all duration-300 hover:-translate-y-1 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {copied ? (
-                        <>
-                          <Check size={15} />
+                      <MessageCircle
+                        size={18}
+                      />
 
-                          {isArabic
-                            ? "تم النسخ"
-                            : "Copied"}
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={15} />
+                      {isArabic
+                        ? "نسخ الرسالة والتوجه إلى Messenger"
+                        : "Copy message & open Messenger"}
 
-                          {isArabic
-                            ? "نسخ"
-                            : "Copy"}
-                        </>
-                      )}
+                      <ArrowLeft
+                        size={17}
+                        className={
+                          isArabic
+                            ? ""
+                            : "rotate-180"
+                        }
+                      />
                     </button>
                   </div>
-
-                  <div className="rounded-xl bg-white p-4 text-sm leading-7 text-slate-700 shadow-sm dark:bg-slate-900 dark:text-slate-300">
-                    {message
-                      .split("\n")
-                      .map(
-                        (
-                          line,
-                          index
-                        ) => (
-                          <span
-                            key={`${line}-${index}`}
-                            className="block min-h-[1.5rem]"
-                          >
-                            {line}
-                          </span>
-                        )
-                      )}
-                  </div>
                 </div>
+              </>
+            )}
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    void copyMessage();
-
-                    window.setTimeout(
-                      () => {
-                        void openFacebook();
-                      },
-                      150
-                    );
-                  }}
-                  disabled={savingRequest}
-                  className="relative mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-4 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition-all duration-300 hover:-translate-y-1 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <MessageCircle
-                    size={18}
-                  />
-
+            {isVip &&
+              !vipRequestType && (
+                <div className="rounded-2xl border border-blue-200/70 bg-blue-50/60 px-5 py-4 text-xs font-bold leading-6 text-blue-700 dark:border-blue-500/10 dark:bg-blue-500/[0.06] dark:text-blue-400">
                   {isArabic
-                    ? "نسخ الرسالة والتوجه إلى Messenger"
-                    : "Copy message & open Messenger"}
-
-                  <ArrowLeft
-                    size={17}
-                    className={
-                      isArabic
-                        ? ""
-                        : "rotate-180"
-                    }
-                  />
-                </button>
-              </div>
-            </div>
+                    ? "اختار «اشتراك جديد» أو «تجديد اشتراك» حتى تظهر لك الخطوة التالية."
+                    : "Choose “New subscription” or “Renew subscription” to continue."}
+                </div>
+              )}
 
             {requestError && (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-xs font-bold leading-6 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/[0.06] dark:text-amber-300">
-                {requestError}
+                <div className="flex items-start gap-3">
+                  <CircleAlert
+                    size={17}
+                    className="mt-0.5 shrink-0"
+                  />
+
+                  <span>{requestError}</span>
+                </div>
               </div>
             )}
 

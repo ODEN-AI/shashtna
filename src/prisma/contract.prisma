@@ -16,15 +16,21 @@ model User {
 
 model Subscription {
   id              Int      @id @default(autoincrement())
+
   userId          Int
   user             User     @relation(fields: [userId], references: [id])
 
-  username        String   @unique
-  password        String
+  serviceType     String   @default("IPTV")
+
+  username        String?  @unique
+  password        String?
   macAddress      String?
+  deviceId        String?  @unique
+
   status          String   @default("ACTIVE")
 
   packageName     String
+
   startDate       TimestamptzString
   expiryDate      TimestamptzString
 
@@ -41,6 +47,8 @@ model Package {
   name            String
   slug            String   @unique
 
+  serviceType     String   @default("IPTV")
+
   price           Int
   durationMonths  Int
   durationLabel   String
@@ -55,26 +63,60 @@ model Package {
 
   createdAt       TimestamptzString @default(now())
   updatedAt       temporal.updatedAtString()
+
+  devices         PackageDevice[]
+}
+
+model Device {
+  id              Int      @id @default(autoincrement())
+
+  name            String
+  slug            String   @unique
+
+  serviceType     String   @default("IPTV")
+
+  price           Int
+
+  description     String
+  specifications  String
+  notes           String?
+
+  imageUrl        String?
+
+  isActive        Boolean  @default(true)
+
+  createdAt       TimestamptzString @default(now())
+  updatedAt       temporal.updatedAtString()
+
+  packages        PackageDevice[]
+}
+
+model PackageDevice {
+  id              Int      @id @default(autoincrement())
+
+  packageId       Int
+  package         Package  @relation(fields: [packageId], references: [id])
+
+  deviceId        Int
+  device          Device   @relation(fields: [deviceId], references: [id])
+
+  createdAt       TimestamptzString @default(now())
+
+  @@unique([packageId, deviceId])
 }
 
 model App {
   id           Int      @id @default(autoincrement())
-
   name         String
   slug         String   @unique
-
   description  String
   platform     String
   version      String?
-
   downloadUrl  String
   imageUrl     String?
-
   instructions String?
   notes        String?
-
   isActive     Boolean  @default(true)
-
   createdAt    TimestamptzString @default(now())
   updatedAt    temporal.updatedAtString()
 }
@@ -86,11 +128,17 @@ model SubscriptionRequest {
   user            User     @relation(fields: [userId], references: [id])
 
   planSlug        String
+  serviceType     String   @default("IPTV")
+
   serviceName     String
 
   price           Int
   durationMonths  Int      @default(12)
   durationLabel   String   @default("1 Year")
+
+  deviceId        String?
+  deviceName      String?
+  devicePrice     Int?
 
   contactMethod   String   @default("PENDING")
 
@@ -107,6 +155,8 @@ model Receipt {
 
   userId          Int
   subscriptionId  Int
+
+  serviceType     String   @default("IPTV")
 
   serviceName     String
   price           Int

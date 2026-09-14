@@ -24,7 +24,7 @@ type Receipt = {
 };
 
 function formatPrice(price: number) {
-  return new Intl.NumberFormat("ar-IQ").format(price);
+  return new Intl.NumberFormat("en-US").format(price);
 }
 
 function formatDate(date: string) {

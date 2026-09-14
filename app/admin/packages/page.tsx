@@ -4,6 +4,7 @@ import {
   Check,
   CircleAlert,
   CircleX,
+  Cpu,
   Edit3,
   ImagePlus,
   Loader2,
@@ -14,9 +15,40 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 
 type ServiceType = "IPTV" | "VIP";
+
+type RelatedPackage = {
+  id: number;
+  name: string;
+  slug: string;
+  serviceType: ServiceType;
+  price: number;
+  durationMonths: number;
+  durationLabel: string;
+  isActive: boolean;
+};
+
+type DeviceData = {
+  id: number;
+  name: string;
+  slug: string;
+  serviceType: ServiceType;
+  price: number;
+  description: string;
+  specifications: string;
+  notes: string | null;
+  imageUrl: string | null;
+  isActive: boolean;
+  packages?: RelatedPackage[];
+};
 
 type PackageData = {
   id: number;
@@ -33,6 +65,7 @@ type PackageData = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  devices?: DeviceData[];
 };
 
 type PackageForm = {
@@ -47,6 +80,7 @@ type PackageForm = {
   notes: string;
   imageUrl: string;
   isActive: boolean;
+  deviceIds: number[];
 };
 
 const emptyForm: PackageForm = {
@@ -61,40 +95,32 @@ const emptyForm: PackageForm = {
   notes: "",
   imageUrl: "",
   isActive: true,
+  deviceIds: [],
 };
 
 function formatPrice(price: number) {
-  return new Intl.NumberFormat("ar-IQ").format(price);
+  return new Intl.NumberFormat("en-US").format(price);
 }
 
 function getServiceLabel(serviceType: ServiceType) {
-  return serviceType === "VIP"
-    ? "VIP"
-    : "IPTV";
+  return serviceType === "VIP" ? "VIP" : "IPTV";
 }
 
 export default function AdminPackagesPage() {
   const [packages, setPackages] = useState<PackageData[]>([]);
-  const [form, setForm] =
-    useState<PackageForm>(emptyForm);
+  const [devices, setDevices] = useState<DeviceData[]>([]);
+
+  const [form, setForm] = useState<PackageForm>(emptyForm);
 
   const [editingId, setEditingId] =
     useState<number | null>(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  const [saving, setSaving] =
-    useState(false);
-
-  const [uploading, setUploading] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-  const [message, setMessage] =
-    useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   const fileInputRef =
     useRef<HTMLInputElement | null>(null);
@@ -108,46 +134,72 @@ export default function AdminPackagesPage() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(
-        "/api/admin/packages",
-        {
-          cache: "no-store",
-        }
-      );
+      const [packagesResponse, devicesResponse] =
+        await Promise.all([
+          fetch("/api/admin/packages", {
+            method: "GET",
+            cache: "no-store",
+          }),
+          fetch("/api/admin/devices", {
+            method: "GET",
+            cache: "no-store",
+          }),
+        ]);
 
-      const data = await response.json();
+      const packagesData =
+        await packagesResponse.json();
+
+      const devicesData =
+        await devicesResponse.json();
 
       if (
-        !response.ok ||
-        !data.success
+        !packagesResponse.ok ||
+        !packagesData.success
       ) {
         throw new Error(
-          data.message ||
+          packagesData.message ||
             "تعذر تحميل الباقات."
         );
       }
 
-      setPackages(
-        Array.isArray(data.packages)
-          ? data.packages
-          : []
-      );
+      if (
+        !devicesResponse.ok ||
+        !devicesData.success
+      ) {
+        throw new Error(
+          devicesData.message ||
+            "تعذر تحميل الأجهزة."
+        );
+      }
+
+      const loadedPackages: PackageData[] =
+        Array.isArray(packagesData.packages)
+          ? packagesData.packages
+          : [];
+
+      const loadedDevices: DeviceData[] =
+        Array.isArray(devicesData.devices)
+          ? devicesData.devices
+          : [];
+
+      setPackages(loadedPackages);
+      setDevices(loadedDevices);
     } catch (error) {
       console.error(error);
 
       setError(
         error instanceof Error
           ? error.message
-          : "حدث خطأ أثناء تحميل الباقات."
+          : "حدث خطأ أثناء تحميل البيانات."
       );
     } finally {
       setLoading(false);
     }
   }
 
-  function updateField(
-    key: keyof PackageForm,
-    value: string | boolean
+  function updateField<K extends keyof PackageForm>(
+    key: K,
+    value: PackageForm[K]
   ) {
     setForm((current) => ({
       ...current,
@@ -165,6 +217,7 @@ export default function AdminPackagesPage() {
           serviceType: "VIP",
           durationMonths: "3",
           durationLabel: "3 Months",
+          deviceIds: [],
         };
       }
 
@@ -180,6 +233,7 @@ export default function AdminPackagesPage() {
           current.durationLabel === "3 Months"
             ? "1 Year"
             : current.durationLabel,
+        deviceIds: [],
       };
     });
   }
@@ -202,6 +256,15 @@ export default function AdminPackagesPage() {
         ? "VIP"
         : "IPTV";
 
+    const relatedDeviceIds = devices
+      .filter((device) =>
+        device.packages?.some(
+          (relatedPackage) =>
+            relatedPackage.id === pkg.id
+        )
+      )
+      .map((device) => device.id);
+
     setEditingId(pkg.id);
 
     setForm({
@@ -217,14 +280,13 @@ export default function AdminPackagesPage() {
         serviceType === "VIP"
           ? "3 Months"
           : pkg.durationLabel,
-      description:
-        pkg.description ?? "",
+      description: pkg.description ?? "",
       specifications:
         pkg.specifications ?? "",
       notes: pkg.notes ?? "",
-      imageUrl:
-        pkg.imageUrl ?? "",
+      imageUrl: pkg.imageUrl ?? "",
       isActive: pkg.isActive,
+      deviceIds: relatedDeviceIds,
     });
 
     setError("");
@@ -249,40 +311,27 @@ export default function AdminPackagesPage() {
       setError("");
       setMessage("");
 
-      const formData =
-        new FormData();
+      const formData = new FormData();
+      formData.append("file", file);
 
-      formData.append(
-        "file",
-        file
+      const response = await fetch(
+        "/api/admin/packages/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
       );
 
-      const response =
-        await fetch(
-          "/api/admin/packages/upload",
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
+      const data = await response.json();
 
-      const data =
-        await response.json();
-
-      if (
-        !response.ok ||
-        !data.success
-      ) {
+      if (!response.ok || !data.success) {
         throw new Error(
           data.message ||
             "تعذر رفع الصورة."
         );
       }
 
-      updateField(
-        "imageUrl",
-        data.imageUrl
-      );
+      updateField("imageUrl", data.imageUrl);
 
       setMessage(
         "تم رفع الصورة بنجاح."
@@ -299,17 +348,15 @@ export default function AdminPackagesPage() {
       setUploading(false);
 
       if (fileInputRef.current) {
-        fileInputRef.current.value =
-          "";
+        fileInputRef.current.value = "";
       }
     }
   }
 
   async function handleFileChange(
-    event: React.ChangeEvent<HTMLInputElement>
+    event: ChangeEvent<HTMLInputElement>
   ) {
-    const file =
-      event.target.files?.[0];
+    const file = event.target.files?.[0];
 
     if (!file) {
       return;
@@ -318,8 +365,23 @@ export default function AdminPackagesPage() {
     await uploadImage(file);
   }
 
+  function toggleDevice(deviceId: number) {
+    setForm((current) => ({
+      ...current,
+      deviceIds:
+        current.deviceIds.includes(deviceId)
+          ? current.deviceIds.filter(
+              (id) => id !== deviceId
+            )
+          : [
+              ...current.deviceIds,
+              deviceId,
+            ],
+    }));
+  }
+
   async function savePackage(
-    event: React.FormEvent<HTMLFormElement>
+    event: FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
 
@@ -328,23 +390,21 @@ export default function AdminPackagesPage() {
       setError("");
       setMessage("");
 
-      const name =
-        form.name.trim();
-
-      const slug =
-        form.slug.trim().toLowerCase();
+      const name = form.name.trim();
+      const slug = form.slug
+        .trim()
+        .toLowerCase();
 
       const serviceType =
         form.serviceType;
 
       if (!name || !slug) {
         throw new Error(
-          "اسم الباقة والـ Slug مطلوبان."
+          "اسم الباقة وSlug مطلوبان."
         );
       }
 
-      const price =
-        Number(form.price);
+      const price = Number(form.price);
 
       if (
         !Number.isFinite(price) ||
@@ -355,10 +415,9 @@ export default function AdminPackagesPage() {
         );
       }
 
-      let durationMonths =
-        Number(
-          form.durationMonths
-        );
+      let durationMonths = Number(
+        form.durationMonths
+      );
 
       let durationLabel =
         form.durationLabel.trim();
@@ -379,8 +438,7 @@ export default function AdminPackagesPage() {
         }
 
         if (!durationLabel) {
-          durationLabel =
-            `${durationMonths} Months`;
+          durationLabel = `${durationMonths} Months`;
         }
       }
 
@@ -390,7 +448,7 @@ export default function AdminPackagesPage() {
 
       const specifications =
         form.specifications.trim() ||
-        `اشتراك لمدة ${durationMonths} شهر`;
+        `اشتراك لمدة ${durationMonths} أشهر`;
 
       const payload = {
         name,
@@ -402,40 +460,33 @@ export default function AdminPackagesPage() {
         description,
         specifications,
         notes:
-          form.notes.trim() ||
-          null,
+          form.notes.trim() || null,
         imageUrl:
-          form.imageUrl.trim() ||
-          null,
-        isActive:
-          form.isActive,
+          form.imageUrl.trim() || null,
+        isActive: form.isActive,
+        deviceIds:
+          serviceType === "VIP"
+            ? form.deviceIds
+            : [],
       };
 
       const url = editingId
         ? `/api/admin/packages/${editingId}`
         : "/api/admin/packages";
 
-      const response =
-        await fetch(url, {
-          method: editingId
-            ? "PATCH"
-            : "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify(
-            payload
-          ),
-        });
+      const response = await fetch(url, {
+        method: editingId ? "PATCH" : "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
       const data =
         await response.json();
 
-      if (
-        !response.ok ||
-        !data.success
-      ) {
+      if (!response.ok || !data.success) {
         throw new Error(
           data.message ||
             "تعذر حفظ الباقة."
@@ -472,29 +523,24 @@ export default function AdminPackagesPage() {
       setError("");
       setMessage("");
 
-      const response =
-        await fetch(
-          `/api/admin/packages/${pkg.id}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              isActive:
-                !pkg.isActive,
-            }),
-          }
-        );
+      const response = await fetch(
+        `/api/admin/packages/${pkg.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            isActive: !pkg.isActive,
+          }),
+        }
+      );
 
       const data =
         await response.json();
 
-      if (
-        !response.ok ||
-        !data.success
-      ) {
+      if (!response.ok || !data.success) {
         throw new Error(
           data.message ||
             "تعذر تغيير حالة الباقة."
@@ -535,30 +581,24 @@ export default function AdminPackagesPage() {
       setError("");
       setMessage("");
 
-      const response =
-        await fetch(
-          `/api/admin/packages/${pkg.id}`,
-          {
-            method: "DELETE",
-          }
-        );
+      const response = await fetch(
+        `/api/admin/packages/${pkg.id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       const data =
         await response.json();
 
-      if (
-        !response.ok ||
-        !data.success
-      ) {
+      if (!response.ok || !data.success) {
         throw new Error(
           data.message ||
             "تعذر حذف الباقة."
         );
       }
 
-      if (
-        editingId === pkg.id
-      ) {
+      if (editingId === pkg.id) {
         cancelEdit();
       }
 
@@ -578,6 +618,14 @@ export default function AdminPackagesPage() {
     }
   }
 
+  const availableDevices =
+    devices.filter(
+      (device) =>
+        device.isActive &&
+        device.serviceType ===
+          form.serviceType
+    );
+
   return (
     <main
       dir="rtl"
@@ -595,16 +643,16 @@ export default function AdminPackagesPage() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              أضف وعدّل باقات IPTV وVIP والأسعار والصور التي تظهر للعملاء.
+              أضف وعدّل باقات IPTV وVIP والأسعار والصور والأجهزة المتوافقة معها.
             </p>
           </div>
 
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => {
-                void loadPackages();
-              }}
+              onClick={() =>
+                void loadPackages()
+              }
               disabled={loading}
               className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-black shadow-sm transition hover:border-blue-200 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
             >
@@ -616,7 +664,6 @@ export default function AdminPackagesPage() {
                     : ""
                 }
               />
-
               تحديث
             </button>
 
@@ -655,7 +702,7 @@ export default function AdminPackagesPage() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                الصورة والوصف والمواصفات اختيارية.
+                الصورة والوصف والمواصفات اختيارية، ويمكن تحديد الأجهزة المتوافقة مع باقة VIP.
               </p>
             </div>
 
@@ -675,7 +722,6 @@ export default function AdminPackagesPage() {
             onSubmit={savePackage}
             className="grid gap-5 md:grid-cols-2"
           >
-            {/* SERVICE TYPE */}
             <div className="md:col-span-2">
               <label className="mb-3 block text-sm font-black">
                 نوع الخدمة
@@ -717,9 +763,7 @@ export default function AdminPackagesPage() {
                     >
                       {form.serviceType ===
                         "IPTV" && (
-                        <Check
-                          size={14}
-                        />
+                        <Check size={14} />
                       )}
                     </div>
                   </div>
@@ -746,7 +790,7 @@ export default function AdminPackagesPage() {
                       </div>
 
                       <p className="mt-1 text-xs leading-6 opacity-70">
-                        خدمة مرتبطة بجهاز VIP ومعرّف جهاز خاص، ومدتها 3 أشهر.
+                        خدمة مرتبطة بجهاز VIP ومعرف جهاز خاص، ومدتها 3 أشهر.
                       </p>
                     </div>
 
@@ -760,9 +804,7 @@ export default function AdminPackagesPage() {
                     >
                       {form.serviceType ===
                         "VIP" && (
-                        <Check
-                          size={14}
-                        />
+                        <Check size={14} />
                       )}
                     </div>
                   </div>
@@ -835,9 +877,7 @@ export default function AdminPackagesPage() {
                   value={
                     form.durationMonths
                   }
-                  onChange={(
-                    value
-                  ) =>
+                  onChange={(value) =>
                     updateField(
                       "durationMonths",
                       value
@@ -890,9 +930,7 @@ export default function AdminPackagesPage() {
 
                   <button
                     type="button"
-                    disabled={
-                      uploading
-                    }
+                    disabled={uploading}
                     onClick={() =>
                       fileInputRef.current?.click()
                     }
@@ -912,12 +950,13 @@ export default function AdminPackagesPage() {
 
                     <span className="mt-3 text-sm font-black">
                       {uploading
-                        ? "جاري رفع الصورة..."
+                        ? "جارٍ رفع الصورة..."
                         : "اختيار صورة من الكمبيوتر"}
                     </span>
 
                     <span className="mt-1 text-xs text-slate-400">
-                      JPG · PNG · WEBP · GIF · بحد أقصى 8MB
+                      JPG • PNG • WEBP • GIF
+                      • بحد أقصى 8MB
                     </span>
                   </button>
                 </div>
@@ -925,7 +964,9 @@ export default function AdminPackagesPage() {
                 <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50">
                   {form.imageUrl ? (
                     <img
-                      src={form.imageUrl}
+                      src={
+                        form.imageUrl
+                      }
                       alt={
                         form.name ||
                         "Package"
@@ -934,9 +975,7 @@ export default function AdminPackagesPage() {
                     />
                   ) : (
                     <div className="flex min-h-[180px] flex-col items-center justify-center text-slate-400">
-                      <Upload
-                        size={28}
-                      />
+                      <Upload size={28} />
 
                       <span className="mt-2 text-xs font-bold">
                         لا توجد صورة
@@ -972,7 +1011,9 @@ export default function AdminPackagesPage() {
             <div className="md:col-span-2">
               <TextAreaField
                 label="الوصف"
-                value={form.description}
+                value={
+                  form.description
+                }
                 onChange={(value) =>
                   updateField(
                     "description",
@@ -998,6 +1039,146 @@ export default function AdminPackagesPage() {
                 placeholder="اكتب مواصفات الباقة... (اختياري)"
               />
             </div>
+
+            {form.serviceType ===
+              "VIP" && (
+              <div className="md:col-span-2">
+                <label className="mb-3 flex items-center gap-2 text-sm font-black">
+                  <Cpu size={17} />
+                  الأجهزة المتوافقة
+                  <span className="text-xs font-normal text-slate-400">
+                    اختياري
+                  </span>
+                </label>
+
+                {availableDevices.length ===
+                0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
+                    لا توجد أجهزة مفعلة من نوع{" "}
+                    <span className="font-black text-slate-700 dark:text-slate-200">
+                      VIP
+                    </span>{" "}
+                    حاليًا.
+                    <div className="mt-2 text-xs">
+                      أضف جهازًا من صفحة إدارة الأجهزة أولًا.
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {availableDevices.map(
+                        (device) => {
+                          const selected =
+                            form.deviceIds.includes(
+                              device.id
+                            );
+
+                          return (
+                            <button
+                              key={
+                                device.id
+                              }
+                              type="button"
+                              onClick={() =>
+                                toggleDevice(
+                                  device.id
+                                )
+                              }
+                              className={`overflow-hidden rounded-2xl border-2 text-right transition ${
+                                selected
+                                  ? "border-cyan-500 bg-cyan-50 shadow-sm dark:border-cyan-400 dark:bg-cyan-500/10"
+                                  : "border-slate-200 bg-slate-50 hover:border-cyan-200 hover:bg-cyan-50/50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-cyan-500/40"
+                              }`}
+                            >
+                              <div className="relative h-32 overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500">
+                                {device.imageUrl ? (
+                                  <img
+                                    src={
+                                      device.imageUrl
+                                    }
+                                    alt={
+                                      device.name
+                                    }
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center text-white/70">
+                                    <Cpu
+                                      size={
+                                        38
+                                      }
+                                    />
+                                  </div>
+                                )}
+
+                                <div className="absolute left-3 top-3">
+                                  {selected ? (
+                                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-600 text-white shadow-lg">
+                                      <Check
+                                        size={
+                                          15
+                                        }
+                                      />
+                                    </span>
+                                  ) : (
+                                    <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white/80 bg-black/20" />
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-black">
+                                      {
+                                        device.name
+                                      }
+                                    </p>
+
+                                    <p className="mt-1 text-xs font-semibold text-cyan-600 dark:text-cyan-400">
+                                      {formatPrice(
+                                        device.price
+                                      )}{" "}
+                                      الف
+                                    </p>
+                                  </div>
+
+                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-500 dark:bg-slate-700 dark:text-slate-300">
+                                    {
+                                      device.serviceType
+                                    }
+                                  </span>
+                                </div>
+
+                                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                  {
+                                    device.description
+                                  }
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        }
+                      )}
+                    </div>
+
+                    {form.deviceIds.length >
+                      0 && (
+                      <p className="mt-3 text-xs font-bold text-cyan-600 dark:text-cyan-400">
+                        تم اختيار{" "}
+                        {
+                          form.deviceIds.length
+                        }{" "}
+                        {form.deviceIds.length ===
+                        1
+                          ? "جهاز"
+                          : "أجهزة"}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="md:col-span-2">
               <TextAreaField
@@ -1043,8 +1224,7 @@ export default function AdminPackagesPage() {
               <button
                 type="submit"
                 disabled={
-                  saving ||
-                  uploading
+                  saving || uploading
                 }
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-700 to-cyan-500 px-5 py-4 text-sm font-black text-white shadow-lg shadow-blue-600/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -1085,7 +1265,8 @@ export default function AdminPackagesPage() {
                 className="animate-spin text-blue-600"
               />
             </div>
-          ) : packages.length === 0 ? (
+          ) : packages.length ===
+            0 ? (
             <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-900">
               <p className="font-bold text-slate-500">
                 لا توجد باقات.
@@ -1093,176 +1274,256 @@ export default function AdminPackagesPage() {
             </div>
           ) : (
             <div className="grid gap-5 lg:grid-cols-3">
-              {packages.map(
-                (pkg) => {
-                  const serviceType: ServiceType =
-                    pkg.serviceType ===
-                    "VIP"
-                      ? "VIP"
-                      : "IPTV";
+              {packages.map((pkg) => {
+                const serviceType: ServiceType =
+                  pkg.serviceType === "VIP"
+                    ? "VIP"
+                    : "IPTV";
 
-                  return (
-                    <article
-                      key={pkg.id}
-                      className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
-                    >
-                      <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
-                        {pkg.imageUrl ? (
-                          <img
-                            src={pkg.imageUrl}
-                            alt={
+                const relatedDevices =
+                  devices.filter(
+                    (device) =>
+                      device.packages?.some(
+                        (item) =>
+                          item.id ===
+                          pkg.id
+                      )
+                  );
+
+                return (
+                  <article
+                    key={pkg.id}
+                    className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                  >
+                    <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
+                      {pkg.imageUrl ? (
+                        <img
+                          src={
+                            pkg.imageUrl
+                          }
+                          alt={
+                            pkg.name
+                          }
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center text-slate-400">
+                          <ImagePlus
+                            size={32}
+                          />
+
+                          <span className="mt-2 text-xs font-bold">
+                            لا توجد صورة
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="absolute right-4 top-4 flex gap-2">
+                        <span
+                          className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
+                            serviceType ===
+                            "VIP"
+                              ? "bg-cyan-600 text-white"
+                              : "bg-blue-600 text-white"
+                          }`}
+                        >
+                          {getServiceLabel(
+                            serviceType
+                          )}
+                        </span>
+
+                        <span
+                          className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
+                            pkg.isActive
+                              ? "bg-emerald-500 text-white"
+                              : "bg-slate-900/80 text-white"
+                          }`}
+                        >
+                          {pkg.isActive
+                            ? "مفعلة"
+                            : "متوقفة"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="text-xl font-black">
+                            {
                               pkg.name
                             }
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full flex-col items-center justify-center text-slate-400">
-                            <ImagePlus
-                              size={32}
-                            />
+                          </h3>
 
-                            <span className="mt-2 text-xs font-bold">
-                              لا توجد صورة
+                          <p
+                            dir="ltr"
+                            className="mt-1 text-xs text-slate-400"
+                          >
+                            {
+                              pkg.slug
+                            }
+                          </p>
+                        </div>
+
+                        <div className="text-left">
+                          <div className="text-lg font-black text-blue-600 dark:text-blue-400">
+                            {formatPrice(
+                              pkg.price
+                            )}{" "}
+                            الف
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="mt-4 line-clamp-2 text-sm leading-7 text-slate-500 dark:text-slate-400">
+                        {
+                          pkg.description
+                        }
+                      </p>
+
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                          الخدمة:{" "}
+                          {getServiceLabel(
+                            serviceType
+                          )}
+                        </div>
+
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                          المدة:{" "}
+                          {
+                            pkg.durationLabel
+                          }
+                        </div>
+                      </div>
+
+                      {serviceType ===
+                        "VIP" && (
+                        <div className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-500/20 dark:bg-cyan-500/10">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <Cpu
+                                size={15}
+                                className="text-cyan-600 dark:text-cyan-400"
+                              />
+
+                              <span className="text-xs font-black">
+                                الأجهزة المتوافقة
+                              </span>
+                            </div>
+
+                            <span className="text-xs font-black text-cyan-600 dark:text-cyan-400">
+                              {
+                                relatedDevices.length
+                              }
                             </span>
                           </div>
-                        )}
 
-                        <div className="absolute right-4 top-4 flex gap-2">
-                          <span
-                            className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
-                              serviceType ===
-                              "VIP"
-                                ? "bg-cyan-600 text-white"
-                                : "bg-blue-600 text-white"
-                            }`}
-                          >
-                            {getServiceLabel(
-                              serviceType
-                            )}
-                          </span>
+                          {relatedDevices.length >
+                          0 ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {relatedDevices
+                                .slice(
+                                  0,
+                                  4
+                                )
+                                .map(
+                                  (
+                                    device
+                                  ) => (
+                                    <span
+                                      key={
+                                        device.id
+                                      }
+                                      className="rounded-full bg-white px-3 py-1.5 text-[10px] font-black text-slate-600 shadow-sm dark:bg-slate-900 dark:text-slate-300"
+                                    >
+                                      {
+                                        device.name
+                                      }
+                                    </span>
+                                  )
+                                )}
 
-                          <span
-                            className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
-                              pkg.isActive
-                                ? "bg-emerald-500 text-white"
-                                : "bg-slate-900/80 text-white"
-                            }`}
-                          >
-                            {pkg.isActive
-                              ? "مفعلة"
-                              : "متوقفة"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="p-5">
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <h3 className="text-xl font-black">
-                              {pkg.name}
-                            </h3>
-
-                            <p
-                              dir="ltr"
-                              className="mt-1 text-xs text-slate-400"
-                            >
-                              {pkg.slug}
-                            </p>
-                          </div>
-
-                          <div className="text-left">
-                            <div className="text-lg font-black text-blue-600 dark:text-blue-400">
-                              {formatPrice(
-                                pkg.price
+                              {relatedDevices.length >
+                                4 && (
+                                <span className="rounded-full bg-white px-3 py-1.5 text-[10px] font-black text-slate-500 shadow-sm dark:bg-slate-900 dark:text-slate-400">
+                                  +
+                                  {relatedDevices.length -
+                                    4}
+                                </span>
                               )}
                             </div>
-
-                            <div className="text-[10px] font-bold text-slate-400">
-                              IQD
-                            </div>
-                          </div>
+                          ) : (
+                            <p className="mt-2 text-[11px] font-semibold text-slate-400">
+                              لا توجد أجهزة مرتبطة بهذه الباقة.
+                            </p>
+                          )}
                         </div>
+                      )}
 
-                        <p className="mt-4 line-clamp-2 text-sm leading-7 text-slate-500 dark:text-slate-400">
-                          {
-                            pkg.description
+                      <div className="mt-5 grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            startEdit(
+                              pkg
+                            )
                           }
-                        </p>
+                          className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-3 text-xs font-black transition hover:border-blue-200 hover:bg-blue-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                        >
+                          <Edit3
+                            size={14}
+                          />
+                          تعديل
+                        </button>
 
-                        <div className="mt-4 grid grid-cols-2 gap-2">
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                            الخدمة:{" "}
-                            {getServiceLabel(
-                              serviceType
-                            )}
-                          </div>
-
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                            المدة:{" "}
-                            {pkg.durationLabel}
-                          </div>
-                        </div>
-
-                        <div className="mt-5 grid grid-cols-3 gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              startEdit(
-                                pkg
-                              )
-                            }
-                            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-3 text-xs font-black transition hover:border-blue-200 hover:bg-blue-50 dark:border-slate-700 dark:hover:bg-slate-800"
-                          >
-                            <Edit3
-                              size={14}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void togglePackage(
+                              pkg
+                            )
+                          }
+                          className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-3 text-xs font-black transition hover:border-blue-200 hover:bg-blue-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                        >
+                          {pkg.isActive ? (
+                            <CircleX
+                              size={
+                                14
+                              }
                             />
-                            تعديل
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void togglePackage(
-                                pkg
-                              )
-                            }
-                            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-3 text-xs font-black transition hover:border-blue-200 hover:bg-blue-50 dark:border-slate-700 dark:hover:bg-slate-800"
-                          >
-                            {pkg.isActive ? (
-                              <CircleX
-                                size={14}
-                              />
-                            ) : (
-                              <Check
-                                size={14}
-                              />
-                            )}
-
-                            {pkg.isActive
-                              ? "إيقاف"
-                              : "تفعيل"}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void deletePackage(
-                                pkg
-                              )
-                            }
-                            className="flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-xs font-black text-red-600 transition hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400"
-                          >
-                            <Trash2
-                              size={14}
+                          ) : (
+                            <Check
+                              size={
+                                14
+                              }
                             />
-                            حذف
-                          </button>
-                        </div>
+                          )}
+
+                          {pkg.isActive
+                            ? "إيقاف"
+                            : "تفعيل"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void deletePackage(
+                              pkg
+                            )
+                          }
+                          className="flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-xs font-black text-red-600 transition hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400"
+                        >
+                          <Trash2
+                            size={14}
+                          />
+                          حذف
+                        </button>
                       </div>
-                    </article>
-                  );
-                }
-              )}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>
@@ -1302,11 +1563,11 @@ function Field({
         value={value}
         disabled={disabled}
         onChange={(event) =>
-          onChange(
-            event.target.value
-          )
+          onChange(event.target.value)
         }
-        placeholder={placeholder}
+        placeholder={
+          placeholder
+        }
         className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none transition focus:border-blue-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800"
       />
     </label>
@@ -1337,7 +1598,9 @@ function TextAreaField({
             event.target.value
           )
         }
-        placeholder={placeholder}
+        placeholder={
+          placeholder
+        }
         rows={4}
         className="w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm leading-7 outline-none transition focus:border-blue-500 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800"
       />

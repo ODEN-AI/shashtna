@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   CreditCard,
   Languages,
+  Cpu,
 } from "lucide-react";
 
 import {
@@ -31,13 +32,20 @@ type UserData = {
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage } =
+    useLanguage();
 
-  const [user, setUser] = useState<UserData | null>(null);
-  const [darkMode, setDarkMode] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [user, setUser] =
+    useState<UserData | null>(null);
 
-  const isArabic = language === "ar";
+  const [darkMode, setDarkMode] =
+    useState(false);
+
+  const [mounted, setMounted] =
+    useState(false);
+
+  const isArabic =
+    language === "ar";
 
   function closeMobileMenu() {
     const menu =
@@ -58,7 +66,9 @@ export default function Navbar() {
         localStorage.getItem("user");
 
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
+        setUser(
+          JSON.parse(savedUser)
+        );
       }
     } catch {
       localStorage.removeItem("user");
@@ -69,10 +79,16 @@ export default function Navbar() {
       localStorage.getItem("theme");
 
     if (savedTheme === "dark") {
-      document.documentElement.classList.add("dark");
+      document.documentElement.classList.add(
+        "dark"
+      );
       setDarkMode(true);
-    } else if (savedTheme === "light") {
-      document.documentElement.classList.remove("dark");
+    } else if (
+      savedTheme === "light"
+    ) {
+      document.documentElement.classList.remove(
+        "dark"
+      );
       setDarkMode(false);
     } else {
       const prefersDark =
@@ -98,25 +114,40 @@ export default function Navbar() {
       document.documentElement.classList.add(
         "dark"
       );
-      localStorage.setItem("theme", "dark");
+
+      localStorage.setItem(
+        "theme",
+        "dark"
+      );
     } else {
       document.documentElement.classList.remove(
         "dark"
       );
-      localStorage.setItem("theme", "light");
+
+      localStorage.setItem(
+        "theme",
+        "light"
+      );
     }
   }
 
   function toggleLanguage() {
     const nextLanguage: Language =
-      language === "ar" ? "en" : "ar";
+      language === "ar"
+        ? "en"
+        : "ar";
 
     setLanguage(nextLanguage);
   }
 
   function logout() {
-    localStorage.removeItem("user");
-    localStorage.removeItem("remember");
+    localStorage.removeItem(
+      "user"
+    );
+
+    localStorage.removeItem(
+      "remember"
+    );
 
     setUser(null);
     closeMobileMenu();
@@ -125,27 +156,42 @@ export default function Navbar() {
   }
 
   const isAdmin =
-    user?.role?.toUpperCase() === "ADMIN";
+    user?.role?.toUpperCase() ===
+    "ADMIN";
 
-  function isActive(path: string) {
+  function isActive(
+    path: string
+  ) {
     if (path === "/") {
       return pathname === "/";
     }
 
     return (
       pathname === path ||
-      pathname.startsWith(`${path}/`)
+      pathname.startsWith(
+        `${path}/`
+      )
     );
   }
 
   const navItems = [
     {
       href: "/",
-      label: isArabic ? "الرئيسية" : "Home",
+      label: isArabic
+        ? "الرئيسية"
+        : "Home",
     },
     {
       href: "/plans",
-      label: isArabic ? "الباقات" : "Plans",
+      label: isArabic
+        ? "الباقات"
+        : "Plans",
+    },
+    {
+      href: "/devices",
+      label: isArabic
+        ? "الأجهزة"
+        : "Devices",
     },
     {
       href: "/apps",
@@ -155,21 +201,26 @@ export default function Navbar() {
     },
     {
       href: "/about",
-      label: isArabic ? "من نحن" : "About",
+      label: isArabic
+        ? "من نحن"
+        : "About",
     },
     {
       href: "/tickets",
-      label: isArabic ? "الدعم" : "Support",
+      label: isArabic
+        ? "الدعم"
+        : "Support",
     },
   ];
 
   return (
     <header
-      dir={isArabic ? "rtl" : "ltr"}
+      dir={
+        isArabic ? "rtl" : "ltr"
+      }
       className="sticky top-0 z-[100] border-b border-slate-200/60 bg-white/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)] backdrop-blur-2xl transition-all duration-300 dark:border-slate-800/60 dark:bg-slate-950/80 dark:shadow-black/10"
     >
       <div className="relative mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
-        {/* Top glow */}
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent dark:via-cyan-400/30" />
 
         {/* =====================================================
@@ -242,7 +293,9 @@ export default function Navbar() {
           {mounted && (
             <button
               type="button"
-              onClick={toggleLanguage}
+              onClick={
+                toggleLanguage
+              }
               aria-label={
                 isArabic
                   ? "Switch to English"
@@ -253,7 +306,9 @@ export default function Navbar() {
               <Languages size={17} />
 
               <span>
-                {isArabic ? "EN" : "العربية"}
+                {isArabic
+                  ? "EN"
+                  : "العربية"}
               </span>
             </button>
           )}
@@ -261,7 +316,9 @@ export default function Navbar() {
           {mounted && (
             <button
               type="button"
-              onClick={toggleDarkMode}
+              onClick={
+                toggleDarkMode
+              }
               aria-label={
                 darkMode
                   ? isArabic
@@ -310,12 +367,16 @@ export default function Navbar() {
               <Link
                 href="/dashboard"
                 className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-bold transition-all duration-300 hover:-translate-y-0.5 ${
-                  isActive("/dashboard")
+                  isActive(
+                    "/dashboard"
+                  )
                     ? "border-blue-200 bg-blue-50 text-blue-700 shadow-sm dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-400"
                     : "border-slate-200 bg-white/60 text-slate-700 backdrop-blur-xl hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-blue-500/30 dark:hover:bg-slate-800 dark:hover:text-blue-400"
                 }`}
               >
-                <LayoutDashboard size={17} />
+                <LayoutDashboard
+                  size={17}
+                />
 
                 {isArabic
                   ? "لوحة التحكم"
@@ -342,7 +403,9 @@ export default function Navbar() {
               <Link
                 href="/subscriptions"
                 className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all duration-300 hover:-translate-y-0.5 ${
-                  isActive("/subscriptions")
+                  isActive(
+                    "/subscriptions"
+                  )
                     ? "bg-blue-700 text-white shadow-lg shadow-blue-600/20"
                     : "bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700"
                 }`}
@@ -351,7 +414,9 @@ export default function Navbar() {
                   ? "اشتراكاتي"
                   : "My Subscriptions"}
 
-                <CreditCard size={16} />
+                <CreditCard
+                  size={16}
+                />
               </Link>
 
               <button
@@ -411,7 +476,9 @@ export default function Navbar() {
         <div className="flex items-center gap-2 md:hidden">
           <button
             type="button"
-            onClick={toggleLanguage}
+            onClick={
+              toggleLanguage
+            }
             aria-label={
               isArabic
                 ? "Switch to English"
@@ -421,12 +488,16 @@ export default function Navbar() {
           >
             <Languages size={17} />
 
-            {isArabic ? "EN" : "العربية"}
+            {isArabic
+              ? "EN"
+              : "العربية"}
           </button>
 
           <button
             type="button"
-            onClick={toggleDarkMode}
+            onClick={
+              toggleDarkMode
+            }
             className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200/80 bg-white/70 text-slate-600 shadow-sm backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/70 dark:text-slate-300"
             aria-label={
               darkMode
@@ -466,25 +537,35 @@ export default function Navbar() {
             <div className="absolute left-0 right-0 top-full z-[110] border-t border-slate-200/70 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.12)] dark:border-slate-800/70 dark:bg-slate-950 dark:shadow-black/30">
               <nav className="mx-auto max-h-[calc(100vh-80px)] max-w-7xl overflow-y-auto px-5 py-4">
                 <div className="flex flex-col gap-1">
-                  {navItems.map((item) => {
-                    const active =
-                      isActive(item.href);
+                  {navItems.map(
+                    (item) => {
+                      const active =
+                        isActive(
+                          item.href
+                        );
 
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={closeMobileMenu}
-                        className={`rounded-2xl px-4 py-3.5 text-sm transition-all duration-200 ${
-                          active
-                            ? "bg-blue-50 font-black text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                            : "font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    );
-                  })}
+                      return (
+                        <Link
+                          key={
+                            item.href
+                          }
+                          href={
+                            item.href
+                          }
+                          onClick={
+                            closeMobileMenu
+                          }
+                          className={`rounded-2xl px-4 py-3.5 text-sm transition-all duration-200 ${
+                            active
+                              ? "bg-blue-50 font-black text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                              : "font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      );
+                    }
+                  )}
                 </div>
 
                 {user ? (
@@ -492,7 +573,9 @@ export default function Navbar() {
                     <div className="mb-3 rounded-2xl bg-slate-50 px-4 py-4 dark:bg-slate-900">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                          <UserRound size={18} />
+                          <UserRound
+                            size={18}
+                          />
                         </div>
 
                         <div className="min-w-0">
@@ -511,7 +594,9 @@ export default function Navbar() {
 
                     <Link
                       href="/dashboard"
-                      onClick={closeMobileMenu}
+                      onClick={
+                        closeMobileMenu
+                      }
                       className={`mb-2 flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-black ${
                         isActive(
                           "/dashboard"
@@ -532,9 +617,13 @@ export default function Navbar() {
                     {isAdmin && (
                       <Link
                         href="/admin"
-                        onClick={closeMobileMenu}
+                        onClick={
+                          closeMobileMenu
+                        }
                         className={`mb-2 flex items-center justify-center gap-2 rounded-2xl border px-4 py-3.5 text-sm font-black ${
-                          isActive("/admin")
+                          isActive(
+                            "/admin"
+                          )
                             ? "border-blue-300 bg-blue-100 text-blue-800 dark:border-blue-500/40 dark:bg-blue-500/15 dark:text-blue-300"
                             : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-400"
                         }`}
@@ -548,8 +637,32 @@ export default function Navbar() {
                     )}
 
                     <Link
+                      href="/devices"
+                      onClick={
+                        closeMobileMenu
+                      }
+                      className={`mb-2 flex items-center justify-center gap-2 rounded-2xl border px-4 py-3.5 text-sm font-bold ${
+                        isActive(
+                          "/devices"
+                        )
+                          ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-400"
+                          : "border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                      }`}
+                    >
+                      <Cpu
+                        size={17}
+                      />
+
+                      {isArabic
+                        ? "الأجهزة"
+                        : "Devices"}
+                    </Link>
+
+                    <Link
                       href="/subscriptions"
-                      onClick={closeMobileMenu}
+                      onClick={
+                        closeMobileMenu
+                      }
                       className={`mb-2 flex items-center justify-center gap-2 rounded-2xl border px-4 py-3.5 text-sm font-bold ${
                         isActive(
                           "/subscriptions"
@@ -569,7 +682,9 @@ export default function Navbar() {
 
                     <button
                       type="button"
-                      onClick={logout}
+                      onClick={
+                        logout
+                      }
                       className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm font-bold text-red-600 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400"
                     >
                       <LogOut size={16} />
@@ -583,14 +698,20 @@ export default function Navbar() {
                   <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
                     <Link
                       href="/login"
-                      onClick={closeMobileMenu}
+                      onClick={
+                        closeMobileMenu
+                      }
                       className={`flex items-center justify-center gap-2 rounded-2xl border px-4 py-3.5 text-sm font-bold ${
-                        isActive("/login")
+                        isActive(
+                          "/login"
+                        )
                           ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-400"
                           : "border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-200"
                       }`}
                     >
-                      <UserRound size={16} />
+                      <UserRound
+                        size={16}
+                      />
 
                       {isArabic
                         ? "الدخول"
@@ -599,7 +720,9 @@ export default function Navbar() {
 
                     <Link
                       href="/plans"
-                      onClick={closeMobileMenu}
+                      onClick={
+                        closeMobileMenu
+                      }
                       className="flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-3.5 text-sm font-bold text-white"
                     >
                       {isArabic

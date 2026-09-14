@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'43a06edb1b8d9f85e26da1d3cce6599debceb33d683b9313121c186ebad0f5b5'>;
+  StorageHashBase<'262d264c85b46a8babe105c9ffcb1e25df25303565c863c115dbbdcdb52e33f7'>;
 export type ExecutionHash =
   ExecutionHashBase<'d418553b5fe8071fe8e9b98bbd6ea8198188714b679f9c66d0a1f22b53d91a13'>;
 export type ProfileHash =
@@ -286,12 +286,6 @@ export type FieldOutputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
-    readonly PackageDevice: {
-      readonly id: CodecTypes['pg/int4@1']['output'];
-      readonly packageId: CodecTypes['pg/int4@1']['output'];
-      readonly deviceId: CodecTypes['pg/int4@1']['output'];
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
-    };
     readonly Receipt: {
       readonly id: CodecTypes['pg/int4@1']['output'];
       readonly receiptNumber: CodecTypes['pg/text@1']['output'];
@@ -397,12 +391,6 @@ export type FieldInputTypes = {
       readonly isActive: CodecTypes['pg/bool@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
-    };
-    readonly PackageDevice: {
-      readonly id: CodecTypes['pg/int4@1']['input'];
-      readonly packageId: CodecTypes['pg/int4@1']['input'];
-      readonly deviceId: CodecTypes['pg/int4@1']['input'];
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
     readonly Receipt: {
       readonly id: CodecTypes['pg/int4@1']['input'];
@@ -510,12 +498,6 @@ export type StorageColumnTypes = {
       readonly specifications: CodecTypes['pg/text@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
-    readonly packageDevice: {
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
-      readonly deviceId: CodecTypes['pg/int4@1']['output'];
-      readonly id: CodecTypes['pg/int4@1']['output'];
-      readonly packageId: CodecTypes['pg/int4@1']['output'];
-    };
     readonly receipt: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly durationLabel: CodecTypes['pg/text@1']['output'];
@@ -621,12 +603,6 @@ export type StorageColumnInputTypes = {
       readonly slug: CodecTypes['pg/text@1']['input'];
       readonly specifications: CodecTypes['pg/text@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
-    };
-    readonly packageDevice: {
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
-      readonly deviceId: CodecTypes['pg/int4@1']['input'];
-      readonly id: CodecTypes['pg/int4@1']['input'];
-      readonly packageId: CodecTypes['pg/int4@1']['input'];
     };
     readonly receipt: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
@@ -958,77 +934,6 @@ type ContractBase = Omit<
               uniques: readonly [{ readonly columns: readonly ['slug'] }];
               indexes: readonly [];
               foreignKeys: readonly [];
-            };
-            readonly packageDevice: {
-              columns: {
-                readonly id: {
-                  readonly nativeType: 'int4';
-                  readonly codecId: 'pg/int4@1';
-                  readonly nullable: false;
-                  readonly default: {
-                    readonly kind: 'function';
-                    readonly expression: 'autoincrement()';
-                  };
-                };
-                readonly packageId: {
-                  readonly nativeType: 'int4';
-                  readonly codecId: 'pg/int4@1';
-                  readonly nullable: false;
-                };
-                readonly deviceId: {
-                  readonly nativeType: 'int4';
-                  readonly codecId: 'pg/int4@1';
-                  readonly nullable: false;
-                };
-                readonly createdAt: {
-                  readonly nativeType: 'timestamptz';
-                  readonly codecId: 'pg/timestamptz-string@1';
-                  readonly nullable: false;
-                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
-                };
-              };
-              primaryKey: { readonly columns: readonly ['id'] };
-              uniques: readonly [{ readonly columns: readonly ['packageId', 'deviceId'] }];
-              indexes: readonly [
-                {
-                  readonly name: 'packageDevice_packageId_idx_51f866f4';
-                  readonly prefix: 'packageDevice_packageId_idx';
-                  readonly columns: readonly ['packageId'];
-                  readonly unique: false;
-                },
-                {
-                  readonly name: 'packageDevice_deviceId_idx_a7d461e8';
-                  readonly prefix: 'packageDevice_deviceId_idx';
-                  readonly columns: readonly ['deviceId'];
-                  readonly unique: false;
-                },
-              ];
-              foreignKeys: readonly [
-                {
-                  readonly source: {
-                    readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'packageDevice';
-                    readonly columns: readonly ['packageId'];
-                  };
-                  readonly target: {
-                    readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'package';
-                    readonly columns: readonly ['id'];
-                  };
-                },
-                {
-                  readonly source: {
-                    readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'packageDevice';
-                    readonly columns: readonly ['deviceId'];
-                  };
-                  readonly target: {
-                    readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'device';
-                    readonly columns: readonly ['id'];
-                  };
-                },
-              ];
             };
             readonly receipt: {
               columns: {
@@ -1435,12 +1340,8 @@ type ContractBase = Omit<
       readonly model: 'Subscription';
     };
     readonly package: { readonly namespace: 'public' & NamespaceId; readonly model: 'Package' };
-    readonly device: { readonly namespace: 'public' & NamespaceId; readonly model: 'Device' };
-    readonly packageDevice: {
-      readonly namespace: 'public' & NamespaceId;
-      readonly model: 'PackageDevice';
-    };
     readonly app: { readonly namespace: 'public' & NamespaceId; readonly model: 'App' };
+    readonly device: { readonly namespace: 'public' & NamespaceId; readonly model: 'Device' };
     readonly subscriptionRequest: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'SubscriptionRequest';
@@ -1590,19 +1491,7 @@ type ContractBase = Omit<
                 };
               };
             };
-            readonly relations: {
-              readonly packages: {
-                readonly to: {
-                  readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'PackageDevice';
-                };
-                readonly cardinality: '1:N';
-                readonly on: {
-                  readonly localFields: readonly ['id'];
-                  readonly targetFields: readonly ['deviceId'];
-                };
-              };
-            };
+            readonly relations: Record<string, never>;
             readonly storage: {
               readonly table: 'device';
               readonly namespaceId: 'public';
@@ -1687,19 +1576,7 @@ type ContractBase = Omit<
                 };
               };
             };
-            readonly relations: {
-              readonly devices: {
-                readonly to: {
-                  readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'PackageDevice';
-                };
-                readonly cardinality: '1:N';
-                readonly on: {
-                  readonly localFields: readonly ['id'];
-                  readonly targetFields: readonly ['packageId'];
-                };
-              };
-            };
+            readonly relations: Record<string, never>;
             readonly storage: {
               readonly table: 'package';
               readonly namespaceId: 'public';
@@ -1718,63 +1595,6 @@ type ContractBase = Omit<
                 readonly isActive: { readonly column: 'isActive' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
-              };
-            };
-          };
-          readonly PackageDevice: {
-            readonly fields: {
-              readonly id: {
-                readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
-              };
-              readonly packageId: {
-                readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
-              };
-              readonly deviceId: {
-                readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
-              };
-              readonly createdAt: {
-                readonly nullable: false;
-                readonly type: {
-                  readonly kind: 'scalar';
-                  readonly codecId: 'pg/timestamptz-string@1';
-                };
-              };
-            };
-            readonly relations: {
-              readonly device: {
-                readonly to: {
-                  readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'Device';
-                };
-                readonly cardinality: 'N:1';
-                readonly on: {
-                  readonly localFields: readonly ['deviceId'];
-                  readonly targetFields: readonly ['id'];
-                };
-              };
-              readonly package: {
-                readonly to: {
-                  readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'Package';
-                };
-                readonly cardinality: 'N:1';
-                readonly on: {
-                  readonly localFields: readonly ['packageId'];
-                  readonly targetFields: readonly ['id'];
-                };
-              };
-            };
-            readonly storage: {
-              readonly table: 'packageDevice';
-              readonly namespaceId: 'public';
-              readonly fields: {
-                readonly id: { readonly column: 'id' };
-                readonly packageId: { readonly column: 'packageId' };
-                readonly deviceId: { readonly column: 'deviceId' };
-                readonly createdAt: { readonly column: 'createdAt' };
               };
             };
           };
@@ -2100,7 +1920,7 @@ type ContractBase = Omit<
               readonly subscriptionRequests: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'Subscription';
+                  readonly model: 'SubscriptionRequest';
                 };
                 readonly cardinality: '1:N';
                 readonly on: {

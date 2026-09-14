@@ -20,6 +20,7 @@ type PackageBody = {
   notes?: string | null;
   imageUrl?: string | null;
   isActive?: boolean;
+  deviceIds?: number[];
 };
 
 type RouteContext = {
@@ -35,6 +36,26 @@ function normalizeServiceType(
     "VIP"
     ? "VIP"
     : "IPTV";
+}
+
+function normalizeDeviceIds(
+  value?: unknown
+): number[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      value
+        .map((item) => Number(item))
+        .filter(
+          (item) =>
+            Number.isInteger(item) &&
+            item > 0
+        )
+    ),
+  ];
 }
 
 export async function PATCH(
@@ -292,6 +313,65 @@ export async function PATCH(
         body.isActive;
     }
 
+    /*
+     * Handle package/device relations
+     * only when the client sends deviceIds.
+     */
+    const hasDeviceIds =
+      Object.prototype.hasOwnProperty.call(
+        body,
+        "deviceIds"
+      );
+
+    const deviceIds =
+      normalizeDeviceIds(
+        body.deviceIds
+      );
+
+    if (
+      hasDeviceIds &&
+      deviceIds.length > 0
+    ) {
+      for (const deviceId of deviceIds) {
+        const device =
+          await db.orm.public.Device.first(
+            {
+              id: deviceId,
+            }
+          );
+
+        if (!device) {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                "واحد أو أكثر من الأجهزة المحددة غير موجود.",
+            },
+            { status: 400 }
+          );
+        }
+
+        const deviceServiceType =
+          normalizeServiceType(
+            device.serviceType
+          );
+
+        if (
+          deviceServiceType !==
+          serviceType
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                "لا يمكن ربط جهاز بنوع خدمة مختلف عن نوع الباقة.",
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     updateData.updatedAt =
       new Date().toISOString();
 
@@ -311,6 +391,27 @@ export async function PATCH(
         },
         { status: 500 }
       );
+    }
+
+    /*
+     * Replace package/device relations
+     * whenever deviceIds was sent.
+     */
+    if (hasDeviceIds) {
+      await db.orm.public.PackageDevice
+        .where({
+          packageId,
+        })
+        .delete();
+
+      for (const deviceId of deviceIds) {
+        await db.orm.public.PackageDevice.create(
+          {
+            packageId,
+            deviceId,
+          }
+        );
+      }
     }
 
     return NextResponse.json({
@@ -382,6 +483,16 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    /*
+     * Remove package/device relations
+     * before deleting the package.
+     */
+    await db.orm.public.PackageDevice
+      .where({
+        packageId,
+      })
+      .delete();
 
     const deleted =
       await db.orm.public.Package

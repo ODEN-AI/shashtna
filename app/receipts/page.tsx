@@ -24,7 +24,7 @@ type Receipt = {
 };
 
 function formatPrice(price: number) {
-  return new Intl.NumberFormat("ar-IQ").format(price);
+  return new Intl.NumberFormat("en-US").format(price);
 }
 
 function formatDate(date: string) {
@@ -56,7 +56,8 @@ export default function ReceiptsPage() {
           return;
         }
 
-        const user = JSON.parse(rawUser);
+        const user =
+          JSON.parse(rawUser);
 
         if (!user?.id) {
           window.location.href =
@@ -71,7 +72,8 @@ export default function ReceiptsPage() {
           }
         );
 
-        const data = await response.json();
+        const data =
+          await response.json();
 
         if (
           !response.ok ||
@@ -90,18 +92,23 @@ export default function ReceiptsPage() {
         console.error(error);
 
         setError(
-          "تعذر تحميل الإيصالات حالياً."
+          error instanceof Error
+            ? error.message
+            : "تعذر تحميل الإيصالات حاليًا."
         );
       } finally {
         setLoading(false);
       }
     }
 
-    loadReceipts();
+    void loadReceipts();
   }, []);
 
   return (
-    <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
+    <main
+      dir="rtl"
+      className="min-h-screen px-4 py-10 sm:px-6 lg:px-8"
+    >
       <div className="mx-auto max-w-5xl">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -115,8 +122,7 @@ export default function ReceiptsPage() {
             </h1>
 
             <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-400">
-              هنا تگدر تشوف كل عمليات الشراء
-              والإيصالات الخاصة باشتراكاتك.
+              هنا تگدر تشوف كل عمليات الشراء والإيصالات الخاصة باشتراكاتك.
             </p>
           </div>
 
@@ -134,7 +140,7 @@ export default function ReceiptsPage() {
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
 
             <p className="mt-4 text-sm font-semibold text-slate-500 dark:text-slate-400">
-              جاري تحميل الإيصالات...
+              جارٍ تحميل الإيصالات...
             </p>
           </div>
         ) : error ? (
@@ -147,7 +153,8 @@ export default function ReceiptsPage() {
               {error}
             </p>
           </div>
-        ) : receipts.length === 0 ? (
+        ) : receipts.length ===
+          0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <FileText className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
 
@@ -156,8 +163,7 @@ export default function ReceiptsPage() {
             </h2>
 
             <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-400">
-              من تسوي أول عملية اشتراك راح يظهر
-              الإيصال هنا تلقائياً.
+              من تسوي أول عملية اشتراك راح يظهر الإيصال هنا تلقائيًا.
             </p>
 
             <Link
@@ -169,65 +175,74 @@ export default function ReceiptsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {receipts.map((receipt) => (
-              <div
-                key={receipt.id}
-                className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
-              >
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex min-w-0 items-start gap-4">
-                    <div className="rounded-2xl bg-blue-50 p-3 dark:bg-blue-950/40">
-                      <ReceiptText className="h-6 w-6 text-blue-600 dark:text-blue-300" />
-                    </div>
-
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg font-black">
-                          {receipt.serviceName}
-                        </h2>
-
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          مدفوع
-                        </span>
+            {receipts.map(
+              (receipt) => (
+                <div
+                  key={receipt.id}
+                  className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
+                >
+                  <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex min-w-0 items-start gap-4">
+                      <div className="rounded-2xl bg-blue-50 p-3 dark:bg-blue-950/40">
+                        <ReceiptText className="h-6 w-6 text-blue-600 dark:text-blue-300" />
                       </div>
 
-                      <p className="mt-1 text-xs font-bold text-slate-400">
-                        {receipt.receiptNumber}
-                      </p>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-lg font-black">
+                            {
+                              receipt.serviceName
+                            }
+                          </h2>
 
-                      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
-                        <span className="font-semibold">
-                          {formatPrice(
-                            receipt.price
-                          )}{" "}
-                          د.ع
-                        </span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            مدفوع
+                          </span>
+                        </div>
 
-                        <span>
-                          {receipt.durationLabel}
-                        </span>
+                        <p className="mt-1 text-xs font-bold text-slate-400">
+                          {
+                            receipt.receiptNumber
+                          }
+                        </p>
 
-                        <span className="inline-flex items-center gap-1.5">
-                          <CalendarDays className="h-4 w-4" />
-                          {formatDate(
-                            receipt.createdAt
-                          )}
-                        </span>
+                        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
+                          <span className="font-semibold">
+                            {formatPrice(
+                              receipt.price
+                            )}{" "}
+                            الف
+                          </span>
+
+                          <span>
+                            {
+                              receipt.durationLabel
+                            }
+                          </span>
+
+                          <span className="inline-flex items-center gap-1.5">
+                            <CalendarDays className="h-4 w-4" />
+
+                            {formatDate(
+                              receipt.createdAt
+                            )}
+                          </span>
+                        </div>
                       </div>
                     </div>
+
+                    <Link
+                      href={`/receipts/${receipt.id}`}
+                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700"
+                    >
+                      <FileText className="h-4 w-4" />
+                      عرض الإيصال
+                    </Link>
                   </div>
-
-                  <Link
-                    href={`/receipts/${receipt.id}`}
-                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700"
-                  >
-                    <FileText className="h-4 w-4" />
-                    عرض الإيصال
-                  </Link>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         )}
       </div>

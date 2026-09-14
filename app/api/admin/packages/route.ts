@@ -20,6 +20,7 @@ type PackageBody = {
   notes?: string | null;
   imageUrl?: string | null;
   isActive?: boolean;
+  deviceIds?: number[];
 };
 
 function normalizeServiceType(
@@ -29,6 +30,26 @@ function normalizeServiceType(
     "VIP"
     ? "VIP"
     : "IPTV";
+}
+
+function normalizeDeviceIds(
+  value?: unknown
+): number[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      value
+        .map((item) => Number(item))
+        .filter(
+          (item) =>
+            Number.isInteger(item) &&
+            item > 0
+        )
+    ),
+  ];
 }
 
 export async function GET() {
@@ -131,6 +152,11 @@ export async function POST(
 
     const price =
       body.price;
+
+    const deviceIds =
+      normalizeDeviceIds(
+        body.deviceIds
+      );
 
     if (
       !name ||
@@ -237,6 +263,51 @@ export async function POST(
       );
     }
 
+    /*
+     * Validate selected devices before creating
+     * the package.
+     */
+    if (deviceIds.length > 0) {
+      for (const deviceId of deviceIds) {
+        const device =
+          await db.orm.public.Device.first(
+            {
+              id: deviceId,
+            }
+          );
+
+        if (!device) {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                "واحد أو أكثر من الأجهزة المحددة غير موجود.",
+            },
+            { status: 400 }
+          );
+        }
+
+        const deviceServiceType =
+          normalizeServiceType(
+            device.serviceType
+          );
+
+        if (
+          deviceServiceType !==
+          serviceType
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                "لا يمكن ربط جهاز بنوع خدمة مختلف عن نوع الباقة.",
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     const created =
       await db.orm.public.Package.create(
         {
@@ -253,6 +324,20 @@ export async function POST(
           isActive,
         }
       );
+
+    /*
+     * Save package/device relations.
+     */
+    if (deviceIds.length > 0) {
+      for (const deviceId of deviceIds) {
+        await db.orm.public.PackageDevice.create(
+          {
+            packageId: created.id,
+            deviceId,
+          }
+        );
+      }
+    }
 
     return NextResponse.json(
       {

@@ -1,15 +1,24 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import {
   ArrowRight,
   CheckCircle2,
   Cpu,
+  ImagePlus,
+  Loader2,
   Pencil,
   Plus,
   Search,
   Trash2,
+  Upload,
   X,
   XCircle,
 } from "lucide-react";
@@ -71,28 +80,79 @@ function formatPrice(price: number) {
   return new Intl.NumberFormat("en-US").format(price);
 }
 
-export default function AdminDevicesPage() {
-  const [devices, setDevices] = useState<DeviceItem[]>([]);
-  const [packages, setPackages] = useState<PackageItem[]>([]);
+function makeAbsoluteImageUrl(url: string) {
+  const value = url.trim();
 
-  const [search, setSearch] = useState("");
+  if (!value) {
+    return "";
+  }
+
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://")
+  ) {
+    return value;
+  }
+
+  if (typeof window !== "undefined") {
+    return new URL(
+      value.startsWith("/") ? value : `/${value}`,
+      window.location.origin
+    ).toString();
+  }
+
+  return value;
+}
+
+export default function AdminDevicesPage() {
+  const [devices, setDevices] =
+    useState<DeviceItem[]>([]);
+
+  const [packages, setPackages] =
+    useState<PackageItem[]>([]);
+
+  const [search, setSearch] =
+    useState("");
+
   const [serviceFilter, setServiceFilter] =
     useState<"ALL" | ServiceType>("ALL");
 
-  const [loading, setLoading] = useState(true);
-  const [formOpen, setFormOpen] = useState(false);
+  const [loading, setLoading] =
+    useState(true);
+
+  const [formOpen, setFormOpen] =
+    useState(false);
 
   const [editingDevice, setEditingDevice] =
     useState<DeviceItem | null>(null);
 
-  const [form, setForm] = useState<FormData>(emptyForm);
+  const [form, setForm] =
+    useState<FormData>(emptyForm);
 
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] =
+    useState(false);
+
+  const [uploading, setUploading] =
+    useState(false);
+
   const [deletingId, setDeletingId] =
     useState<number | null>(null);
 
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [message, setMessage] =
+    useState("");
+
+  const [error, setError] =
+    useState("");
+
+  const fileInputRef =
+    useRef<HTMLInputElement | null>(null);
+
+  /*
+   * نخزن آخر رابط صورة تم رفعها بشكل مستقل
+   * حتى لا نعتمد فقط على تحديث React state.
+   */
+  const uploadedImageUrlRef =
+    useRef("");
 
   useEffect(() => {
     void loadData();
@@ -103,17 +163,20 @@ export default function AdminDevicesPage() {
       setLoading(true);
       setError("");
 
-      const [devicesResponse, packagesResponse] =
-        await Promise.all([
-          fetch("/api/admin/devices", {
-            method: "GET",
-            cache: "no-store",
-          }),
-          fetch("/api/admin/packages", {
-            method: "GET",
-            cache: "no-store",
-          }),
-        ]);
+      const [
+        devicesResponse,
+        packagesResponse,
+      ] = await Promise.all([
+        fetch("/api/admin/devices", {
+          method: "GET",
+          cache: "no-store",
+        }),
+
+        fetch("/api/admin/packages", {
+          method: "GET",
+          cache: "no-store",
+        }),
+      ]);
 
       const devicesData =
         await devicesResponse.json();
@@ -146,8 +209,11 @@ export default function AdminDevicesPage() {
       );
 
       setPackages(
-        (packagesData.packages ?? []).filter(
-          (item: PackageItem) => item.isActive
+        (
+          packagesData.packages ?? []
+        ).filter(
+          (item: PackageItem) =>
+            item.isActive
         )
       );
     } catch (err) {
@@ -166,6 +232,8 @@ export default function AdminDevicesPage() {
   function openCreate() {
     setEditingDevice(null);
 
+    uploadedImageUrlRef.current = "";
+
     setForm({
       ...emptyForm,
       serviceType: "VIP",
@@ -176,22 +244,34 @@ export default function AdminDevicesPage() {
     setFormOpen(true);
   }
 
-  function openEdit(device: DeviceItem) {
+  function openEdit(
+    device: DeviceItem
+  ) {
     setEditingDevice(device);
+
+    uploadedImageUrlRef.current =
+      device.imageUrl ?? "";
 
     setForm({
       name: device.name,
       slug: device.slug,
-      serviceType: device.serviceType,
+      serviceType:
+        device.serviceType,
       price: String(device.price),
-      description: device.description,
-      specifications: device.specifications,
-      notes: device.notes ?? "",
-      imageUrl: device.imageUrl ?? "",
-      isActive: device.isActive,
-      packageIds: device.packages.map(
-        (item) => item.id
-      ),
+      description:
+        device.description,
+      specifications:
+        device.specifications,
+      notes:
+        device.notes ?? "",
+      imageUrl:
+        device.imageUrl ?? "",
+      isActive:
+        device.isActive,
+      packageIds:
+        device.packages.map(
+          (item) => item.id
+        ),
     });
 
     setMessage("");
@@ -200,16 +280,27 @@ export default function AdminDevicesPage() {
   }
 
   function closeForm() {
-    if (saving) return;
+    if (saving || uploading) {
+      return;
+    }
 
     setFormOpen(false);
     setEditingDevice(null);
     setForm(emptyForm);
+
+    uploadedImageUrlRef.current = "";
+
     setMessage("");
     setError("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
-  function updateForm<K extends keyof FormData>(
+  function updateForm<
+    K extends keyof FormData
+  >(
     field: K,
     value: FormData[K]
   ) {
@@ -219,16 +310,23 @@ export default function AdminDevicesPage() {
     }));
   }
 
-  function togglePackage(packageId: number) {
+  function togglePackage(
+    packageId: number
+  ) {
     setForm((current) => ({
       ...current,
-      packageIds: current.packageIds.includes(
-        packageId
-      )
-        ? current.packageIds.filter(
-            (id) => id !== packageId
-          )
-        : [...current.packageIds, packageId],
+      packageIds:
+        current.packageIds.includes(
+          packageId
+        )
+          ? current.packageIds.filter(
+              (id) =>
+                id !== packageId
+            )
+          : [
+              ...current.packageIds,
+              packageId,
+            ],
     }));
   }
 
@@ -242,6 +340,128 @@ export default function AdminDevicesPage() {
     }));
   }
 
+  async function uploadImage(
+    file: File
+  ) {
+    try {
+      setUploading(true);
+      setError("");
+      setMessage("");
+
+      if (
+        ![
+          "image/jpeg",
+          "image/png",
+          "image/webp",
+          "image/gif",
+        ].includes(file.type)
+      ) {
+        throw new Error(
+          "نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو GIF."
+        );
+      }
+
+      if (
+        file.size >
+        8 * 1024 * 1024
+      ) {
+        throw new Error(
+          "حجم الصورة يجب ألا يتجاوز 8MB."
+        );
+      }
+
+      const formData =
+        new FormData();
+
+      formData.append(
+        "file",
+        file
+      );
+
+      const response =
+        await fetch(
+          "/api/admin/media/upload",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        throw new Error(
+          data.message ||
+            "تعذر رفع الصورة."
+        );
+      }
+
+      const uploadedImageUrl =
+        String(
+          data.imageUrl ?? ""
+        ).trim();
+
+      if (!uploadedImageUrl) {
+        throw new Error(
+          "تم رفع الصورة لكن السيرفر لم يُرجع رابط الصورة."
+        );
+      }
+
+      /*
+       * نخزن الرابط مباشرة بالـ ref.
+       */
+      uploadedImageUrlRef.current =
+        uploadedImageUrl;
+
+      /*
+       * ونخزنه بالـ state حتى تظهر الصورة
+       * مباشرة داخل المعاينة.
+       */
+      updateForm(
+        "imageUrl",
+        uploadedImageUrl
+      );
+
+      setMessage(
+        "تم رفع الصورة بنجاح."
+      );
+    } catch (error) {
+      console.error(error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "حدث خطأ أثناء رفع الصورة."
+      );
+    } finally {
+      setUploading(false);
+
+      if (
+        fileInputRef.current
+      ) {
+        fileInputRef.current.value =
+          "";
+      }
+    }
+  }
+
+  async function handleFileChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    await uploadImage(file);
+  }
+
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>
   ) {
@@ -251,39 +471,122 @@ export default function AdminDevicesPage() {
     setMessage("");
     setError("");
 
+    const price =
+      Number(form.price);
+
+    if (
+      !Number.isInteger(price) ||
+      price < 0
+    ) {
+      setSaving(false);
+
+      setError(
+        "سعر الجهاز غير صحيح"
+      );
+
+      return;
+    }
+
+    /*
+     * نأخذ الرابط من الـ state أولاً،
+     * وإذا لم يكن موجودًا نأخذه من ref.
+     */
+    const rawImageUrl =
+      form.imageUrl.trim() ||
+      uploadedImageUrlRef.current.trim();
+
+    /*
+     * إذا كان الرابط نسبيًا مثل:
+     * /api/uploads/media/...
+     *
+     * نحوله إلى:
+     * https://domain.com/api/uploads/media/...
+     *
+     * حتى يقبله الـ API الذي يتحقق من صحة URL.
+     */
+    const imageUrl =
+      rawImageUrl
+        ? makeAbsoluteImageUrl(
+            rawImageUrl
+          )
+        : null;
+
+    if (!imageUrl) {
+      setSaving(false);
+
+      setError(
+        "رجاءً أضف صورة للجهاز أو رابط الصورة."
+      );
+
+      return;
+    }
+
     const payload = {
       ...(editingDevice
         ? {
             id: editingDevice.id,
           }
         : {}),
-      name: form.name,
-      slug: form.slug,
-      serviceType: form.serviceType,
-      price: Number(form.price),
-      description: form.description,
-      specifications: form.specifications,
-      notes: form.notes || null,
-      imageUrl: form.imageUrl || null,
-      isActive: form.isActive,
-      packageIds: form.packageIds,
+
+      name:
+        form.name.trim(),
+
+      slug:
+        form.slug
+          .trim()
+          .toLowerCase(),
+
+      serviceType:
+        form.serviceType,
+
+      price,
+
+      description:
+        form.description.trim(),
+
+      specifications:
+        form.specifications.trim(),
+
+      notes:
+        form.notes.trim() ||
+        null,
+
+      imageUrl,
+
+      isActive:
+        form.isActive,
+
+      packageIds:
+        form.packageIds,
     };
 
     try {
-      const response = await fetch(
-        "/api/admin/devices",
-        {
-          method: editingDevice ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response =
+        await fetch(
+          "/api/admin/devices",
+          {
+            method: editingDevice
+              ? "PUT"
+              : "POST",
 
-      const data = await response.json();
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
 
-      if (!response.ok || !data.success) {
+            body: JSON.stringify(
+              payload
+            ),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
         throw new Error(
           data.message ||
             (editingDevice
@@ -304,7 +607,18 @@ export default function AdminDevicesPage() {
         setFormOpen(false);
         setEditingDevice(null);
         setForm(emptyForm);
+
+        uploadedImageUrlRef.current =
+          "";
+
         setMessage("");
+
+        if (
+          fileInputRef.current
+        ) {
+          fileInputRef.current.value =
+            "";
+        }
       }, 700);
     } catch (err) {
       console.error(err);
@@ -335,22 +649,28 @@ export default function AdminDevicesPage() {
       setError("");
       setMessage("");
 
-      const response = await fetch(
-        "/api/admin/devices",
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: device.id,
-          }),
-        }
-      );
+      const response =
+        await fetch(
+          "/api/admin/devices",
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              id: device.id,
+            }),
+          }
+        );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
-      if (!response.ok || !data.success) {
+      if (
+        !response.ok ||
+        !data.success
+      ) {
         throw new Error(
           data.message ||
             "تعذر حذف الجهاز"
@@ -359,11 +679,14 @@ export default function AdminDevicesPage() {
 
       setDevices((current) =>
         current.filter(
-          (item) => item.id !== device.id
+          (item) =>
+            item.id !== device.id
         )
       );
 
-      setMessage("تم حذف الجهاز بنجاح");
+      setMessage(
+        "تم حذف الجهاز بنجاح"
+      );
 
       setTimeout(() => {
         setMessage("");
@@ -381,43 +704,59 @@ export default function AdminDevicesPage() {
     }
   }
 
-  const filteredDevices = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  const filteredDevices =
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
 
-    return devices.filter((device) => {
-      const matchesService =
-        serviceFilter === "ALL" ||
-        device.serviceType === serviceFilter;
+      return devices.filter(
+        (device) => {
+          const matchesService =
+            serviceFilter ===
+              "ALL" ||
+            device.serviceType ===
+              serviceFilter;
 
-      if (!matchesService) {
-        return false;
-      }
+          if (
+            !matchesService
+          ) {
+            return false;
+          }
 
-      if (!query) {
-        return true;
-      }
+          if (!query) {
+            return true;
+          }
 
-      return (
-        device.name
-          .toLowerCase()
-          .includes(query) ||
-        device.slug
-          .toLowerCase()
-          .includes(query) ||
-        device.description
-          .toLowerCase()
-          .includes(query) ||
-        device.serviceType
-          .toLowerCase()
-          .includes(query)
+          return (
+            device.name
+              .toLowerCase()
+              .includes(query) ||
+            device.slug
+              .toLowerCase()
+              .includes(query) ||
+            device.description
+              .toLowerCase()
+              .includes(query) ||
+            device.serviceType
+              .toLowerCase()
+              .includes(query)
+          );
+        }
       );
-    });
-  }, [devices, search, serviceFilter]);
+    }, [
+      devices,
+      search,
+      serviceFilter,
+    ]);
 
-  const availablePackages = packages.filter(
-    (item) =>
-      item.serviceType === form.serviceType
-  );
+  const availablePackages =
+    packages.filter(
+      (item) =>
+        item.serviceType ===
+        form.serviceType
+    );
 
   return (
     <main
@@ -489,7 +828,9 @@ export default function AdminDevicesPage() {
                 type="text"
                 value={search}
                 onChange={(event) =>
-                  setSearch(event.target.value)
+                  setSearch(
+                    event.target.value
+                  )
                 }
                 placeholder="ابحث عن جهاز..."
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-4 pr-12 text-right text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
@@ -504,41 +845,53 @@ export default function AdminDevicesPage() {
                 ["VIP", "VIP"],
                 ["IPTV", "IPTV"],
               ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() =>
-                  setServiceFilter(value)
-                }
-                className={`rounded-2xl px-5 py-3 text-sm font-black transition ${
-                  serviceFilter === value
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+            ).map(
+              ([
+                value,
+                label,
+              ]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() =>
+                    setServiceFilter(
+                      value
+                    )
+                  }
+                  className={`rounded-2xl px-5 py-3 text-sm font-black transition ${
+                    serviceFilter ===
+                    value
+                      ? "bg-blue-600 text-white"
+                      : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  {label}
+                </button>
+              )
+            )}
           </div>
         </div>
 
         {loading ? (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="overflow-hidden rounded-3xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
-              >
-                <div className="aspect-[16/9] animate-pulse bg-slate-200 dark:bg-slate-800" />
+            {[1, 2, 3].map(
+              (item) => (
+                <div
+                  key={item}
+                  className="overflow-hidden rounded-3xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                >
+                  <div className="aspect-[16/9] animate-pulse bg-slate-200 dark:bg-slate-800" />
 
-                <div className="space-y-3 p-5">
-                  <div className="h-5 w-2/3 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-10 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+                  <div className="space-y-3 p-5">
+                    <div className="h-5 w-2/3 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+
+                    <div className="h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+
+                    <div className="h-10 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         ) : filteredDevices.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-20 text-center dark:border-slate-700 dark:bg-slate-900">
@@ -565,19 +918,26 @@ export default function AdminDevicesPage() {
           </div>
         ) : (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {filteredDevices.map((device) => (
-              <DeviceCard
-                key={device.id}
-                device={device}
-                deleting={
-                  deletingId === device.id
-                }
-                onEdit={() => openEdit(device)}
-                onDelete={() =>
-                  void handleDelete(device)
-                }
-              />
-            ))}
+            {filteredDevices.map(
+              (device) => (
+                <DeviceCard
+                  key={device.id}
+                  device={device}
+                  deleting={
+                    deletingId ===
+                    device.id
+                  }
+                  onEdit={() =>
+                    openEdit(device)
+                  }
+                  onDelete={() =>
+                    void handleDelete(
+                      device
+                    )
+                  }
+                />
+              )
+            )}
           </div>
         )}
       </div>
@@ -601,19 +961,27 @@ export default function AdminDevicesPage() {
               <button
                 type="button"
                 onClick={closeForm}
-                disabled={saving}
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                disabled={
+                  saving ||
+                  uploading
+                }
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-slate-800"
               >
                 <X size={19} />
               </button>
             </div>
 
             <form
-              onSubmit={handleSubmit}
+              onSubmit={
+                handleSubmit
+              }
               className="max-h-[78vh] overflow-y-auto px-6 py-6"
             >
               <div className="grid gap-5 md:grid-cols-2">
-                <Field label="اسم الجهاز" required>
+                <Field
+                  label="اسم الجهاز"
+                  required
+                >
                   <input
                     dir="rtl"
                     type="text"
@@ -644,7 +1012,10 @@ export default function AdminDevicesPage() {
                         "slug",
                         event.target.value
                           .toLowerCase()
-                          .replace(/\s+/g, "-")
+                          .replace(
+                            /\s+/g,
+                            "-"
+                          )
                       )
                     }
                     placeholder="vip-box-x1"
@@ -653,15 +1024,21 @@ export default function AdminDevicesPage() {
                   />
                 </Field>
 
-                <Field label="نوع الخدمة" required>
+                <Field
+                  label="نوع الخدمة"
+                  required
+                >
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() =>
-                        changeServiceType("VIP")
+                        changeServiceType(
+                          "VIP"
+                        )
                       }
                       className={`rounded-xl border px-4 py-3.5 text-sm font-black transition ${
-                        form.serviceType === "VIP"
+                        form.serviceType ===
+                        "VIP"
                           ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
                           : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800"
                       }`}
@@ -672,10 +1049,13 @@ export default function AdminDevicesPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        changeServiceType("IPTV")
+                        changeServiceType(
+                          "IPTV"
+                        )
                       }
                       className={`rounded-xl border px-4 py-3.5 text-sm font-black transition ${
-                        form.serviceType === "IPTV"
+                        form.serviceType ===
+                        "IPTV"
                           ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
                           : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800"
                       }`}
@@ -685,7 +1065,10 @@ export default function AdminDevicesPage() {
                   </div>
                 </Field>
 
-                <Field label="السعر" required>
+                <Field
+                  label="السعر"
+                  required
+                >
                   <input
                     dir="ltr"
                     type="number"
@@ -704,30 +1087,125 @@ export default function AdminDevicesPage() {
                   />
                 </Field>
 
+                <div className="md:col-span-2">
+                  <Field
+                    label="صورة الجهاز"
+                    hint="اختياري"
+                  >
+                    <div className="grid gap-5 lg:grid-cols-[1fr_240px]">
+                      <div className="rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-800/50">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          onChange={
+                            handleFileChange
+                          }
+                          className="hidden"
+                        />
+
+                        <button
+                          type="button"
+                          disabled={
+                            uploading ||
+                            saving
+                          }
+                          onClick={() =>
+                            fileInputRef.current?.click()
+                          }
+                          className="flex w-full flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+                        >
+                          {uploading ? (
+                            <Loader2
+                              size={30}
+                              className="animate-spin text-blue-600"
+                            />
+                          ) : (
+                            <ImagePlus
+                              size={30}
+                              className="text-blue-600"
+                            />
+                          )}
+
+                          <span className="mt-3 text-sm font-black">
+                            {uploading
+                              ? "جاري رفع الصورة..."
+                              : "اختيار صورة من الكمبيوتر"}
+                          </span>
+
+                          <span className="mt-1 text-xs text-slate-400">
+                            JPG · PNG · WEBP · GIF · بحد أقصى 8MB
+                          </span>
+                        </button>
+                      </div>
+
+                      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50">
+                        {form.imageUrl ? (
+                          <img
+                            src={
+                              form.imageUrl
+                            }
+                            alt={
+                              form.name ||
+                              "Device"
+                            }
+                            className="h-full min-h-[190px] w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex min-h-[190px] flex-col items-center justify-center text-slate-400">
+                            <Upload
+                              size={28}
+                            />
+
+                            <span className="mt-2 text-xs font-bold">
+                              لا توجد صورة
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Field>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Field
+                    label="رابط الصورة الخارجي"
+                    hint="اختياري"
+                  >
+                    <input
+                      dir="ltr"
+                      type="text"
+                      value={
+                        form.imageUrl
+                      }
+                      onChange={(event) => {
+                        const value =
+                          event.target.value;
+
+                        uploadedImageUrlRef.current =
+                          value;
+
+                        updateForm(
+                          "imageUrl",
+                          value
+                        );
+                      }}
+                      placeholder="https://... أو /uploads/..."
+                      className={`${inputClass} text-left`}
+                    />
+                  </Field>
+                </div>
+
                 <Field
-                  label="رابط صورة الجهاز"
-                  hint="اختياري"
+                  label="الوصف"
+                  required
                   full
                 >
-                  <input
-                    dir="ltr"
-                    type="url"
-                    value={form.imageUrl}
-                    onChange={(event) =>
-                      updateForm(
-                        "imageUrl",
-                        event.target.value
-                      )
-                    }
-                    placeholder="https://..."
-                    className={`${inputClass} text-left`}
-                  />
-                </Field>
-
-                <Field label="الوصف" required full>
                   <textarea
                     dir="rtl"
-                    value={form.description}
+                    value={
+                      form.description
+                    }
                     onChange={(event) =>
                       updateForm(
                         "description",
@@ -748,7 +1226,9 @@ export default function AdminDevicesPage() {
                 >
                   <textarea
                     dir="rtl"
-                    value={form.specifications}
+                    value={
+                      form.specifications
+                    }
                     onChange={(event) =>
                       updateForm(
                         "specifications",
@@ -767,7 +1247,8 @@ export default function AdminDevicesPage() {
                   hint="اختياري"
                   full
                 >
-                  {availablePackages.length === 0 ? (
+                  {availablePackages.length ===
+                  0 ? (
                     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                       لا توجد باقات نشطة من نوع{" "}
                       {form.serviceType} حاليًا.
@@ -783,7 +1264,9 @@ export default function AdminDevicesPage() {
 
                           return (
                             <button
-                              key={item.id}
+                              key={
+                                item.id
+                              }
                               type="button"
                               onClick={() =>
                                 togglePackage(
@@ -798,13 +1281,20 @@ export default function AdminDevicesPage() {
                             >
                               <div>
                                 <p className="text-sm font-black">
-                                  {item.name}
+                                  {
+                                    item.name
+                                  }
                                 </p>
 
                                 <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                                  {formatPrice(item.price)} الف
+                                  {formatPrice(
+                                    item.price
+                                  )}{" "}
+                                  الف
                                   {" • "}
-                                  {item.durationLabel}
+                                  {
+                                    item.durationLabel
+                                  }
                                 </p>
                               </div>
 
@@ -844,7 +1334,10 @@ export default function AdminDevicesPage() {
                   />
                 </Field>
 
-                <Field label="الحالة" full>
+                <Field
+                  label="الحالة"
+                  full
+                >
                   <button
                     type="button"
                     onClick={() =>
@@ -866,9 +1359,13 @@ export default function AdminDevicesPage() {
                     </span>
 
                     {form.isActive ? (
-                      <CheckCircle2 size={19} />
+                      <CheckCircle2
+                        size={19}
+                      />
                     ) : (
-                      <XCircle size={19} />
+                      <XCircle
+                        size={19}
+                      />
                     )}
                   </button>
                 </Field>
@@ -890,32 +1387,41 @@ export default function AdminDevicesPage() {
                 <button
                   type="button"
                   onClick={closeForm}
-                  disabled={saving}
-                  className="flex flex-1 items-center justify-center rounded-xl border border-slate-200 px-5 py-3.5 text-sm font-bold text-slate-700 dark:border-slate-700 dark:text-slate-300"
+                  disabled={
+                    saving ||
+                    uploading
+                  }
+                  className="flex flex-1 items-center justify-center rounded-xl border border-slate-200 px-5 py-3.5 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-300"
                 >
                   إلغاء
                 </button>
 
                 <button
                   type="submit"
-                  disabled={saving}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white"
+                  disabled={
+                    saving ||
+                    uploading
+                  }
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {saving ? (
-                    "جارٍ الحفظ..."
+                    <Loader2
+                      size={17}
+                      className="animate-spin"
+                    />
+                  ) : editingDevice ? (
+                    <Pencil
+                      size={17}
+                    />
                   ) : (
-                    <>
-                      {editingDevice ? (
-                        <Pencil size={17} />
-                      ) : (
-                        <Plus size={18} />
-                      )}
-
-                      {editingDevice
-                        ? "حفظ التعديلات"
-                        : "إضافة الجهاز"}
-                    </>
+                    <Plus size={18} />
                   )}
+
+                  {saving
+                    ? "جاري الحفظ..."
+                    : editingDevice
+                    ? "حفظ التعديلات"
+                    : "إضافة الجهاز"}
                 </button>
               </div>
             </form>
@@ -940,10 +1446,17 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className={full ? "md:col-span-2" : ""}>
+    <div
+      className={
+        full
+          ? "md:col-span-2"
+          : ""
+      }
+    >
       <div className="mb-2 flex items-center justify-between">
         <label className="text-sm font-black text-slate-800 dark:text-slate-200">
           {label}
+
           {required && (
             <span className="mr-1 text-red-500">
               *
@@ -996,12 +1509,16 @@ function DeviceCard({
 
           {device.isActive ? (
             <span className="flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1.5 text-[11px] font-black text-white">
-              <CheckCircle2 size={13} />
+              <CheckCircle2
+                size={13}
+              />
               منشور
             </span>
           ) : (
             <span className="flex items-center gap-1.5 rounded-full bg-slate-800/90 px-3 py-1.5 text-[11px] font-black text-white">
-              <XCircle size={13} />
+              <XCircle
+                size={13}
+              />
               مخفي
             </span>
           )}
@@ -1016,7 +1533,10 @@ function DeviceCard({
             </h3>
 
             <p className="mt-1 text-sm font-black text-blue-600 dark:text-blue-400">
-              {formatPrice(device.price)} الف
+              {formatPrice(
+                device.price
+              )}{" "}
+              الف
             </p>
           </div>
         </div>
@@ -1026,7 +1546,8 @@ function DeviceCard({
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {device.packages.length === 0 ? (
+          {device.packages.length ===
+          0 ? (
             <span className="rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
               غير مرتبط بأي باقة
             </span>
@@ -1043,9 +1564,12 @@ function DeviceCard({
               ))
           )}
 
-          {device.packages.length > 3 && (
+          {device.packages.length >
+            3 && (
             <span className="rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-              +{device.packages.length - 3}
+              +
+              {device.packages.length -
+                3}
             </span>
           )}
         </div>

@@ -1,6 +1,11 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import {
+  FormEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import {
   AppWindow,
@@ -8,11 +13,13 @@ import {
   CheckCircle2,
   Download,
   Eye,
-  Image as ImageIcon,
+  ImagePlus,
+  Loader2,
   Pencil,
   Plus,
   Search,
   Trash2,
+  Upload,
   X,
   XCircle,
 } from "lucide-react";
@@ -59,22 +66,31 @@ export default function AdminAppsPage() {
   const [apps, setApps] = useState<AppItem[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-
   const [formOpen, setFormOpen] = useState(false);
   const [editingApp, setEditingApp] =
     useState<AppItem | null>(null);
-
-  const [form, setForm] = useState<FormData>(emptyForm);
-
+  const [form, setForm] =
+    useState<FormData>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] =
+    useState(false);
   const [deletingId, setDeletingId] =
     useState<number | null>(null);
-
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  const fileInputRef =
+    useRef<HTMLInputElement | null>(null);
+
+  /*
+   * يحتفظ بآخر رابط صورة مرفوع بشكل مباشر.
+   * هذا يمنع أي مشكلة إذا صار تأخير بسيط في تحديث React state.
+   */
+  const uploadedImageUrlRef =
+    useRef<string>("");
+
   useEffect(() => {
-    loadApps();
+    void loadApps();
   }, []);
 
   async function loadApps() {
@@ -92,9 +108,13 @@ export default function AdminAppsPage() {
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
+      if (
+        !response.ok ||
+        !data.success
+      ) {
         throw new Error(
-          data.message || "تعذر جلب التطبيقات"
+          data.message ||
+            "تعذر جلب التطبيقات."
         );
       }
 
@@ -105,7 +125,7 @@ export default function AdminAppsPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "حدث خطأ أثناء جلب التطبيقات"
+          : "حدث خطأ أثناء جلب التطبيقات."
       );
     } finally {
       setLoading(false);
@@ -115,6 +135,7 @@ export default function AdminAppsPage() {
   function openCreate() {
     setEditingApp(null);
     setForm(emptyForm);
+    uploadedImageUrlRef.current = "";
     setMessage("");
     setError("");
     setFormOpen(true);
@@ -135,22 +156,34 @@ export default function AdminAppsPage() {
       isActive: app.isActive,
     });
 
+    uploadedImageUrlRef.current =
+      app.imageUrl ?? "";
+
     setMessage("");
     setError("");
     setFormOpen(true);
   }
 
   function closeForm() {
-    if (saving) return;
+    if (saving || uploading) {
+      return;
+    }
 
     setFormOpen(false);
     setEditingApp(null);
     setForm(emptyForm);
+    uploadedImageUrlRef.current = "";
     setMessage("");
     setError("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
-  function updateForm<K extends keyof FormData>(
+  function updateForm<
+    K extends keyof FormData
+  >(
     field: K,
     value: FormData[K]
   ) {
@@ -158,6 +191,118 @@ export default function AdminAppsPage() {
       ...current,
       [field]: value,
     }));
+
+    if (field === "imageUrl") {
+      uploadedImageUrlRef.current =
+        String(value);
+    }
+  }
+
+  async function uploadImage(file: File) {
+    try {
+      setUploading(true);
+      setError("");
+      setMessage("");
+
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error(
+          "نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو GIF."
+        );
+      }
+
+      if (
+        file.size >
+        8 * 1024 * 1024
+      ) {
+        throw new Error(
+          "حجم الصورة يجب ألا يتجاوز 8MB."
+        );
+      }
+
+      const formData = new FormData();
+
+      formData.append(
+        "file",
+        file
+      );
+
+      const response = await fetch(
+        "/api/admin/media/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !data.success ||
+        !data.imageUrl
+      ) {
+        throw new Error(
+          data.message ||
+            "تعذر رفع الصورة."
+        );
+      }
+
+      const imageUrl =
+        String(data.imageUrl);
+
+      /*
+       * نخزن الرابط في ref أولاً.
+       */
+      uploadedImageUrlRef.current =
+        imageUrl;
+
+      /*
+       * ثم نعرضه في الفورم.
+       */
+      setForm((current) => ({
+        ...current,
+        imageUrl,
+      }));
+
+      setMessage(
+        "تم رفع الصورة بنجاح."
+      );
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "حدث خطأ أثناء رفع الصورة."
+      );
+    } finally {
+      setUploading(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
+
+  async function handleFileChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    await uploadImage(file);
   }
 
   async function handleSubmit(
@@ -165,50 +310,98 @@ export default function AdminAppsPage() {
   ) {
     event.preventDefault();
 
+    if (saving || uploading) {
+      return;
+    }
+
     setSaving(true);
     setMessage("");
     setError("");
 
+    /*
+     * نأخذ الصورة من state، وإذا لم تكن موجودة
+     * نستخدم آخر صورة مرفوعة مباشرة.
+     */
+    const imageUrl =
+      form.imageUrl.trim() ||
+      uploadedImageUrlRef.current.trim();
+
     const payload = {
-      ...(editingApp ? { id: editingApp.id } : {}),
-      name: form.name,
-      description: form.description,
-      platform: form.platform,
-      version: form.version || null,
-      downloadUrl: form.downloadUrl,
-      imageUrl: form.imageUrl || null,
-      instructions: form.instructions || null,
-      notes: form.notes || null,
-      isActive: form.isActive,
+      ...(editingApp
+        ? {
+            id: editingApp.id,
+          }
+        : {}),
+
+      name: form.name.trim(),
+
+      description:
+        form.description.trim(),
+
+      platform:
+        form.platform.trim(),
+
+      version:
+        form.version.trim() ||
+        null,
+
+      downloadUrl:
+        form.downloadUrl.trim(),
+
+      imageUrl:
+        imageUrl || null,
+
+      instructions:
+        form.instructions.trim() ||
+        null,
+
+      notes:
+        form.notes.trim() ||
+        null,
+
+      isActive:
+        form.isActive,
     };
 
     try {
-      const response = await fetch(
-        "/api/admin/apps",
-        {
-          method: editingApp ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response =
+        await fetch(
+          "/api/admin/apps",
+          {
+            method: editingApp
+              ? "PUT"
+              : "POST",
 
-      const data = await response.json();
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
 
-      if (!response.ok || !data.success) {
+            body: JSON.stringify(
+              payload
+            ),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
         throw new Error(
           data.message ||
             (editingApp
-              ? "تعذر تعديل التطبيق"
-              : "تعذر إضافة التطبيق")
+              ? "تعذر تعديل التطبيق."
+              : "تعذر إضافة التطبيق.")
         );
       }
 
       setMessage(
         editingApp
-          ? "تم تعديل التطبيق بنجاح"
-          : "تمت إضافة التطبيق بنجاح"
+          ? "تم تعديل التطبيق بنجاح."
+          : "تمت إضافة التطبيق بنجاح."
       );
 
       await loadApps();
@@ -217,7 +410,12 @@ export default function AdminAppsPage() {
         setFormOpen(false);
         setEditingApp(null);
         setForm(emptyForm);
+        uploadedImageUrlRef.current = "";
         setMessage("");
+
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
       }, 700);
     } catch (err) {
       console.error(err);
@@ -225,14 +423,16 @@ export default function AdminAppsPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "حدث خطأ أثناء حفظ التطبيق"
+          : "حدث خطأ أثناء حفظ التطبيق."
       );
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleDelete(app: AppItem) {
+  async function handleDelete(
+    app: AppItem
+  ) {
     if (
       !window.confirm(
         `هل أنت متأكد من حذف التطبيق "${app.name}"؟`
@@ -246,32 +446,44 @@ export default function AdminAppsPage() {
       setError("");
       setMessage("");
 
-      const response = await fetch(
-        "/api/admin/apps",
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: app.id,
-          }),
-        }
-      );
+      const response =
+        await fetch(
+          "/api/admin/apps",
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              id: app.id,
+            }),
+          }
+        );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
-      if (!response.ok || !data.success) {
+      if (
+        !response.ok ||
+        !data.success
+      ) {
         throw new Error(
-          data.message || "تعذر حذف التطبيق"
+          data.message ||
+            "تعذر حذف التطبيق."
         );
       }
 
       setApps((current) =>
-        current.filter((item) => item.id !== app.id)
+        current.filter(
+          (item) =>
+            item.id !== app.id
+        )
       );
 
-      setMessage("تم حذف التطبيق بنجاح");
+      setMessage(
+        "تم حذف التطبيق بنجاح."
+      );
 
       setTimeout(() => {
         setMessage("");
@@ -282,24 +494,36 @@ export default function AdminAppsPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "حدث خطأ أثناء حذف التطبيق"
+          : "حدث خطأ أثناء حذف التطبيق."
       );
     } finally {
       setDeletingId(null);
     }
   }
 
-  const filteredApps = apps.filter((app) => {
-    const query = search.trim().toLowerCase();
+  const filteredApps =
+    apps.filter((app) => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
 
-    if (!query) return true;
+      if (!query) {
+        return true;
+      }
 
-    return (
-      app.name.toLowerCase().includes(query) ||
-      app.platform.toLowerCase().includes(query) ||
-      app.description.toLowerCase().includes(query)
-    );
-  });
+      return (
+        app.name
+          .toLowerCase()
+          .includes(query) ||
+        app.platform
+          .toLowerCase()
+          .includes(query) ||
+        app.description
+          .toLowerCase()
+          .includes(query)
+      );
+    });
 
   return (
     <main
@@ -307,7 +531,6 @@ export default function AdminAppsPage() {
       className="min-h-screen bg-slate-50 p-5 text-slate-900 transition-colors dark:bg-slate-950 dark:text-white lg:p-8"
     >
       <div className="mx-auto max-w-7xl">
-
         <div className="mb-8">
           <Link
             href="/admin"
@@ -318,7 +541,6 @@ export default function AdminAppsPage() {
           </Link>
 
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-
             <div className="flex items-center gap-3">
               <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-600/20">
                 <AppWindow size={24} />
@@ -343,7 +565,6 @@ export default function AdminAppsPage() {
               <Plus size={19} />
               إضافة تطبيق
             </button>
-
           </div>
         </div>
 
@@ -369,12 +590,13 @@ export default function AdminAppsPage() {
             />
 
             <input
-              suppressHydrationWarning
               dir="rtl"
               type="text"
               value={search}
               onChange={(event) =>
-                setSearch(event.target.value)
+                setSearch(
+                  event.target.value
+                )
               }
               placeholder="ابحث عن تطبيق..."
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-4 pr-12 text-right text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
@@ -384,29 +606,31 @@ export default function AdminAppsPage() {
 
         {loading ? (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="overflow-hidden rounded-3xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
-              >
-                <div className="aspect-video animate-pulse bg-slate-200 dark:bg-slate-800" />
-                <div className="space-y-3 p-5">
-                  <div className="h-5 w-2/3 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-10 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+            {[1, 2, 3].map(
+              (item) => (
+                <div
+                  key={item}
+                  className="overflow-hidden rounded-3xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                >
+                  <div className="aspect-video animate-pulse bg-slate-200 dark:bg-slate-800" />
+
+                  <div className="space-y-3 p-5">
+                    <div className="h-5 w-2/3 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+                    <div className="h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+                    <div className="h-10 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         ) : filteredApps.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-20 text-center dark:border-slate-700 dark:bg-slate-900">
-
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
               <AppWindow size={28} />
             </div>
 
             <h2 className="mt-5 text-lg font-black">
-              لا توجد تطبيقات حالياً
+              لا توجد تطبيقات حاليًا
             </h2>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-slate-500 dark:text-slate-400">
@@ -421,31 +645,37 @@ export default function AdminAppsPage() {
               <Plus size={18} />
               إضافة أول تطبيق
             </button>
-
           </div>
         ) : (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {filteredApps.map((app) => (
-              <AppCard
-                key={app.id}
-                app={app}
-                deleting={deletingId === app.id}
-                onEdit={() => openEdit(app)}
-                onDelete={() => handleDelete(app)}
-              />
-            ))}
+            {filteredApps.map(
+              (app) => (
+                <AppCard
+                  key={app.id}
+                  app={app}
+                  deleting={
+                    deletingId ===
+                    app.id
+                  }
+                  onEdit={() =>
+                    openEdit(app)
+                  }
+                  onDelete={() =>
+                    void handleDelete(
+                      app
+                    )
+                  }
+                />
+              )
+            )}
           </div>
         )}
-
       </div>
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm">
-
           <div className="my-6 w-full max-w-3xl overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
-
             <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-slate-800">
-
               <div>
                 <h2 className="text-xl font-black">
                   {editingApp
@@ -461,22 +691,25 @@ export default function AdminAppsPage() {
               <button
                 type="button"
                 onClick={closeForm}
-                disabled={saving}
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                disabled={
+                  saving ||
+                  uploading
+                }
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-slate-800"
               >
                 <X size={19} />
               </button>
-
             </div>
 
             <form
               onSubmit={handleSubmit}
               className="max-h-[75vh] overflow-y-auto px-6 py-6"
             >
-
               <div className="grid gap-5 md:grid-cols-2">
-
-                <Field label="اسم التطبيق" required>
+                <Field
+                  label="اسم التطبيق"
+                  required
+                >
                   <input
                     dir="rtl"
                     type="text"
@@ -493,7 +726,10 @@ export default function AdminAppsPage() {
                   />
                 </Field>
 
-                <Field label="المنصة" required>
+                <Field
+                  label="المنصة"
+                  required
+                >
                   <select
                     value={form.platform}
                     onChange={(event) =>
@@ -508,24 +744,31 @@ export default function AdminAppsPage() {
                     <option value="">
                       اختر المنصة
                     </option>
+
                     <option value="Android">
                       Android
                     </option>
+
                     <option value="Android TV">
                       Android TV
                     </option>
+
                     <option value="Smart TV">
                       Smart TV
                     </option>
+
                     <option value="Windows">
                       Windows
                     </option>
+
                     <option value="iOS">
                       iPhone / iPad
                     </option>
+
                     <option value="macOS">
                       macOS
                     </option>
+
                     <option value="Other">
                       أخرى
                     </option>
@@ -551,7 +794,10 @@ export default function AdminAppsPage() {
                   />
                 </Field>
 
-                <Field label="رابط التحميل" required>
+                <Field
+                  label="رابط التحميل"
+                  required
+                >
                   <div className="relative">
                     <Download
                       size={17}
@@ -561,7 +807,9 @@ export default function AdminAppsPage() {
                     <input
                       dir="ltr"
                       type="url"
-                      value={form.downloadUrl}
+                      value={
+                        form.downloadUrl
+                      }
                       onChange={(event) =>
                         updateForm(
                           "downloadUrl",
@@ -575,19 +823,90 @@ export default function AdminAppsPage() {
                   </div>
                 </Field>
 
-                <Field
-                  label="رابط صورة التطبيق"
-                  hint="اختياري"
-                >
-                  <div className="relative">
-                    <ImageIcon
-                      size={17}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
+                <div className="md:col-span-2">
+                  <Field
+                    label="صورة التطبيق"
+                    hint="اختياري"
+                  >
+                    <div className="grid gap-5 lg:grid-cols-[1fr_240px]">
+                      <div className="rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-800/50">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          onChange={
+                            handleFileChange
+                          }
+                          className="hidden"
+                        />
 
+                        <button
+                          type="button"
+                          disabled={
+                            uploading ||
+                            saving
+                          }
+                          onClick={() =>
+                            fileInputRef.current?.click()
+                          }
+                          className="flex w-full flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+                        >
+                          {uploading ? (
+                            <Loader2
+                              size={30}
+                              className="animate-spin text-blue-600"
+                            />
+                          ) : (
+                            <ImagePlus
+                              size={30}
+                              className="text-blue-600"
+                            />
+                          )}
+
+                          <span className="mt-3 text-sm font-black">
+                            {uploading
+                              ? "جاري رفع الصورة..."
+                              : "اختيار صورة من الكمبيوتر"}
+                          </span>
+
+                          <span className="mt-1 text-xs text-slate-400">
+                            JPG · PNG · WEBP · GIF · بحد أقصى 8MB
+                          </span>
+                        </button>
+                      </div>
+
+                      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50">
+                        {form.imageUrl ? (
+                          <img
+                            src={form.imageUrl}
+                            alt={
+                              form.name ||
+                              "App"
+                            }
+                            className="h-full min-h-[190px] w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex min-h-[190px] flex-col items-center justify-center text-slate-400">
+                            <Upload size={28} />
+
+                            <span className="mt-2 text-xs font-bold">
+                              لا توجد صورة
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Field>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Field
+                    label="رابط الصورة"
+                    hint="اختياري — يمكن تركه فارغًا عند رفع الصورة من الكمبيوتر"
+                  >
                     <input
                       dir="ltr"
-                      type="url"
+                      type="text"
                       value={form.imageUrl}
                       onChange={(event) =>
                         updateForm(
@@ -595,11 +914,11 @@ export default function AdminAppsPage() {
                           event.target.value
                         )
                       }
-                      placeholder="https://..."
-                      className={`${inputClass} pr-11 text-left`}
+                      placeholder="/uploads/media/image.webp أو https://..."
+                      className={`${inputClass} text-left`}
                     />
-                  </div>
-                </Field>
+                  </Field>
+                </div>
 
                 <Field label="الحالة">
                   <button
@@ -637,7 +956,9 @@ export default function AdminAppsPage() {
                 >
                   <textarea
                     dir="rtl"
-                    value={form.description}
+                    value={
+                      form.description
+                    }
                     onChange={(event) =>
                       updateForm(
                         "description",
@@ -657,7 +978,9 @@ export default function AdminAppsPage() {
                 >
                   <textarea
                     dir="rtl"
-                    value={form.instructions}
+                    value={
+                      form.instructions
+                    }
                     onChange={(event) =>
                       updateForm(
                         "instructions",
@@ -689,7 +1012,6 @@ export default function AdminAppsPage() {
                     className={`${inputClass} resize-none`}
                   />
                 </Field>
-
               </div>
 
               {message && (
@@ -705,42 +1027,45 @@ export default function AdminAppsPage() {
               )}
 
               <div className="mt-7 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row dark:border-slate-800">
-
                 <button
                   type="button"
                   onClick={closeForm}
-                  disabled={saving}
-                  className="flex flex-1 items-center justify-center rounded-xl border border-slate-200 px-5 py-3.5 text-sm font-bold text-slate-700 dark:border-slate-700 dark:text-slate-300"
+                  disabled={
+                    saving ||
+                    uploading
+                  }
+                  className="flex flex-1 items-center justify-center rounded-xl border border-slate-200 px-5 py-3.5 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-300"
                 >
                   إلغاء
                 </button>
 
                 <button
                   type="submit"
-                  disabled={saving}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white"
+                  disabled={
+                    saving ||
+                    uploading
+                  }
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {saving ? (
-                    "جاري الحفظ..."
+                    <Loader2
+                      size={17}
+                      className="animate-spin"
+                    />
+                  ) : editingApp ? (
+                    <Pencil size={17} />
                   ) : (
-                    <>
-                      {editingApp ? (
-                        <Pencil size={17} />
-                      ) : (
-                        <Plus size={18} />
-                      )}
-
-                      {editingApp
-                        ? "حفظ التعديلات"
-                        : "إضافة التطبيق"}
-                    </>
+                    <Plus size={18} />
                   )}
+
+                  {saving
+                    ? "جاري الحفظ..."
+                    : editingApp
+                    ? "حفظ التعديلات"
+                    : "إضافة التطبيق"}
                 </button>
-
               </div>
-
             </form>
-
           </div>
         </div>
       )}
@@ -762,12 +1087,21 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className={full ? "md:col-span-2" : ""}>
+    <div
+      className={
+        full
+          ? "md:col-span-2"
+          : ""
+      }
+    >
       <div className="mb-2 flex items-center justify-between">
         <label className="text-sm font-black text-slate-800 dark:text-slate-200">
           {label}
+
           {required && (
-            <span className="mr-1 text-red-500">*</span>
+            <span className="mr-1 text-red-500">
+              *
+            </span>
           )}
         </label>
 
@@ -796,9 +1130,7 @@ function AppCard({
 }) {
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
-
       <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500">
-
         {app.imageUrl ? (
           <img
             src={app.imageUrl}
@@ -812,7 +1144,6 @@ function AppCard({
         )}
 
         <div className="absolute left-4 top-4">
-
           {app.isActive ? (
             <span className="flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1.5 text-[11px] font-black text-white">
               <CheckCircle2 size={13} />
@@ -824,15 +1155,11 @@ function AppCard({
               مخفي
             </span>
           )}
-
         </div>
-
       </div>
 
       <div className="p-5">
-
         <div className="flex items-start justify-between gap-4">
-
           <div className="min-w-0">
             <h3 className="truncate text-lg font-black">
               {app.name}
@@ -840,12 +1167,12 @@ function AppCard({
 
             <p className="mt-1 text-xs font-semibold text-blue-600 dark:text-blue-400">
               {app.platform}
+
               {app.version
                 ? ` • ${app.version}`
                 : ""}
             </p>
           </div>
-
         </div>
 
         <p className="mt-4 min-h-[72px] line-clamp-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
@@ -853,7 +1180,6 @@ function AppCard({
         </p>
 
         <div className="mt-5 flex gap-2">
-
           <a
             href={app.downloadUrl}
             target="_blank"
@@ -885,9 +1211,7 @@ function AppCard({
               <Trash2 size={16} />
             )}
           </button>
-
         </div>
-
       </div>
     </div>
   );

@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   Check,
   ChevronLeft,
-  CirclePlay,
   Headphones,
   ShieldCheck,
   Sparkles,
@@ -268,6 +267,10 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* =====================================================
+              HERO VIDEO
+              ===================================================== */}
+
           <div className="relative mx-auto w-full max-w-xl lg:max-w-[580px]">
             <div className="absolute inset-8 rounded-[48px] bg-blue-500/[0.18] blur-3xl dark:bg-blue-500/[0.09]" />
 
@@ -276,105 +279,26 @@ export default function HomePage() {
             <div className="pointer-events-none absolute -bottom-12 -left-10 hidden h-36 w-36 rounded-full border border-cyan-300/40 sm:block dark:border-cyan-400/10" />
 
             <div className="euclid-surface relative rounded-[34px] border border-white/80 bg-white/[0.62] p-3 shadow-[0_30px_80px_rgba(15,23,42,0.15)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-slate-900/[0.50] dark:shadow-[0_30px_80px_rgba(0,0,0,0.38)]">
-              <div className="relative overflow-hidden rounded-[27px] border border-white/[0.12] bg-slate-950 shadow-inner">
-                <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-[#07152f] via-[#123d8f] to-[#22c7e8]">
-                  <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
+              <div className="relative flex min-h-[260px] items-center justify-center overflow-hidden rounded-[27px] border border-white/[0.12] bg-slate-950 p-0 shadow-inner sm:min-h-[330px] lg:min-h-[360px]">
+                <video
+                  className="relative z-10 block h-auto max-h-full w-auto max-w-full"
+                  src="/videos/shashtna-ad.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                />
 
-                  <div className="absolute -bottom-24 -left-10 h-72 w-72 rounded-full bg-blue-400/25 blur-3xl" />
-
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_20%,rgba(255,255,255,0.24),transparent_28%),linear-gradient(125deg,transparent_20%,rgba(255,255,255,0.05)_52%,transparent_70%)]" />
-
-                  <div className="absolute right-[-8%] top-[-12%] h-[78%] w-[55%] rounded-full border border-white/10" />
-
-                  <div className="absolute right-[4%] top-[-2%] h-[58%] w-[42%] rounded-full border border-cyan-200/10" />
-
-                  <div className="relative flex h-full flex-col justify-between p-6 sm:p-8">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-white">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/10 backdrop-blur-xl">
-                          <Tv2 size={18} />
-                        </div>
-
-                        <span className="text-sm font-black">
-                          شاشتنا
-                        </span>
-                      </div>
-
-                      <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[10px] font-black tracking-wide text-white backdrop-blur-xl">
-                        LIVE
-                      </div>
-                    </div>
-
-                    <div className="relative">
-                      <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[10px] font-bold text-white backdrop-blur-xl">
-                        <CirclePlay size={13} />
-
-                        {isArabic
-                          ? "ترفيه بدون تعقيد"
-                          : "Entertainment made simple"}
-                      </div>
-
-                      <h2 className="max-w-sm text-2xl font-black leading-tight text-white sm:text-3xl">
-                        {isArabic ? (
-                          <>
-                            خلي المشاهدة
-                            <br />
-                            أسهل.
-                          </>
-                        ) : (
-                          <>
-                            Make watching
-                            <br />
-                            easier.
-                          </>
-                        )}
-                      </h2>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-white/[0.05] bg-slate-900 px-5 py-4">
-                  <div>
-                    <div className="text-xs font-black text-white">
-                      {isArabic
-                        ? "اشتراكك"
-                        : "Your subscription"}
-                    </div>
-
-                    <div className="mt-1 text-[10px] text-slate-400">
-                      {isArabic
-                        ? "إدارة بسيطة من حسابك"
-                        : "Simple management from your account"}
-                    </div>
+                {/* Shashtna logo only */}
+                <div className="absolute left-5 top-5 z-20 flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white backdrop-blur-xl">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/10">
+                    <Tv2 size={17} />
                   </div>
 
-                  <div className="rounded-xl border border-emerald-300/10 bg-emerald-400/10 px-3 py-2 text-[10px] font-black text-emerald-300">
-                    {isArabic
-                      ? "نشط"
-                      : "ACTIVE"}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="euclid-glass absolute -bottom-6 -left-3 rounded-2xl p-4 shadow-2xl sm:-left-8">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/[0.10] dark:text-emerald-400">
-                  <Check size={20} />
-                </div>
-
-                <div>
-                  <div className="text-xs font-black text-slate-900 dark:text-white">
-                    {isArabic
-                      ? "اشتراكك جاهز"
-                      : "Your subscription is ready"}
-                  </div>
-
-                  <div className="mt-1 text-[10px] text-slate-400">
-                    {isArabic
-                      ? "إدارة سهلة وسريعة"
-                      : "Easy and fast management"}
-                  </div>
+                  <span className="text-sm font-black">
+                    شاشتنا
+                  </span>
                 </div>
               </div>
             </div>

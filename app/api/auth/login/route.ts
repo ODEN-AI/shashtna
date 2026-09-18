@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
+import { createAuthToken } from "@/src/lib/mobile-auth";
 import { db } from "@/src/prisma/db";
 
 export async function POST(request: Request) {
@@ -12,64 +13,59 @@ export async function POST(request: Request) {
 
     if (!phone || !password) {
       return NextResponse.json(
-        {
-          message:
-            "يرجى إدخال رقم الهاتف وكلمة المرور",
-        },
-        { status: 400 }
+        { message: "يرجى إدخال رقم الهاتف وكلمة المرور" },
+        { status: 400 },
       );
     }
 
-    const user = await db.orm.public.User.first({
-      phone,
-    });
+    const user = await db.orm.public.User.first({ phone });
 
     if (!user) {
       return NextResponse.json(
-        {
-          message:
-            "رقم الهاتف أو كلمة المرور غير صحيحة",
-        },
-        { status: 401 }
+        { message: "رقم الهاتف أو كلمة المرور غير صحيحة" },
+        { status: 401 },
       );
     }
 
     const passwordValid = await bcrypt.compare(
       password,
-      user.passwordHash
+      user.passwordHash,
     );
 
     if (!passwordValid) {
       return NextResponse.json(
-        {
-          message:
-            "رقم الهاتف أو كلمة المرور غير صحيحة",
-        },
-        { status: 401 }
+        { message: "رقم الهاتف أو كلمة المرور غير صحيحة" },
+        { status: 401 },
       );
     }
+
+    const session = createAuthToken(user.id, user.role);
 
     return NextResponse.json(
       {
         message: "تم تسجيل الدخول بنجاح",
+        token: session.token,
+        expiresAt: session.expiresAt,
         user: {
           id: user.id,
           name: user.name,
           phone: user.phone,
           role: user.role,
         },
+        // Backward-compatible top-level fields for the current website client.
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        role: user.role,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("LOGIN_ERROR:", error);
 
     return NextResponse.json(
-      {
-        message:
-          "حدث خطأ أثناء تسجيل الدخول",
-      },
-      { status: 500 }
+      { message: "حدث خطأ أثناء تسجيل الدخول" },
+      { status: 500 },
     );
   }
 }

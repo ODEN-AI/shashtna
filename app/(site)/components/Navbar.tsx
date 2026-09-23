@@ -200,6 +200,12 @@ export default function Navbar() {
         : "Apps",
     },
     {
+      href: "/services",
+      label: isArabic
+        ? "الخدمات"
+        : "Services",
+    },
+    {
       href: "/about",
       label: isArabic
         ? "من نحن"

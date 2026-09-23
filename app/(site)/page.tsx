@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import {
@@ -7,6 +7,10 @@ import {
   ChevronLeft,
   Headphones,
   ShieldCheck,
+  Globe,
+  Radio,
+  ShoppingCart,
+  Smartphone,
   Sparkles,
   Tv2,
   Zap,
@@ -789,6 +793,61 @@ export default function HomePage() {
                 </div>
               )
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* =====================================================
+          DIGITAL SERVICES
+          ===================================================== */}
+      <section className="border-t border-slate-200/70 bg-slate-50/70 dark:border-slate-800/70 dark:bg-slate-900/40">
+        <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <span className="text-xs font-black tracking-[0.2em] text-blue-600 dark:text-blue-400">
+                {isArabic ? "شاشتنا للحلول الرقمية" : "SHASHTNA DIGITAL SOLUTIONS"}
+              </span>
+              <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
+                {isArabic ? "مو بس ترفيه. نبني منتجات رقمية أيضاً." : "More than entertainment. We build digital products too."}
+              </h2>
+              <p className="mt-4 text-sm leading-8 text-slate-500 dark:text-slate-400 sm:text-base">
+                {isArabic
+                  ? "مواقع، متاجر، تطبيقات Android، Android TV، وحلول IPTV مخصصة حسب مشروعك."
+                  : "Websites, stores, Android apps, Android TV and custom IPTV solutions built around your project."}
+              </p>
+            </div>
+
+            <Link
+              href="/services"
+              className="group inline-flex w-fit items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-700 dark:bg-white dark:text-slate-950 dark:hover:bg-blue-50"
+            >
+              {isArabic ? "استكشف خدمات شاشتنا" : "Explore Shashtna services"}
+              <ArrowLeft size={16} className={isArabic ? "transition-transform group-hover:-translate-x-1" : "rotate-180 transition-transform group-hover:translate-x-1"} />
+            </Link>
+          </div>
+
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              { icon: Globe, label: isArabic ? "تطوير المواقع" : "Web Development" },
+              { icon: ShoppingCart, label: isArabic ? "المتاجر الإلكترونية" : "E-Commerce" },
+              { icon: Smartphone, label: isArabic ? "تطبيقات Android" : "Android Apps" },
+              { icon: Tv2, label: isArabic ? "Android TV" : "Android TV" },
+              { icon: Radio, label: isArabic ? "حلول IPTV" : "IPTV Solutions" },
+            ].map(({ icon: Icon, label }) => (
+              <Link
+                key={String(label)}
+                href="/services"
+                className="group rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/55 dark:hover:border-blue-500/30"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                  <Icon size={20} />
+                </div>
+                <div className="mt-5 text-sm font-black text-slate-900 dark:text-white">{label}</div>
+                <div className="mt-2 text-xs font-bold text-slate-400 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                  {isArabic ? "اعرف أكثر" : "Learn more"}
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>

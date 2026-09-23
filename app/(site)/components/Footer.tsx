@@ -95,6 +95,13 @@ export default function Footer() {
             </Link>
 
             <Link
+              href="/services"
+              className="text-sm text-slate-400 transition hover:text-white"
+            >
+              {isArabic ? "الخدمات" : "Services"}
+            </Link>
+
+            <Link
               href="/about"
               className="text-sm text-slate-400 transition hover:text-white"
             >

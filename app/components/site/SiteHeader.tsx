@@ -231,23 +231,23 @@ export function SiteHeader({ user }: { user: HeaderUser }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <LanguageToggle className="hidden sm:inline-flex" />
+          <LanguageToggle className="max-sm:hidden" />
           {user ? (
             <>
               {user.isStaff ? (
-                <Link href="/admin" className={buttonClass("ghost", "sm", "hidden lg:inline-flex")}>
+                <Link href="/admin" className={buttonClass("ghost", "sm", "max-lg:hidden")}>
                   <ShieldCheck size={16} aria-hidden />
                   {t("الإدارة", "Admin")}
                 </Link>
               ) : null}
-              <Link href="/dashboard" className={buttonClass("primary", "sm", "hidden sm:inline-flex")}>
+              <Link href="/dashboard" className={buttonClass("primary", "sm", "max-sm:hidden")}>
                 <LayoutDashboard size={16} aria-hidden />
                 {t("حسابي", "My Shashtna")}
               </Link>
               <button
                 type="button"
                 onClick={signOut}
-                className={buttonClass("ghost", "sm", "hidden lg:inline-flex")}
+                className={buttonClass("ghost", "sm", "max-lg:hidden")}
                 aria-label={t("تسجيل الخروج", "Sign out")}
               >
                 <LogOut size={16} aria-hidden />
@@ -255,7 +255,7 @@ export function SiteHeader({ user }: { user: HeaderUser }) {
             </>
           ) : (
             <>
-              <Link href="/login" className={buttonClass("ghost", "sm", "hidden sm:inline-flex")}>
+              <Link href="/login" className={buttonClass("ghost", "sm", "max-sm:hidden")}>
                 {t("تسجيل الدخول", "Sign in")}
               </Link>
               <Link href="/plans" className={buttonClass("primary", "sm")}>

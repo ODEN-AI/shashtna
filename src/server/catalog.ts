@@ -46,7 +46,7 @@ export type CatalogApp = {
 
 export function splitLines(value: string | null | undefined) {
   return String(value ?? "")
-    .split(/\r?\n|•/)
+    .split(/\r?\n|\\n|•/)
     .map((line) => line.replace(/^[-*\s]+/, "").trim())
     .filter(Boolean);
 }

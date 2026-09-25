@@ -2,43 +2,31 @@
 
 import { redirect } from "next/navigation";
 
-import { checkProofBytes } from "@/src/lib/payment-proof";
 import { assertCustomer } from "@/src/server/auth";
 import { createOrder } from "@/src/server/orders";
-import { savePaymentProof } from "@/src/server/payment-proofs";
 import { MANUAL_TRANSFER_METHOD } from "@/src/server/settings";
 
-export type CheckoutState = { error: string; field?: "paymentProof" } | null;
+export type CheckoutState = { error: string } | null;
 
 /**
- * Places the order together with the customer's proof of a manual transfer.
- * The order stays "submitted": staff check the transfer and mark it paid.
+ * Creates the order for the confirmed selection and sends the customer to
+ * their dashboard, where they pay and upload the proof. createOrder
+ * re-reads the package, device and price from the catalogue, so nothing
+ * the browser sends about pricing is trusted.
  */
 export async function placeOrderAction(_prev: CheckoutState, formData: FormData): Promise<CheckoutState> {
   let orderId: number;
 
   try {
     const user = await assertCustomer();
-    const proof = formData.get("paymentProof");
-
-    if (!(proof instanceof File) || proof.size === 0) {
-      return { error: "يرجى رفع صورة إثبات الدفع.", field: "paymentProof" };
-    }
-
-    const check = checkProofBytes(new Uint8Array(await proof.arrayBuffer()));
-
-    if (!check.ok) {
-      return { error: check.error, field: "paymentProof" };
-    }
 
     const result = await createOrder(user.id, {
       requestType: formData.get("requestType"),
       planSlug: formData.get("planSlug"),
       deviceId: formData.get("deviceId"),
       subscriptionId: formData.get("subscriptionId"),
-      contactMethod: formData.get("contactMethod"),
+      contactMethod: user.preferredContact ?? "PENDING",
       paymentMethod: MANUAL_TRANSFER_METHOD,
-      paymentReference: formData.get("paymentReference"),
       customerNote: formData.get("customerNote"),
     });
 
@@ -47,14 +35,6 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
     }
 
     orderId = result.order.id;
-
-    // A failed upload leaves an unpaid order without proof; submitting again
-    // updates that same order instead of creating a second one.
-    const saved = await savePaymentProof(user.id, orderId, proof);
-
-    if (!saved.ok) {
-      return { error: saved.error, field: "paymentProof" };
-    }
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHENTICATED") {
       return { error: "انتهت جلسة تسجيل الدخول. سجّل دخولك مرة ثانية." };
@@ -64,5 +44,5 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
     return { error: "تعذر إرسال الطلب حاليًا. حاول مرة ثانية." };
   }
 
-  redirect(`/orders/${orderId}?created=1`);
+  redirect(`/dashboard?order=${orderId}&created=1`);
 }

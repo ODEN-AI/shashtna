@@ -49,9 +49,9 @@ export default async function PaymentPage() {
             <h2 className="text-xl font-bold text-ink">{t("شلون يتم الدفع", "How payment works")}</h2>
             <ol className="mt-5 space-y-3 text-sm leading-7 text-ink-2">
               {[
-                t("تختار الباقة وتوصل لصفحة إتمام الطلب، وتشوف المبلغ المطلوب ورقم التحويل.", "Choose a plan and go to checkout, where you'll see the amount and the transfer number."),
+                t("تختار الباقة وتأكّد الطلب، وتنتقل لحسابك حيث تشوف المبلغ المطلوب ورقم التحويل.", "Choose a plan and confirm the order; your account then shows the amount and the transfer number."),
                 t("تحوّل المبلغ إلى رقم التحويل، وتلتقط صورة لإثبات العملية.", "Transfer the amount to the transfer number and take a screenshot of it."),
-                t("ترفع صورة الإثبات وترسل الطلب. فريقنا يراجع الدفع، وبعد التأكد تتحول الحالة إلى «تم الدفع» ثم «قيد التفعيل».", "Upload the screenshot and send the order. Our team checks the payment; once confirmed the order moves to Paid, then Activating."),
+                t("ترفع صورة الإثبات من حسابك. فريقنا يراجع الدفع، وبعد التأكد تتحول الحالة إلى «تم الدفع» ثم «قيد التفعيل».", "Upload the screenshot from your account. Our team checks the payment; once confirmed the order moves to Paid, then Activating."),
                 t("عند التفعيل تلگى تفاصيل اشتراكك وإيصال الدفع بحسابك.", "On activation you'll find your subscription details and receipt in your account."),
               ].map((step, index) => (
                 <li key={step} className="flex items-start gap-3">
@@ -84,7 +84,7 @@ export default async function PaymentPage() {
                 ) : null}
               </dl>
               <p className="mt-4 text-xs leading-6 text-ink-3">
-                {t("المبلغ المطلوب يظهر بصفحة إتمام الطلب حسب الباقة اللي تختارها.", "The amount to pay is shown at checkout for the plan you choose.")}
+                {t("المبلغ المطلوب يظهر بحسابك بعد تأكيد الطلب.", "The amount to pay is shown in your account after you confirm the order.")}
               </p>
             </div>
           ) : null}

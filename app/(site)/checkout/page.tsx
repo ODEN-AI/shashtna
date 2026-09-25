@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 
 import { LinkButton } from "@/app/ui/Button";
@@ -7,7 +8,6 @@ import { EmptyState } from "@/app/ui/States";
 import { requireCustomer } from "@/src/server/auth";
 import { getActiveDevices, getActivePackages } from "@/src/server/catalog";
 import { getI18n } from "@/src/server/i18n";
-import { getSettings, manualTransferDetails, safeExternalUrl, whatsappLink } from "@/src/server/settings";
 import { getSubscriptionForUser } from "@/src/server/subscriptions";
 
 import { CheckoutForm, type CheckoutMode } from "./CheckoutForm";
@@ -15,7 +15,7 @@ import { CheckoutForm, type CheckoutMode } from "./CheckoutForm";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "إتمام الطلب",
+  title: "تأكيد الطلب",
   robots: { index: false },
 };
 
@@ -26,6 +26,12 @@ function positive(value: unknown) {
   return Number.isInteger(number) && number > 0 ? number : null;
 }
 
+/**
+ * Confirms ONE order the customer already chose on the Packages page (or on
+ * a device / renewal link). Nothing to pick here except, for VIP plans, the
+ * compatible device. Without a valid selection the customer goes back to
+ * choose. Payment happens after the order exists, from the account.
+ */
 export default async function CheckoutPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
   const query = new URLSearchParams(
@@ -35,12 +41,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   // Visitors without a session sign in (or register) and come straight back
   // here with the same selection.
   const user = await requireCustomer(`/checkout${query ? `?${query}` : ""}`);
-  const [{ t }, packages, devices, settings] = await Promise.all([
-    getI18n(),
-    getActivePackages(),
-    getActiveDevices(),
-    getSettings(),
-  ]);
+  const [{ t }, packages, devices] = await Promise.all([getI18n(), getActivePackages(), getActiveDevices()]);
 
   const renewId = positive(params.renew);
   const upgradeId = positive(params.upgrade);
@@ -72,78 +73,89 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     );
   }
 
-  let plans = packages;
+  // Where "change plan" (and a missing/invalid selection) sends the customer.
+  const choosePath =
+    mode === "RENEW" && subscription
+      ? `/plans?renew=${subscription.id}`
+      : mode === "UPGRADE" && subscription
+        ? `/plans?upgrade=${subscription.id}`
+        : mode === "DEVICE_PURCHASE"
+          ? "/devices"
+          : "/plans";
+
+  const requested = params.plan ? packages.find((pkg) => pkg.slug === params.plan) : undefined;
+  let plan = requested;
 
   if (mode === "RENEW") {
-    const serviceType = subscription?.serviceType ?? packages.find((pkg) => pkg.slug === params.plan)?.serviceType;
-    plans = serviceType ? packages.filter((pkg) => pkg.serviceType === serviceType) : packages;
-  } else if (mode === "UPGRADE" && subscription) {
-    plans = packages.filter((pkg) => pkg.id !== subscription.packageId);
+    // Renewals stay on the same service; default to the current package.
+    plan =
+      requested && (!subscription || requested.serviceType === subscription.serviceType)
+        ? requested
+        : subscription?.packageSlug
+          ? packages.find((pkg) => pkg.slug === subscription.packageSlug)
+          : undefined;
+  } else if (mode === "UPGRADE") {
+    plan = requested && requested.id !== subscription?.packageId ? requested : undefined;
   }
 
-  const initialPlan =
-    (params.plan && plans.some((pkg) => pkg.slug === params.plan) ? params.plan : null) ??
-    (mode === "RENEW" && subscription?.packageSlug && plans.some((pkg) => pkg.slug === subscription.packageSlug)
-      ? subscription.packageSlug
-      : null) ??
-    (plans.length === 1 ? plans[0].slug : null);
+  let device = null as (typeof devices)[number] | null;
 
-  const contactOptions = [
-    safeExternalUrl(settings["contact.telegram"]) ? ("TELEGRAM" as const) : null,
-    whatsappLink(settings["contact.whatsapp"]) ? ("WHATSAPP" as const) : null,
-    safeExternalUrl(settings["contact.facebook"]) ? ("FACEBOOK" as const) : null,
-    "PHONE" as const,
-  ].filter((option): option is "TELEGRAM" | "WHATSAPP" | "FACEBOOK" | "PHONE" => option !== null);
+  if (mode === "DEVICE_PURCHASE") {
+    device = devices.find((item) => item.id === deviceParam) ?? null;
+
+    if (!device) {
+      redirect(choosePath);
+    }
+  } else if (!plan) {
+    redirect(choosePath);
+  }
+
+  const compatibleDevices =
+    mode !== "DEVICE_PURCHASE" && mode !== "RENEW" && plan?.serviceType === "VIP"
+      ? devices.filter((item) => item.packageIds.includes(plan.id))
+      : [];
 
   const titles: Record<CheckoutMode, [string, string]> = {
-    NEW: [t("إتمام الطلب", "Checkout"), t("اختار باقتك، حوّل المبلغ، وارفع صورة إثبات الدفع.", "Choose your plan, transfer the amount, and upload the payment proof.")],
+    NEW: [t("تأكيد الطلب", "Confirm your order"), t("راجع باقتك وأكّد الطلب.", "Review your plan and confirm the order.")],
     RENEW: [
-      t("تجديد الاشتراك", "Renew subscription"),
+      t("تأكيد التجديد", "Confirm renewal"),
       subscription
         ? t(`تجديد «${subscription.packageName}». المدة الجديدة تنضاف من تاريخ الانتهاء الحالي إذا الاشتراك بعده نشط.`, `Renewing “${subscription.packageName}”. If it's still active, the new period is added from the current expiry date.`)
-        : t("اختار مدة التجديد.", "Choose the renewal period."),
+        : t("راجع مدة التجديد وأكّد الطلب.", "Review the renewal and confirm."),
     ],
-    UPGRADE: [t("ترقية الاشتراك", "Upgrade subscription"), t("اختار الباقة الجديدة وفريقنا يرتب الانتقال.", "Choose the new plan and our team handles the switch.")],
-    DEVICE_PURCHASE: [t("شراء جهاز VIP", "Buy a VIP device"), t("اطلب الجهاز لوحده.", "Order the device on its own.")],
+    UPGRADE: [t("تأكيد الترقية", "Confirm upgrade"), t("راجع باقتك الجديدة وأكّد الطلب.", "Review your new plan and confirm the order.")],
+    DEVICE_PURCHASE: [t("تأكيد شراء الجهاز", "Confirm device purchase"), t("راجع الجهاز وأكّد الطلب.", "Review the device and confirm the order.")],
   };
 
   return (
-    <Container className="pb-32 pt-8 sm:pt-12 lg:pb-16">
-      <LinkButton href={mode === "RENEW" || mode === "UPGRADE" ? "/subscriptions" : "/plans"} variant="ghost" size="sm" className="-ms-3">
+    <Container className="max-w-3xl pb-32 pt-8 sm:pt-12 lg:pb-16">
+      <LinkButton href={choosePath} variant="ghost" size="sm" className="-ms-3">
         <ArrowRight size={16} className="ltr:rotate-180" aria-hidden />
-        {mode === "RENEW" || mode === "UPGRADE" ? t("اشتراكاتي", "My subscriptions") : t("الباقات", "Plans")}
+        {mode === "DEVICE_PURCHASE" ? t("الأجهزة", "Devices") : t("الباقات", "Plans")}
       </LinkButton>
       <PageHeader className="mt-4" title={titles[mode][0]} description={titles[mode][1]} />
       <div className="mt-8">
-        {mode !== "DEVICE_PURCHASE" && packages.length === 0 ? (
-          <EmptyState title={t("ماكو باقات متاحة حاليًا", "No plans are available right now")} action={<LinkButton href="/help/contact">{t("تواصل ويانا", "Contact us")}</LinkButton>} />
-        ) : (
-          <CheckoutForm
-            mode={mode}
-            plans={plans.map((pkg) => ({
-              slug: pkg.slug,
-              id: pkg.id,
-              name: pkg.name,
-              serviceType: pkg.serviceType,
-              price: pkg.price,
-              durationLabel: pkg.durationLabel,
-              isPopular: pkg.isPopular,
-            }))}
-            devices={devices.map((device) => ({
-              id: device.id,
-              name: device.name,
-              price: device.price,
-              description: device.description,
-              packageIds: device.packageIds,
-            }))}
-            initialPlan={initialPlan}
-            initialDevice={deviceParam}
-            subscriptionId={subscription?.id ?? null}
-            user={{ name: user.name, phone: user.phone }}
-            contactOptions={contactOptions}
-            transfer={manualTransferDetails(settings)}
-          />
-        )}
+        <CheckoutForm
+          mode={mode}
+          plan={
+            plan && mode !== "DEVICE_PURCHASE"
+              ? {
+                  slug: plan.slug,
+                  name: plan.name,
+                  serviceType: plan.serviceType,
+                  price: plan.price,
+                  durationLabel: plan.durationLabel,
+                  imageUrl: plan.imageUrl,
+                }
+              : null
+          }
+          device={device ? { id: device.id, name: device.name, price: device.price, description: device.description } : null}
+          devices={compatibleDevices.map((item) => ({ id: item.id, name: item.name, price: item.price, description: item.description }))}
+          initialDevice={compatibleDevices.some((item) => item.id === deviceParam) ? deviceParam : compatibleDevices.length === 1 ? compatibleDevices[0].id : null}
+          subscriptionId={subscription?.id ?? null}
+          changeHref={choosePath}
+          user={{ name: user.name, phone: user.phone }}
+        />
       </div>
     </Container>
   );

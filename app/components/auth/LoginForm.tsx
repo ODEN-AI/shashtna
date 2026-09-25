@@ -40,12 +40,6 @@ export function LoginForm({ destination }: { destination: string }) {
         return;
       }
 
-      try {
-        window.localStorage.setItem("user", JSON.stringify(data.user));
-      } catch {
-        // Not required: the session lives in an HttpOnly cookie.
-      }
-
       window.location.assign(destination);
     } catch {
       setError(t("تعذر الاتصال بالخادم، حاول مرة أخرى", "Can't reach the server. Please try again."));

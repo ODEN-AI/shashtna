@@ -63,12 +63,6 @@ export function RegisterForm({ destination }: { destination: string }) {
         return;
       }
 
-      try {
-        window.localStorage.setItem("user", JSON.stringify(data.user));
-      } catch {
-        // Optional cache only.
-      }
-
       window.location.assign(destination);
     } catch {
       setError(t("تعذر الاتصال بالخادم، حاول مرة أخرى", "Can't reach the server. Please try again."));

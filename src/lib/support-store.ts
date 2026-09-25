@@ -2,6 +2,8 @@ import { getStore } from "@netlify/blobs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { shouldUseBlobStorage as isBlobStorage } from "@/src/lib/runtime";
+
 export type SupportTicketStatus =
   | "OPEN"
   | "IN_PROGRESS"
@@ -44,14 +46,10 @@ const STORE_NAME = "shashtna-support";
 const LOCAL_DIR = path.join(process.cwd(), ".data");
 const LOCAL_FILE = path.join(LOCAL_DIR, "support-tickets.json");
 
-// Serverless functions have a read-only filesystem, so production always uses
-// Netlify Blobs (same rule as the media upload route). The local JSON file is
-// only for development.
+// Netlify Blobs on Netlify (read-only function filesystem); a local JSON file
+// in development or a local production build. See src/lib/runtime.ts.
 function shouldUseNetlifyBlobs() {
-  return (
-    String(process.env.NETLIFY ?? "").toLowerCase() === "true" ||
-    process.env.NODE_ENV === "production"
-  );
+  return isBlobStorage();
 }
 
 function ticketKey(id: string) {

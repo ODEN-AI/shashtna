@@ -4,6 +4,7 @@ import {
   UNPAID_STORED_STATUSES,
   canTransition,
   formatOrderNumber,
+  orderRef,
   isUnpaid,
   normalizeOrderStatus,
   type OrderStatus,
@@ -318,7 +319,7 @@ async function saveOrder(userId: number, fields: OrderFields): Promise<CreateOrd
     entityType: "ORDER",
     entityId: created.id,
     action: "ORDER_CREATED",
-    summary: `تم إنشاء الطلب ${formatOrderNumber(created.id)} (${fields.serviceName})`,
+    summary: `تم إنشاء الطلب ${orderRef(created.id)} (${fields.serviceName})`,
     customerVisible: true,
   });
 
@@ -371,7 +372,7 @@ export async function cancelOrderByCustomer(userId: number, orderId: number) {
     entityType: "ORDER",
     entityId: orderId,
     action: "ORDER_CANCELLED",
-    summary: `ألغى العميل الطلب ${formatOrderNumber(orderId)}`,
+    summary: `ألغى العميل الطلب ${orderRef(orderId)}`,
     customerVisible: true,
   });
 
@@ -446,14 +447,14 @@ export async function updateOrderStatus(
       entityType: "ORDER",
       entityId: orderId,
       action: `ORDER_${target}`,
-      summary: `الطلب ${formatOrderNumber(orderId)}: ${label.ar}`,
+      summary: `الطلب ${orderRef(orderId)}: ${label.ar}`,
       customerVisible: true,
     });
 
     await notify({
       userId: row.userId,
       type: "ORDER_STATUS",
-      title: `تحديث الطلب ${formatOrderNumber(orderId)}`,
+      title: `تحديث الطلب ${orderRef(orderId)}`,
       body: `${label.ar} — ${label.hintAr}`,
       link: `/orders/${orderId}`,
     });
@@ -493,7 +494,7 @@ export async function completeOrderWithSubscription(
     entityType: "ORDER",
     entityId: orderId,
     action: "ORDER_COMPLETED",
-    summary: `الطلب ${formatOrderNumber(orderId)}: مكتمل`,
+    summary: `الطلب ${orderRef(orderId)}: مكتمل`,
     customerVisible: true,
   });
 
@@ -504,8 +505,8 @@ export async function completeOrderWithSubscription(
     entityId: subscriptionId,
     action: renewal ? "SUBSCRIPTION_RENEWED" : "SUBSCRIPTION_CREATED",
     summary: renewal
-      ? `تم تجديد الاشتراك (${fields.durationLabel}) من الطلب ${formatOrderNumber(orderId)}`
-      : `تم تفعيل الاشتراك (${fields.durationLabel}) من الطلب ${formatOrderNumber(orderId)}`,
+      ? `تم تجديد الاشتراك (${fields.durationLabel}) من الطلب ${orderRef(orderId)}`
+      : `تم تفعيل الاشتراك (${fields.durationLabel}) من الطلب ${orderRef(orderId)}`,
     customerVisible: true,
   });
 

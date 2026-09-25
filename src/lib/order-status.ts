@@ -96,6 +96,14 @@ export function formatOrderNumber(id: number) {
   return `SH-${String(id).padStart(6, "0")}`;
 }
 
+/**
+ * Order number for use inside running (Arabic) text: a non-breaking hyphen
+ * and Unicode isolation keep "SH-000123" on one line and in the right order.
+ */
+export function orderRef(id: number) {
+  return `\u2068SH\u2011${String(id).padStart(6, "0")}\u2069`;
+}
+
 export function parseOrderNumber(value: string) {
   const match = String(value ?? "")
     .trim()

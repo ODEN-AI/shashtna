@@ -110,3 +110,11 @@ test("a chosen plan survives registration and login", () => {
   );
   assert.equal(redirect.postAuthDestination({ plan: "../../x" }), "/dashboard");
 });
+
+test("order references stay on one line inside Arabic text", () => {
+  const ref = orders.orderRef(20);
+
+  assert.ok(ref.includes("‑"), "non-breaking hyphen");
+  assert.ok(ref.startsWith("⁨") && ref.endsWith("⁩"), "bidi isolated");
+  assert.equal(orders.parseOrderNumber("SH-000020"), 20);
+});

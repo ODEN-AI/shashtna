@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { StatusBadge } from "@/app/ui/Badge";
 import { buttonClass } from "@/app/ui/Button";
-import { ORDER_STATUS_LABELS } from "@/src/lib/order-status";
+import { ORDER_STATUS_LABELS, orderRef } from "@/src/lib/order-status";
 import type { SessionUser } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
 import { getCustomerOverview } from "@/src/server/overview";
@@ -28,7 +28,7 @@ export async function AccountStrip({ user }: { user: SessionUser }) {
   } else if (state === "PENDING" && openOrders[0]) {
     const order = openOrders[0];
     status = { key: order.status, label: isAr ? ORDER_STATUS_LABELS[order.status].ar : ORDER_STATUS_LABELS[order.status].en };
-    message = isAr ? `طلبك ${order.number} قيد المتابعة` : `Order ${order.number} is in progress`;
+    message = isAr ? `طلبك ${orderRef(order.id)} قيد المتابعة` : `Order ${order.number} is in progress`;
     action = { href: `/orders/${order.id}`, label: t("تتبّع الطلب", "Track order") };
   } else if (state === "EXPIRED" && primary) {
     status = { key: "EXPIRED", label: t("منتهي", "Expired") };

@@ -1,3 +1,4 @@
+import { orderRef } from "@/src/lib/order-status";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -124,7 +125,7 @@ export default async function DashboardPage() {
         <Card className="p-6">
           <CardHeader
             icon={<PackageSearch size={19} aria-hidden />}
-            title={t(`طلب قيد المتابعة ${trackedOrder.number}`, `Order in progress ${trackedOrder.number}`)}
+            title={t(`طلب قيد المتابعة ${orderRef(trackedOrder.id)}`, `Order in progress ${trackedOrder.number}`)}
             description={trackedOrder.serviceName}
             action={
               <LinkButton href={`/orders/${trackedOrder.id}`} variant="secondary" size="sm">

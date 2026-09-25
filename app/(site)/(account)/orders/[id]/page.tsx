@@ -15,7 +15,7 @@ import { OrderStepper } from "@/app/ui/OrderStepper";
 import { Notice } from "@/app/ui/States";
 import { SubmitButton } from "@/app/ui/SubmitButton";
 import { formatDate, formatDateTime, formatPrice } from "@/src/lib/i18n";
-import { ORDER_STATUS_LABELS, REQUEST_TYPE_LABELS, isUnpaid } from "@/src/lib/order-status";
+import { ORDER_STATUS_LABELS, REQUEST_TYPE_LABELS, isUnpaid, orderRef } from "@/src/lib/order-status";
 import { listEntityActivity } from "@/src/server/activity";
 import { requireCustomer } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
@@ -95,7 +95,7 @@ export default async function OrderPage({
             <h1 className="text-xl font-bold text-ink">{t("استلمنا طلبك!", "We've received your order!")}</h1>
             <p className="mt-1 text-sm leading-7 text-ink-2">
               {t(
-                `رقم طلبك ${order.number}. فريقنا راح يتواصل وياك لترتيب الدفع، وتكدر تتابع كل مرحلة من هنا.`,
+                `رقم طلبك ${orderRef(order.id)}. فريقنا راح يتواصل وياك لترتيب الدفع، وتكدر تتابع كل مرحلة من هنا.`,
                 `Your order number is ${order.number}. Our team will contact you to arrange payment, and you can follow every step here.`,
               )}
             </p>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { shouldUseBlobStorage as isBlobStorage } from "@/src/lib/runtime";
 import { requireAdmin } from "@/src/lib/session";
 import { getStore } from "@netlify/blobs";
 
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
       type: file.type,
     });
 
-    const isProduction = process.env.NODE_ENV === "production";
+    const isProduction = isBlobStorage();
 
     if (isProduction) {
       const store = getStore("shashtna-media");

@@ -209,9 +209,13 @@ export function SiteHeader({ user }: { user: HeaderUser }) {
     <header
       className={cn(
         "sticky top-0 z-40 border-b transition-colors duration-300",
-        scrolled || mobileOpen
-          ? "border-line bg-canvas/85 backdrop-blur-xl"
-          : "border-transparent bg-transparent",
+        // No backdrop-filter while the mobile menu is open: it would become the
+        // containing block of the fixed menu panel and collapse it.
+        mobileOpen
+          ? "border-line bg-canvas"
+          : scrolled
+            ? "border-line bg-canvas/85 backdrop-blur-xl"
+            : "border-transparent bg-transparent",
       )}
     >
       <a

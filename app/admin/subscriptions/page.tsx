@@ -716,12 +716,6 @@ export default function AdminSubscriptionsPage() {
     >
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
-          <Link
-            href="/admin"
-            className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-blue-600 transition hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            ← العودة إلى لوحة الإدارة
-          </Link>
 
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div className="flex items-center gap-3">

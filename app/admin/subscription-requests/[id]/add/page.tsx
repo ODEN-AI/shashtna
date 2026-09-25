@@ -356,34 +356,7 @@ export default function AddSubscriptionPage({
     useState(0);
 
   useEffect(() => {
-    const userRaw =
-      localStorage.getItem(
-        "user"
-      );
-
-    if (!userRaw) {
-      window.location.href =
-        "/login";
-      return;
-    }
-
-    try {
-      const user =
-        JSON.parse(userRaw);
-
-      if (
-        user?.role !==
-        "ADMIN"
-      ) {
-        window.location.href =
-          "/dashboard";
-        return;
-      }
-    } catch {
-      window.location.href =
-        "/login";
-      return;
-    }
+    // Access is enforced server-side by the admin layout and the APIs.
 
     async function load() {
       try {
@@ -913,7 +886,7 @@ export default function AddSubscriptionPage({
           </div>
 
           <Link
-            href="/admin/subscription-requests"
+            href="/admin/orders"
             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           >
             <ArrowLeft className="h-4 w-4" />

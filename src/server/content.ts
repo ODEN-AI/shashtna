@@ -60,3 +60,13 @@ export async function getRecentResolvedIncidents(limit = 10) {
     .limit(limit)
     .all();
 }
+
+/** Where an announcement is in its lifecycle right now (for admin lists). */
+export function announcementLifecycle(item: { isActive: boolean; startsAt: string | null; endsAt: string | null }) {
+  const now = Date.now();
+
+  if (!item.isActive) return "INACTIVE" as const;
+  if ((toDate(item.startsAt)?.getTime() ?? 0) > now) return "SCHEDULED" as const;
+  if (item.endsAt && (toDate(item.endsAt)?.getTime() ?? Infinity) < now) return "ENDED" as const;
+  return "LIVE" as const;
+}

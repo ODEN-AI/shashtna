@@ -1,45 +1,91 @@
-﻿"use client";
+import type { Metadata } from "next";
 
-import Link from "next/link";
-import { ArrowRight, Construction } from "lucide-react";
+import { saveSettingsAction } from "@/app/admin/actions";
+import { Forbidden } from "@/app/components/admin/Forbidden";
+import { ActionForm } from "@/app/ui/ActionForm";
+import { Badge } from "@/app/ui/Badge";
+import { Card, CardHeader } from "@/app/ui/Card";
+import { Field, Input, Textarea } from "@/app/ui/Field";
+import { PageHeader } from "@/app/ui/Page";
+import { SubmitButton } from "@/app/ui/SubmitButton";
+import { requireStaffPage } from "@/src/server/auth";
+import { getI18n } from "@/src/server/i18n";
+import { SETTING_DEFINITIONS, SETTING_KEYS, getSettings } from "@/src/server/settings";
 
-export default function AdminPage() {
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "الإعدادات" };
+
+const GROUPS = [
+  { key: "contact", ar: "قنوات التواصل", en: "Contact channels" },
+  { key: "support", ar: "الدعم", en: "Support" },
+  { key: "payment", ar: "الدفع", en: "Payment" },
+  { key: "player", ar: "Shashtna Player", en: "Shashtna Player" },
+  { key: "legal", ar: "الصفحات القانونية", en: "Legal pages" },
+] as const;
+
+export default async function SettingsPage() {
+  const { allowed } = await requireStaffPage("/admin/settings", "settings");
+
+  if (!allowed) {
+    return <Forbidden />;
+  }
+
+  const [{ t, lang }, settings] = await Promise.all([getI18n(), getSettings()]);
+
   return (
-    <main
-      dir="rtl"
-      className="min-h-screen bg-slate-50 p-5 text-slate-900 transition-colors dark:bg-slate-950 dark:text-white md:p-8"
-    >
-      <div className="mx-auto max-w-7xl">
+    <div className="space-y-6">
+      <PageHeader
+        title={t("الإعدادات", "Settings")}
+        description={t(
+          "القيم هنا تظهر مباشرة بالموقع (الأزرار، ساعات الدعم، صفحة الدفع، الصفحات القانونية). الحقل الفارغ يخفي العنصر المرتبط.",
+          "These values appear directly on the site (buttons, support hours, payment page, legal pages). An empty field hides the related element.",
+        )}
+      />
+      {GROUPS.map((group) => {
+        const keys = SETTING_KEYS.filter((key) => SETTING_DEFINITIONS[key].group === group.key);
 
-        <Link
-          href="/admin"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-blue-600 transition hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-        >
-          <ArrowRight size={17} />
-          العودة إلى لوحة الإدارة
-        </Link>
+        return (
+          <Card key={group.key} className="p-6">
+            <CardHeader title={group[lang]} />
+            <ActionForm action={saveSettingsAction} className="mt-5 space-y-5">
+              {keys.map((key) => {
+                const definition = SETTING_DEFINITIONS[key];
+                const label = (
+                  <span className="flex flex-wrap items-center gap-2">
+                    {lang === "ar" ? definition.labelAr : definition.labelEn}
+                    {group.key === "legal" ? (
+                      settings.savedKeys.includes(key) && settings[key] ? (
+                        <Badge tone="success">{t("منشور", "Published")}</Badge>
+                      ) : (
+                        <Badge tone="warning">{t("مسودة", "Draft")}</Badge>
+                      )
+                    ) : null}
+                  </span>
+                );
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-            <Construction size={26} />
-          </div>
-
-          <h1 className="mt-6 text-2xl font-black md:text-3xl">
-            إعدادات النظام
-          </h1>
-
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500 dark:text-slate-400">
-            هذه الصفحة أصبحت مرتبطة بشكل صحيح ضمن لوحة الإدارة.
-            سيتم تطوير وظائف هذا القسم وربطه بقاعدة البيانات في المرحلة التالية.
-          </p>
-
-          <div className="mt-7 inline-flex rounded-xl bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            القسم جاهز للتطوير
-          </div>
-
-        </div>
-      </div>
-    </main>
+                return (
+                  <Field key={key} label={label} htmlFor={key}>
+                    {definition.multiline ? (
+                      <Textarea id={key} name={key} rows={group.key === "legal" ? 10 : 4} defaultValue={settings[key]} />
+                    ) : (
+                      <Input id={key} name={key} defaultValue={settings[key]} dir={key.startsWith("contact.") || key.startsWith("player.") ? "ltr" : undefined} className={key.startsWith("contact.") || key.startsWith("player.") ? "text-start" : undefined} />
+                    )}
+                  </Field>
+                );
+              })}
+              {group.key === "legal" ? (
+                <p className="text-xs leading-6 text-ink-3">
+                  {t(
+                    "حفظ نص قانوني ينشره كنص نهائي ويخفي تنبيه «مسودة». تأكد من مراجعته قبل الحفظ.",
+                    "Saving legal text publishes it as final and removes the “draft” notice. Make sure it has been reviewed first.",
+                  )}
+                </p>
+              ) : null}
+              <SubmitButton pendingLabel={t("جاري الحفظ...", "Saving...")}>{t("حفظ", "Save")}</SubmitButton>
+            </ActionForm>
+          </Card>
+        );
+      })}
+    </div>
   );
 }

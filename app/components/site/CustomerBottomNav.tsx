@@ -14,11 +14,16 @@ export function CustomerBottomNav() {
 
   const items = [
     { href: "/dashboard", label: t("الرئيسية", "Home"), icon: House, match: ["/dashboard", "/orders", "/receipts", "/notifications"] },
-    { href: "/subscriptions", label: t("اشتراكي", "Subscription"), icon: Tv, match: ["/subscriptions", "/checkout"] },
+    { href: "/subscriptions", label: t("اشتراكي", "Subscription"), icon: Tv, match: ["/subscriptions"] },
     { href: "/account/devices", label: t("التطبيقات", "Apps"), icon: AppWindow, match: ["/account/devices"] },
     { href: "/support", label: t("الدعم", "Support"), icon: Headphones, match: ["/support"] },
     { href: "/account", label: t("الحساب", "Account"), icon: CircleUserRound, match: ["/account"] },
   ];
+
+  // Checkout has its own sticky action bar.
+  if (pathname.startsWith("/checkout")) {
+    return null;
+  }
 
   const activeHref =
     items

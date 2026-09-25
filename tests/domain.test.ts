@@ -91,3 +91,22 @@ test("roles grant only their permissions; legacy ADMIN keeps full access", () =>
   assert.ok(!roles.hasPermission("CUSTOMER", "support"));
   assert.ok(!roles.hasPermission(undefined, "support"));
 });
+
+const redirect = await import("@/src/lib/redirect");
+
+test("post-login redirects stay on this site", () => {
+  assert.equal(redirect.safeRedirect("/checkout?plan=iptv-1y"), "/checkout?plan=iptv-1y");
+  assert.equal(redirect.safeRedirect("//evil.example"), "/dashboard");
+  assert.equal(redirect.safeRedirect("/\\evil.example"), "/dashboard");
+  assert.equal(redirect.safeRedirect("https://evil.example"), "/dashboard");
+  assert.equal(redirect.safeRedirect(undefined), "/dashboard");
+});
+
+test("a chosen plan survives registration and login", () => {
+  assert.equal(redirect.postAuthDestination({ plan: "iptv-1y" }), "/checkout?plan=iptv-1y");
+  assert.equal(
+    redirect.postAuthDestination({ redirect: "/checkout?plan=vip-3m&device=1" }),
+    "/checkout?plan=vip-3m&device=1",
+  );
+  assert.equal(redirect.postAuthDestination({ plan: "../../x" }), "/dashboard");
+});

@@ -36,7 +36,7 @@ export async function signOut() {
   }
 
   await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
-  window.location.href = "/";
+  window.location.assign("/");
 }
 
 function useNav(): NavGroup[] {

@@ -334,3 +334,9 @@
     transition-duration: 0.01ms !important;
   }
 }
+/* Legacy editors render inside the admin shell: drop their own page chrome. */
+.legacy-ui > main {
+  min-height: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}

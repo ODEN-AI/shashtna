@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 
 import { LinkButton } from "@/app/ui/Button";
-import { LogoMark } from "@/app/ui/Logo";
+import { LogoImage } from "@/app/ui/Logo";
 import { PrintButton } from "@/app/ui/PrintButton";
 import { formatDateTime, formatPrice } from "@/src/lib/i18n";
 import { formatOrderNumber } from "@/src/lib/order-status";
@@ -53,11 +53,8 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
       <article className="surface-raised mx-auto max-w-2xl rounded-panel p-6 sm:p-10 print:border-0 print:bg-white print:text-black print:shadow-none">
         <header className="flex items-center justify-between gap-4 border-b border-line pb-6">
           <div className="flex items-center gap-3">
-            <LogoMark className="h-11 w-11" />
-            <div>
-              <p className="text-lg font-bold text-ink print:text-black">{t("شاشتنا", "Shashtna")}</p>
-              <p className="text-xs text-ink-3">{t("إيصال دفع", "Payment receipt")}</p>
-            </div>
+            <LogoImage className="h-14" />
+            <p className="text-xs font-semibold text-ink-3">{t("إيصال دفع", "Payment receipt")}</p>
           </div>
           <p className="nums text-3xl font-bold text-ink print:text-black">{formatPrice(receipt.price, lang)}</p>
         </header>

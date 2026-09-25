@@ -2,31 +2,52 @@ import Link from "next/link";
 
 import { cn } from "./cn";
 
+/**
+ * Official Shashtna brand assets (public/brand). The artwork is used as
+ * supplied: `shashtna-logo.webp` is the original file, `shashtna-logo.png` the
+ * same image with its transparent margin trimmed, and `shashtna-mark.png` the
+ * TV mark taken from it for square spots. The UI loads downscaled copies.
+ * The halo only lifts the navy lettering off the dark canvas.
+ */
+export const LOGO_SRC = "/brand/shashtna-logo-640.webp";
+export const MARK_SRC = "/brand/shashtna-mark-256.webp";
+
+const halo =
+  "[filter:drop-shadow(0_0_1px_rgba(255,255,255,0.7))_drop-shadow(0_0_10px_rgba(96,165,250,0.28))]";
+
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <span
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={MARK_SRC}
+      alt=""
       aria-hidden
-      className={cn(
-        "relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[11px] bg-gradient-to-b from-[#3a78ff] to-[#1639a3] shadow-brand ring-1 ring-white/10",
-        className,
-      )}
-    >
-      <span className="text-[17px] font-bold leading-none text-white">ش</span>
-      <span className="absolute inset-x-2 bottom-[5px] h-px rounded-full bg-glow/80" />
-    </span>
+      width={256}
+      height={256}
+      decoding="async"
+      className={cn("shrink-0 object-contain", className ?? "h-9 w-9", halo)}
+    />
   );
 }
 
-export function Logo({ href = "/", subtitle }: { href?: string; subtitle?: string }) {
+export function LogoImage({ className }: { className?: string }) {
   return (
-    <Link href={href} className="flex items-center gap-2.5" aria-label="Shashtna — شاشتنا">
-      <LogoMark />
-      <span className="flex flex-col leading-none">
-        <span className="text-[17px] font-bold text-ink">شاشتنا</span>
-        {subtitle ? (
-          <span className="mt-1 text-[10px] font-semibold tracking-[0.2em] text-ink-3">{subtitle}</span>
-        ) : null}
-      </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={LOGO_SRC}
+      alt="شاشتنا — Shashtna"
+      width={640}
+      height={374}
+      decoding="async"
+      className={cn("w-auto shrink-0 object-contain", className ?? "h-12 sm:h-[52px]", halo)}
+    />
+  );
+}
+
+export function Logo({ href = "/", className }: { href?: string; className?: string }) {
+  return (
+    <Link href={href} className="flex shrink-0 items-center" aria-label="شاشتنا — Shashtna">
+      <LogoImage className={className} />
     </Link>
   );
 }

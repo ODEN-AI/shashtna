@@ -41,7 +41,7 @@ export async function SiteFooter() {
       title: t("شاشتنا", "Shashtna"),
       links: [
         { href: "/about", label: t("من نحن", "About") },
-        { href: "/services", label: t("شاشتنا للحلول الرقمية", "Shashtna Digital") },
+        { href: "/services", label: t("خدماتنا", "Our services") },
         { href: "/terms", label: t("الشروط والأحكام", "Terms") },
         { href: "/privacy", label: t("سياسة الخصوصية", "Privacy") },
         { href: "/refund", label: t("سياسة الاسترجاع", "Refunds") },
@@ -59,11 +59,11 @@ export async function SiteFooter() {
     <footer className="border-t border-line bg-[#040810] pb-safe lg:pb-0">
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_repeat(3,1fr)] lg:px-8">
         <div>
-          <Logo subtitle="SHASHTNA" />
+          <Logo className="h-16" />
           <p className="mt-5 max-w-xs text-sm leading-7 text-ink-3">
             {t(
-              "اشتراكات IPTV وVIP، تطبيق Shashtna Player، وحساب واحد لإدارة كل شي.",
-              "IPTV and VIP subscriptions, the Shashtna Player app, and one account to manage it all.",
+              "اشتراكات IPTV وVIP وتطبيق Shashtna Player — وخدمات رقمية لبناء التطبيقات والمواقع.",
+              "IPTV and VIP subscriptions and the Shashtna Player app — plus digital services for apps and websites.",
             )}
           </p>
           {hours ? (

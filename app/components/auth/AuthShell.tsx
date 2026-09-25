@@ -1,7 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { LogoMark } from "@/app/ui/Logo";
+import { LogoImage } from "@/app/ui/Logo";
 import { getI18n } from "@/src/server/i18n";
 
 export async function AuthShell({
@@ -21,7 +21,7 @@ export async function AuthShell({
     <section className="bg-cinema min-h-[calc(100dvh-4rem)]">
       <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1fr_440px] lg:px-8">
         <div className="hidden lg:block">
-          <LogoMark className="h-12 w-12 rounded-2xl" />
+          <LogoImage className="h-20" />
           <h2 className="mt-8 max-w-md text-balance text-3xl font-bold leading-tight text-ink">
             {t("حساب واحد لاشتراكك وطلباتك ودعمك.", "One account for your subscription, orders and support.")}
           </h2>

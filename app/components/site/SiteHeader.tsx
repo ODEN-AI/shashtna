@@ -54,6 +54,8 @@ function useNav(): NavGroup[] {
         { href: "/devices", label: t("أجهزة VIP", "VIP devices"), description: t("أجهزة جاهزة لتجربة VIP", "Ready-made devices for VIP") },
       ],
     },
+    { label: t("خدماتنا", "Our services"), href: "/services" },
+    { label: t("من نحن", "About us"), href: "/about" },
     {
       label: t("المساعدة", "Help"),
       href: "/help",
@@ -207,9 +209,13 @@ export function SiteHeader({ user }: { user: HeaderUser }) {
     <header
       className={cn(
         "sticky top-0 z-40 border-b transition-colors duration-300",
-        scrolled || mobileOpen
-          ? "border-line bg-canvas/85 backdrop-blur-xl"
-          : "border-transparent bg-transparent",
+        // No backdrop-filter while the mobile menu is open: it would become the
+        // containing block of the fixed menu panel and collapse it.
+        mobileOpen
+          ? "border-line bg-canvas"
+          : scrolled
+            ? "border-line bg-canvas/85 backdrop-blur-xl"
+            : "border-transparent bg-transparent",
       )}
     >
       <a

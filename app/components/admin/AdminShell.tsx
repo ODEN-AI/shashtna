@@ -34,7 +34,7 @@ import {
 import { useLanguage } from "@/app/components/LanguageProvider";
 import { signOut } from "@/app/components/site/SiteHeader";
 import { cn } from "@/app/ui/cn";
-import { LogoMark } from "@/app/ui/Logo";
+import { LogoImage } from "@/app/ui/Logo";
 
 import type { AdminNavGroup } from "./nav";
 
@@ -132,11 +132,8 @@ export function AdminShell({
   const sidebar = (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 px-3 pb-6">
-        <LogoMark />
-        <div className="leading-tight">
-          <p className="font-bold text-ink">{t("شاشتنا", "Shashtna")}</p>
-          <p className="text-xs text-ink-3">{t("لوحة الإدارة", "Admin console")}</p>
-        </div>
+        <LogoImage className="h-11" />
+        <p className="text-xs font-semibold text-ink-3">{t("لوحة الإدارة", "Admin console")}</p>
       </div>
       <div className="flex-1 overflow-y-auto pb-6">
         <Nav groups={groups} counts={counts} onNavigate={() => setOpen(false)} />

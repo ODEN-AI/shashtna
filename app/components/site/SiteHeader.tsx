@@ -54,6 +54,8 @@ function useNav(): NavGroup[] {
         { href: "/devices", label: t("أجهزة VIP", "VIP devices"), description: t("أجهزة جاهزة لتجربة VIP", "Ready-made devices for VIP") },
       ],
     },
+    { label: t("خدماتنا", "Our services"), href: "/services" },
+    { label: t("من نحن", "About us"), href: "/about" },
     {
       label: t("المساعدة", "Help"),
       href: "/help",

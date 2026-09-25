@@ -2,6 +2,9 @@ import Link from "next/link";
 import {
   ArrowLeft,
   CalendarCheck2,
+  Code2,
+  Globe,
+  LayoutDashboard,
   Check,
   CircleHelp,
   Clock3,
@@ -22,10 +25,12 @@ import { AccountStrip } from "@/app/components/site/AccountStrip";
 import { AnnouncementCarousel } from "@/app/ui/AnnouncementCarousel";
 import { Badge } from "@/app/ui/Badge";
 import { LinkButton } from "@/app/ui/Button";
+import { LogoMark } from "@/app/ui/Logo";
 import { PackageCard } from "@/app/ui/PackageCard";
 import { Container, Eyebrow, SectionHeading } from "@/app/ui/Page";
 import { EmptyState } from "@/app/ui/States";
 import { FacebookIcon, TelegramIcon, WhatsAppIcon } from "@/app/ui/BrandIcons";
+import { DIGITAL_SERVICE_AREAS } from "@/src/content/digital-services";
 import { FAQ } from "@/src/content/help";
 import { formatPrice, type Lang } from "@/src/lib/i18n";
 import { getSessionUser } from "@/src/server/auth";
@@ -39,6 +44,14 @@ import {
 import { getLiveAnnouncements } from "@/src/server/content";
 import { getI18n } from "@/src/server/i18n";
 import { getSettings, safeExternalUrl, whatsappLink } from "@/src/server/settings";
+
+
+const SERVICE_ICONS = {
+  apps: <Smartphone size={19} aria-hidden />,
+  web: <Globe size={19} aria-hidden />,
+  platforms: <LayoutDashboard size={19} aria-hidden />,
+  custom: <Code2 size={19} aria-hidden />,
+} as const;
 
 export const dynamic = "force-dynamic";
 
@@ -473,6 +486,75 @@ export default async function HomePage() {
         </Container>
       </section>
 
+      {/* ===================== ABOUT + DIGITAL SERVICES ===================== */}
+      <section className="py-16 sm:py-24">
+        <Container className="grid gap-5 lg:grid-cols-[1fr_1.35fr]">
+          <div className="surface flex flex-col rounded-panel p-6 sm:p-8">
+            <Eyebrow>{t("من نحن", "About us")}</Eyebrow>
+            <h2 className="mt-3 text-balance text-2xl font-bold leading-tight text-ink sm:text-[28px]">
+              {t("شاشتنا مو بس اشتراك.", "Shashtna is more than a subscription.")}
+            </h2>
+            <p className="mt-4 text-[15px] leading-8 text-ink-2">
+              {t(
+                "شاشتنا علامة عراقية تجمع بين الترفيه والتقنية: اشتراكات مشاهدة واضحة مع تطبيق Shashtna Player ودعم تعرف وين تلگاه، وفريق يبني تطبيقات ومواقع ومنصات رقمية.",
+                "Shashtna is an Iraqi brand that brings entertainment and technology together: clear viewing subscriptions with the Shashtna Player app and support you can find, and a team that builds apps, websites and digital platforms.",
+              )}
+            </p>
+            <ul className="mt-5 grid gap-2.5 border-t border-line pt-5 text-sm text-ink-2">
+              <li className="flex items-center gap-2.5">
+                <Tv size={16} className="shrink-0 text-glow" aria-hidden />
+                {t("الترفيه: اشتراكات، Shashtna Player، ودعم", "Entertainment: plans, Shashtna Player and support")}
+              </li>
+              <li className="flex items-center gap-2.5">
+                <Code2 size={16} className="shrink-0 text-glow" aria-hidden />
+                {t("التقنية: تطبيقات، مواقع، ومنصات رقمية", "Technology: apps, websites and digital platforms")}
+              </li>
+            </ul>
+            <div className="mt-auto pt-6">
+              <LinkButton href="/about" variant="secondary">
+                {t("تعرّف علينا", "Get to know us")}
+                <ArrowLeft size={16} aria-hidden className="ltr:rotate-180" />
+              </LinkButton>
+            </div>
+          </div>
+
+          <div className="surface-raised relative overflow-hidden rounded-panel p-6 sm:p-8">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-glow/70 to-transparent"
+            />
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <Eyebrow>{t("خدماتنا", "Our services")}</Eyebrow>
+                <h2 className="mt-3 text-balance text-2xl font-bold leading-tight text-ink sm:text-[28px]">
+                  {t("نبني منتجات رقمية أيضًا", "We build digital products too")}
+                </h2>
+              </div>
+              <LinkButton href="/services" variant="ghost" size="sm">
+                {t("كل الخدمات", "All services")}
+                <ArrowLeft size={15} aria-hidden className="ltr:rotate-180" />
+              </LinkButton>
+            </div>
+            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+              {DIGITAL_SERVICE_AREAS.map((area) => (
+                <li key={area.id} className="flex gap-3 rounded-2xl border border-line bg-surface/60 p-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-surface-3 text-glow">
+                    {SERVICE_ICONS[area.id]}
+                  </span>
+                  <div>
+                    <h3 className="text-[15px] font-bold text-ink">{area.title[lang]}</h3>
+                    <p className="mt-1 text-sm leading-6 text-ink-3">{area.body[lang]}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <LinkButton href="/services/request">{t("اطلب عرض سعر", "Request a quote")}</LinkButton>
+            </div>
+          </div>
+        </Container>
+      </section>
+
       {/* ========================= FAQ + SUPPORT ========================= */}
       <section className="py-16 sm:py-24">
         <Container className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
@@ -611,7 +693,7 @@ function PlayerIllustration({ lang }: { lang: Lang }) {
         <div className="grid aspect-[16/10] grid-cols-[30%_1fr] overflow-hidden rounded-[1.4rem] bg-[#060b17]">
           <div className="border-e border-white/5 bg-[#08101f] p-3">
             <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand text-[10px] font-bold text-white">ش</span>
+              <LogoMark className="h-6 w-6" />
               <span className="text-[11px] font-bold text-white/80">Player</span>
             </div>
             <ul className="mt-4 space-y-1.5">

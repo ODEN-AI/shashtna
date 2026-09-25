@@ -47,7 +47,7 @@ function getDatabase(): any {
 
 export async function GET(request: NextRequest) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "catalogue");
 
     if (!admin.ok) {
       return admin.response;
@@ -171,7 +171,7 @@ export async function POST(
   request: NextRequest
 ) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "catalogue");
 
     if (!admin.ok) {
       return admin.response;
@@ -435,7 +435,7 @@ export async function PUT(
   request: NextRequest
 ) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "catalogue");
 
     if (!admin.ok) {
       return admin.response;
@@ -754,7 +754,7 @@ export async function DELETE(
   request: NextRequest
 ) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "catalogue");
 
     if (!admin.ok) {
       return admin.response;

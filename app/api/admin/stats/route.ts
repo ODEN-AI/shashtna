@@ -15,7 +15,7 @@ function isSameDay(value: string) {
 
 export async function GET(request: Request) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "insights");
 
     if (!admin.ok) {
       return admin.response;

@@ -5,6 +5,7 @@ import {
   verifyAuthToken,
   type MobileAuthPayload,
 } from "@/src/lib/mobile-auth";
+import { hasPermission, type Permission } from "@/src/lib/roles";
 import { db } from "@/src/prisma/db";
 
 /*
@@ -102,10 +103,11 @@ export function requireUser(request: Request, claimedUserId?: unknown) {
 }
 
 /**
- * Admin guard. The role is re-read from the database so a demoted or
- * deleted account loses access immediately, even with an unexpired token.
+ * Staff guard for admin APIs. The role is re-read from the database so a
+ * demoted or deleted account loses access immediately, even with an
+ * unexpired token. Legacy ADMIN accounts keep full access.
  */
-export async function requireAdmin(request: Request) {
+export async function requireAdmin(request: Request, permission: Permission) {
   const payload = getRequestAuth(request);
 
   if (!payload) {
@@ -120,10 +122,10 @@ export async function requireAdmin(request: Request) {
 
   const user = await db.orm.public.User.first({ id: payload.sub });
 
-  if (!user || String(user.role ?? "").toUpperCase() !== "ADMIN") {
+  if (!user || !hasPermission(user.role, permission)) {
     return {
       ok: false as const,
-      response: authError(403, "هذه الصفحة مخصصة للمسؤولين فقط."),
+      response: authError(403, "ليس لديك صلاحية لتنفيذ هذا الإجراء."),
     };
   }
 

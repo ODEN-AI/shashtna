@@ -8,7 +8,7 @@ import { requireAdmin } from "@/src/lib/session";
 export const dynamic = "force-dynamic";
 
 async function getAdminUser(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireAdmin(request, "support");
 
   return admin.ok ? admin.user : null;
 }

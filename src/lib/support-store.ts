@@ -27,6 +27,17 @@ export type SupportTicket = {
   updatedAt: string;
   lastSender: "CUSTOMER" | "ADMIN";
   messages: SupportMessage[];
+  /** What the ticket is about, when opened from a subscription, order,
+   * app or device. Absent on tickets created before the redesign. */
+  context?: SupportTicketContext;
+};
+
+export type SupportTicketContext = {
+  subscriptionId?: number;
+  orderId?: number;
+  app?: string;
+  device?: string;
+  topic?: string;
 };
 
 const STORE_NAME = "shashtna-support";
@@ -170,7 +181,10 @@ export function normalizeSupportCategory(value: unknown) {
 
   if (
     category === "subscription" ||
-    category === "device"
+    category === "device" ||
+    category === "app" ||
+    category === "playback" ||
+    category === "payment"
   ) {
     return category;
   }

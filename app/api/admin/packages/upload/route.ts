@@ -18,7 +18,7 @@ const BLOB_STORE_NAME = "shashtna-package-images";
 
 export async function POST(request: Request) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "catalogue");
 
     if (!admin.ok) {
       return admin.response;

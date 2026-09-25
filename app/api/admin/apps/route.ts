@@ -15,7 +15,7 @@ function makeSlug(name: string) {
 // Public: the /apps page reads this catalog. Only admins see inactive apps.
 export async function GET(request: Request) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "catalogue");
     const apps = await db.orm.public.App.all();
 
     return NextResponse.json({
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "catalogue");
 
     if (!admin.ok) {
       return admin.response;
@@ -160,7 +160,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "catalogue");
 
     if (!admin.ok) {
       return admin.response;
@@ -330,7 +330,7 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "catalogue");
 
     if (!admin.ok) {
       return admin.response;

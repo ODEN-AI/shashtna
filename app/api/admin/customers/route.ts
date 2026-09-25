@@ -4,7 +4,7 @@ import { db } from "@/src/prisma/db";
 
 export async function GET(request: Request) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "customers");
 
     if (!admin.ok) {
       return admin.response;

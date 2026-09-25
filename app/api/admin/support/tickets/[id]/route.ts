@@ -6,12 +6,14 @@ import {
   normalizeSupportStatus,
   saveSupportTicket,
 } from "@/src/lib/support-store";
+import { logActivity } from "@/src/server/activity";
+import { notify } from "@/src/server/notifications";
 import { requireAdmin } from "@/src/lib/session";
 
 export const dynamic = "force-dynamic";
 
 async function getAdminUser(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireAdmin(request, "support");
 
   return admin.ok ? admin.user : null;
 }
@@ -128,6 +130,27 @@ export async function POST(
     }
 
     await saveSupportTicket(ticket);
+
+    if (message) {
+      await notify({
+        userId: ticket.userId,
+        type: "TICKET_REPLY",
+        title: "رد جديد من الدعم الفني",
+        body: `وصل رد على تذكرتك «${ticket.subject}».`,
+        link: `/support/${encodeURIComponent(ticket.id)}`,
+      });
+    }
+
+    await logActivity({
+      actor: admin,
+      userId: ticket.userId,
+      entityType: "TICKET",
+      entityId: ticket.id,
+      action: message ? "TICKET_REPLIED" : "TICKET_STATUS",
+      summary: message
+        ? `رد الدعم على التذكرة «${ticket.subject}»`
+        : `تم تحديث حالة التذكرة «${ticket.subject}» إلى ${ticket.status}`,
+    });
 
     return NextResponse.json({
       success: true,

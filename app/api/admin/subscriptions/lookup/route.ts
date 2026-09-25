@@ -9,7 +9,7 @@ export async function POST(
   request: Request
 ) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "subscriptions");
 
     if (!admin.ok) {
       return admin.response;

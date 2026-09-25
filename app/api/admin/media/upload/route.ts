@@ -27,7 +27,7 @@ function getExtension(file: File) {
 
 export async function POST(request: Request) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "content");
 
     if (!admin.ok) {
       return admin.response;

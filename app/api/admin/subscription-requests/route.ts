@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    const admin = await requireAdmin(request);
+    const admin = await requireAdmin(request, "orders");
 
     if (!admin.ok) {
       return admin.response;

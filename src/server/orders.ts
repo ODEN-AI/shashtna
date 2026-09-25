@@ -67,6 +67,7 @@ export type CreateOrderInput = {
   subscriptionId?: unknown;
   contactMethod?: unknown;
   paymentMethod?: unknown;
+  paymentReference?: unknown;
   customerNote?: unknown;
 };
 
@@ -117,6 +118,7 @@ export async function createOrder(
   }
 
   const paymentMethod = cleanText(input.paymentMethod, 80);
+  const paymentReference = cleanText(input.paymentReference, 120);
   const customerNote = cleanText(input.customerNote, 500);
 
   const user = await db.orm.public.User.first({ id: userId });
@@ -128,6 +130,7 @@ export async function createOrder(
   const common = {
     contactMethod,
     ...(paymentMethod !== null ? { paymentMethod } : {}),
+    ...(paymentReference !== null ? { paymentReference } : {}),
     ...(customerNote !== null ? { customerNote } : {}),
   };
 
@@ -272,6 +275,7 @@ type OrderFields = {
   subscriptionId: number | null;
   contactMethod: string;
   paymentMethod?: string;
+  paymentReference?: string;
   customerNote?: string;
 };
 

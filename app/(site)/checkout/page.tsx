@@ -7,7 +7,7 @@ import { EmptyState } from "@/app/ui/States";
 import { requireCustomer } from "@/src/server/auth";
 import { getActiveDevices, getActivePackages } from "@/src/server/catalog";
 import { getI18n } from "@/src/server/i18n";
-import { getSettings, paymentMethodList, safeExternalUrl, whatsappLink } from "@/src/server/settings";
+import { getSettings, manualTransferDetails, safeExternalUrl, whatsappLink } from "@/src/server/settings";
 import { getSubscriptionForUser } from "@/src/server/subscriptions";
 
 import { CheckoutForm, type CheckoutMode } from "./CheckoutForm";
@@ -96,7 +96,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   ].filter((option): option is "TELEGRAM" | "WHATSAPP" | "FACEBOOK" | "PHONE" => option !== null);
 
   const titles: Record<CheckoutMode, [string, string]> = {
-    NEW: [t("إتمام الطلب", "Checkout"), t("راجع اختيارك وأرسل الطلب — ياخذ دقيقة.", "Review your choice and place the order — it takes a minute.")],
+    NEW: [t("إتمام الطلب", "Checkout"), t("اختار باقتك، حوّل المبلغ، وارفع صورة إثبات الدفع.", "Choose your plan, transfer the amount, and upload the payment proof.")],
     RENEW: [
       t("تجديد الاشتراك", "Renew subscription"),
       subscription
@@ -141,7 +141,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
             subscriptionId={subscription?.id ?? null}
             user={{ name: user.name, phone: user.phone }}
             contactOptions={contactOptions}
-            paymentMethods={paymentMethodList(settings)}
+            transfer={manualTransferDetails(settings)}
           />
         )}
       </div>

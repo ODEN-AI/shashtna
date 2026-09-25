@@ -7,10 +7,12 @@ import { PageHeader } from "@/app/ui/Page";
 import { Pagination, paginate } from "@/app/ui/Pagination";
 import { EmptyState } from "@/app/ui/States";
 import { LinkTabs } from "@/app/ui/Tabs";
+import { isUnpaid } from "@/src/lib/order-status";
 import { listOrdersAdmin } from "@/src/server/admin-data";
 import { countOrders } from "@/src/server/admin-queues";
 import { requireStaffPage } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
+import { proofUploadTimes } from "@/src/server/payment-proofs";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "الطلبات" };
@@ -40,6 +42,7 @@ export default async function AdminOrdersPage({
   const type = ["NEW", "RENEW", "UPGRADE", "DEVICE_PURCHASE"].includes(String(params.type)) ? params.type : undefined;
   const orders = await listOrdersAdmin({ statuses: FILTERS[status], type, q: params.q });
   const { items, page, pageCount, total } = paginate(orders, params.page, 25);
+  const proofs = await proofUploadTimes(items.map((order) => order.id));
   const counts = await Promise.all(
     Object.entries(FILTERS).map(async ([key, statuses]) => [key, await countOrders(statuses)] as const),
   );
@@ -104,6 +107,7 @@ export default async function AdminOrdersPage({
               createdAt: order.createdAt,
               contactMethod: order.contactMethod,
               customer: order.customer,
+              hasProof: proofs.has(order.id) && isUnpaid(order.status),
             }))}
           />
           <Pagination page={page} pageCount={pageCount} basePath="/admin/orders" params={{ status, q: params.q, type }} lang={t("ar", "en") as "ar" | "en"} />

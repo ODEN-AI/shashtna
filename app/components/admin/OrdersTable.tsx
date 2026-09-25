@@ -1,5 +1,6 @@
 "use client";
 
+import { ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 
@@ -22,6 +23,8 @@ export type OrderRowData = {
   createdAt: string;
   contactMethod: string;
   customer: { id: number; name: string; phone: string } | null;
+  /** The customer uploaded a transfer proof that still needs checking. */
+  hasProof?: boolean;
 };
 
 const BULK_TARGETS: OrderStatus[] = ["AWAITING_PAYMENT", "PAID", "FULFILLING", "COMPLETED", "CANCELLED", "REJECTED"];
@@ -119,6 +122,12 @@ export function OrdersTable({ orders, allowBulk = true }: { orders: OrderRowData
                 <td className="nums px-4 py-3 text-xs text-ink-3">{formatDateTime(order.createdAt, language)}</td>
                 <td className="px-4 py-3">
                   <StatusBadge status={order.status} label={ORDER_STATUS_LABELS[order.status][language]} />
+                  {order.hasProof ? (
+                    <span className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-glow">
+                      <ImageIcon size={13} aria-hidden />
+                      {t("إثبات دفع مرفوع", "Proof uploaded")}
+                    </span>
+                  ) : null}
                 </td>
               </tr>
             ))}

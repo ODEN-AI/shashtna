@@ -54,6 +54,22 @@ export const SETTING_DEFINITIONS = {
     default: "Daily, 10 AM – 11 PM",
     multiline: false,
   },
+  // Manual transfer destination shown at checkout. These are public on
+  // purpose: customers transfer the order amount here and upload a proof.
+  "payment.transferNumber": {
+    group: "payment",
+    labelAr: "رقم التحويل (يظهر للعملاء بصفحة الدفع)",
+    labelEn: "Transfer number (shown to customers at checkout)",
+    default: "9286253712",
+    multiline: false,
+  },
+  "payment.recipientName": {
+    group: "payment",
+    labelAr: "اسم الحساب المستلم",
+    labelEn: "Recipient account name",
+    default: "Abdulrahman Amer Taha (Abdulrahman A . T)",
+    multiline: false,
+  },
   "payment.methods": {
     group: "payment",
     labelAr: "طرق الدفع المتاحة (سطر لكل طريقة)",
@@ -171,4 +187,20 @@ export function paymentMethodList(settings: SiteSettings) {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+/** Label stored on orders paid by manual transfer. */
+export const MANUAL_TRANSFER_METHOD = "تحويل يدوي";
+
+export type ManualTransferDetails = { transferNumber: string; recipientName: string };
+
+/** Where customers send the money; null until an admin sets a number. */
+export function manualTransferDetails(settings: SiteSettings): ManualTransferDetails | null {
+  const transferNumber = settings["payment.transferNumber"].trim();
+
+  if (!transferNumber) {
+    return null;
+  }
+
+  return { transferNumber, recipientName: settings["payment.recipientName"].trim() };
 }

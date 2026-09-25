@@ -147,14 +147,14 @@ export const ORDER_STATUS_LABELS: Record<
   SUBMITTED: {
     ar: "تم الإرسال",
     en: "Submitted",
-    hintAr: "استلمنا طلبك. فريقنا راح يتواصل وياك لترتيب الدفع.",
-    hintEn: "We received your order. Our team will contact you to arrange payment.",
+    hintAr: "استلمنا طلبك. إذا حوّلت المبلغ ورفعت إثبات الدفع، فريقنا يراجعه قبل التفعيل.",
+    hintEn: "We received your order. Once you've transferred the amount and uploaded the proof, our team reviews it before activation.",
   },
   AWAITING_PAYMENT: {
     ar: "بانتظار الدفع",
     en: "Awaiting payment",
-    hintAr: "بانتظار إتمام الدفع حسب الطريقة المتفق عليها مع فريقنا.",
-    hintEn: "Waiting for payment using the method agreed with our team.",
+    hintAr: "بانتظار الدفع. حوّل المبلغ إلى رقم التحويل وارفع صورة الإثبات من صفحة الطلب.",
+    hintEn: "Waiting for payment. Transfer the amount and upload the proof on the order page.",
   },
   PAID: {
     ar: "تم الدفع",

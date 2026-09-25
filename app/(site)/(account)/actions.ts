@@ -9,6 +9,8 @@ import { assertCustomer } from "@/src/server/auth";
 import { logActivity } from "@/src/server/activity";
 import { markNotificationsRead } from "@/src/server/notifications";
 import { cancelOrderByCustomer, setOrderContact } from "@/src/server/orders";
+import { savePaymentProof } from "@/src/server/payment-proofs";
+import { MANUAL_TRANSFER_METHOD } from "@/src/server/settings";
 import { closeTicket, createTicket, replyToTicket } from "@/src/server/tickets";
 
 export type ActionState = { ok: boolean; message: string } | null;
@@ -60,6 +62,29 @@ export async function updateOrderContactAction(_prev: ActionState, formData: For
     return { ok: true, message: "تم حفظ التحديث." };
   } catch (error) {
     return failure(error, "تعذر حفظ التحديث.");
+  }
+}
+
+/** Upload (or replace) the transfer proof for one of the customer's unpaid orders. */
+export async function uploadPaymentProofAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const user = await assertCustomer();
+    const orderId = Number(formData.get("orderId"));
+    const saved = await savePaymentProof(user.id, orderId, formData.get("paymentProof"));
+
+    if (!saved.ok) {
+      return { ok: false, message: saved.error };
+    }
+
+    await setOrderContact(user.id, orderId, {
+      paymentMethod: MANUAL_TRANSFER_METHOD,
+      paymentReference: formData.get("paymentReference"),
+    });
+
+    revalidatePath(`/orders/${orderId}`);
+    return { ok: true, message: "تم استلام إثبات الدفع، وسيتم مراجعته من فريق شاشتنا قبل تفعيل الاشتراك." };
+  } catch (error) {
+    return failure(error, "تعذر رفع الصورة، حاول مرة أخرى.");
   }
 }
 

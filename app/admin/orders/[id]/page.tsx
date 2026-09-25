@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, PackageCheck, Phone, Tv, UserRound } from "lucide-react";
+import { ArrowRight, ImageIcon, PackageCheck, Phone, Tv, UserRound } from "lucide-react";
 
 import { updateOrderStatusAction } from "@/app/admin/actions";
 import { Forbidden } from "@/app/components/admin/Forbidden";
@@ -21,6 +21,7 @@ import { customersById } from "@/src/server/admin-data";
 import { requireStaffPage } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
 import { getOrder } from "@/src/server/orders";
+import { proofUploadTimes } from "@/src/server/payment-proofs";
 import { whatsappLink } from "@/src/server/settings";
 
 export const dynamic = "force-dynamic";
@@ -48,13 +49,18 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
     notFound();
   }
 
-  const [{ t, lang }, customers, events] = await Promise.all([
+  const [{ t, lang }, customers, events, proofs] = await Promise.all([
     getI18n(),
     customersById([order.userId]),
     listEntityActivity("ORDER", order.id),
+    proofUploadTimes([order.id]),
   ]);
+  const proofUploadedAt = proofs.get(order.id) ?? null;
+  const proofUrl = proofUploadedAt ? `/api/orders/${order.id}/payment-proof?v=${encodeURIComponent(proofUploadedAt)}` : null;
   const customer = customers.get(order.userId);
   const transitions = allowedTransitions(order.status);
+  // With a proof on file the likely next step is "Paid" — still a manual choice.
+  const suggestedStatus = proofUrl && transitions.includes("PAID") ? "PAID" : transitions[0];
   const open = isOpen(order.status);
   const canActivate = open && order.requestType !== "DEVICE_PURCHASE";
   const customerWhatsApp = customer
@@ -72,7 +78,8 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
     { label: t("المبلغ", "Amount"), value: formatPrice(order.price, lang) },
     { label: t("طريقة التواصل", "Contact method"), value: CONTACT_LABELS[order.contactMethod] ?? order.contactMethod },
     { label: t("طريقة الدفع", "Payment method"), value: order.paymentMethod ?? "—" },
-    { label: t("مرجع الدفع", "Payment reference"), value: order.paymentReference ?? "—" },
+    { label: t("رقم العملية / مرجع الدفع", "Transaction / payment reference"), value: order.paymentReference ?? "—" },
+    { label: t("إثبات الدفع", "Payment proof"), value: proofUploadedAt ? t("مرفوع", "Uploaded") : t("غير مرفوع", "Not uploaded") },
     order.subscriptionId ? { label: t("الاشتراك المرتبط", "Linked subscription"), value: `#${order.subscriptionId}` } : null,
     { label: t("أُنشئ", "Created"), value: formatDateTime(order.createdAt, lang) },
     { label: t("آخر تحديث", "Updated"), value: formatDateTime(order.updatedAt, lang) },
@@ -103,6 +110,37 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <div className="space-y-6">
+          <Card className={proofUrl ? "border-2 border-brand/50 p-6" : "p-6"} raised={Boolean(proofUrl)}>
+            <CardHeader
+              icon={<ImageIcon size={19} aria-hidden />}
+              title={t("إثبات الدفع", "Payment proof")}
+              description={
+                proofUploadedAt
+                  ? t(`رفعه العميل ${formatDateTime(proofUploadedAt, lang)}`, `Uploaded by the customer ${formatDateTime(proofUploadedAt, lang)}`)
+                  : undefined
+              }
+            />
+            {proofUrl ? (
+              <div className="mt-4 space-y-3">
+                <a href={proofUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-2xl border border-line bg-black/30">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={proofUrl} alt={t("إثبات الدفع", "Payment proof")} className="max-h-[28rem] w-full object-contain" data-testid="admin-payment-proof" />
+                </a>
+                <p className="text-xs leading-6 text-ink-3">
+                  {t(
+                    "رفع الصورة ما يغيّر حالة الطلب. تأكد من وصول المبلغ فعلًا، بعدين غيّر الحالة إلى «تم الدفع».",
+                    "Uploading a proof doesn't change the order status. Check the money actually arrived, then set the status to Paid.",
+                  )}{" "}
+                  <a href={proofUrl} target="_blank" rel="noreferrer" className="font-semibold text-brand-ink hover:underline">
+                    {t("فتح الصورة بحجمها الكامل", "Open full size")}
+                  </a>
+                </p>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-ink-3">{t("لم يرفع العميل إثبات الدفع بعد.", "The customer hasn't uploaded a payment proof yet.")}</p>
+            )}
+          </Card>
+
           <Card className="p-6">
             <CardHeader title={t("تفاصيل الطلب", "Order details")} />
             <dl className="mt-4 grid gap-x-8 sm:grid-cols-2">
@@ -186,7 +224,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
               <ActionForm action={updateOrderStatusAction} className="mt-4 space-y-4">
                 <input type="hidden" name="orderId" value={order.id} />
                 <Field label={t("الحالة الجديدة", "New status")} htmlFor="status">
-                  <Select id="status" name="status" defaultValue={transitions[0]}>
+                  <Select id="status" name="status" defaultValue={suggestedStatus}>
                     {transitions.map((status) => (
                       <option key={status} value={status}>
                         {ORDER_STATUS_LABELS[status][lang]}

@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
-import { Check, CircleUserRound, Cpu, Info, Lock, Phone } from "lucide-react";
+import { startTransition, useActionState, useMemo, useRef, useState } from "react";
+import { Check, CircleUserRound, Cpu, Info, Send, Phone } from "lucide-react";
 
 import { useLanguage } from "@/app/components/LanguageProvider";
+import { ProofPicker } from "@/app/components/payment/ProofPicker";
+import { TransferDetails, type TransferInfo } from "@/app/components/payment/TransferDetails";
 import { FacebookIcon, TelegramIcon, WhatsAppIcon } from "@/app/ui/BrandIcons";
 import { cn } from "@/app/ui/cn";
-import { Field, Select, Textarea } from "@/app/ui/Field";
+import { Field, Input, Textarea } from "@/app/ui/Field";
 import { Notice } from "@/app/ui/States";
 import { SubmitButton } from "@/app/ui/SubmitButton";
 import { formatPrice } from "@/src/lib/i18n";
@@ -44,7 +46,7 @@ export function CheckoutForm({
   subscriptionId,
   user,
   contactOptions,
-  paymentMethods,
+  transfer,
 }: {
   mode: CheckoutMode;
   plans: CheckoutPlan[];
@@ -54,10 +56,13 @@ export function CheckoutForm({
   subscriptionId: number | null;
   user: { name: string; phone: string };
   contactOptions: ContactOption[];
-  paymentMethods: string[];
+  transfer: TransferInfo | null;
 }) {
   const { t, language } = useLanguage();
-  const [state, action] = useActionState<CheckoutState, FormData>(placeOrderAction, null);
+  const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrderAction, null);
+  const [hasProof, setHasProof] = useState(false);
+  const [proofMissing, setProofMissing] = useState(false);
+  const proofRef = useRef<HTMLDivElement>(null);
   const [planSlug, setPlanSlug] = useState<string | null>(initialPlan);
   const [deviceId, setDeviceId] = useState<number | null>(initialDevice);
   const [contact, setContact] = useState<ContactOption>(contactOptions[0] ?? "PHONE");
@@ -83,9 +88,36 @@ export function CheckoutForm({
   const stepNumbers = {
     plan: 1,
     device: showPlan ? 2 : 1,
-    account: 1 + Number(showPlan) + Number(showDevice),
-    contact: 2 + Number(showPlan) + Number(showDevice),
+    payment: 1 + Number(showPlan) + Number(showDevice),
+    proof: 2 + Number(showPlan) + Number(showDevice),
+    account: 3 + Number(showPlan) + Number(showDevice),
   };
+  const canSubmit = ready && Boolean(transfer);
+
+  // Submitted from onSubmit (not the form action) so a failed attempt keeps
+  // the chosen image instead of React resetting the form.
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!canSubmit || pending) {
+      return;
+    }
+
+    if (!hasProof) {
+      setProofMissing(true);
+      proofRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => action(formData));
+  }
+
+  const proofError = proofMissing && !hasProof
+    ? t("يرجى رفع صورة إثبات الدفع.", "Please upload the payment proof.")
+    : state?.field === "paymentProof"
+      ? state.error
+      : null;
 
   const contactMeta: Record<ContactOption, { label: string; icon: React.ReactNode; hint: string }> = {
     TELEGRAM: { label: "Telegram", icon: <TelegramIcon size={18} />, hint: t("نراسلك على تيليجرام", "We'll message you on Telegram") },
@@ -97,7 +129,7 @@ export function CheckoutForm({
   const requestType = mode;
 
   return (
-    <form action={action} className="grid gap-8 lg:grid-cols-[1fr_360px]">
+    <form onSubmit={onSubmit} noValidate className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <input type="hidden" name="requestType" value={requestType} />
       <input type="hidden" name="planSlug" value={mode === "DEVICE_PURCHASE" ? "" : planSlug ?? ""} />
       <input type="hidden" name="deviceId" value={device?.id ?? ""} />
@@ -105,7 +137,7 @@ export function CheckoutForm({
       <input type="hidden" name="contactMethod" value={contact} />
 
       <div className="space-y-6">
-        {state?.error ? <Notice tone="danger">{state.error}</Notice> : null}
+        {state?.error && state.field !== "paymentProof" ? <Notice tone="danger">{state.error}</Notice> : null}
 
         {/* ---------------- Plan ---------------- */}
         {mode !== "DEVICE_PURCHASE" ? (
@@ -209,8 +241,82 @@ export function CheckoutForm({
           </Section>
         ) : null}
 
-        {/* ---------------- Account ---------------- */}
-        <Section index={stepNumbers.account} title={t("الحساب", "Account")} done>
+        {/* ---------------- Payment ---------------- */}
+        <section
+          aria-labelledby="payment-heading"
+          className="surface-raised rounded-panel border-2 border-brand/50 p-5 shadow-brand sm:p-6"
+        >
+          <h2 id="payment-heading" className="flex items-center gap-3 text-lg font-bold text-ink">
+            <span className="nums flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">
+              {stepNumbers.payment}
+            </span>
+            {t("الدفع", "Payment")}
+          </h2>
+
+          {ready ? (
+            <div className="mt-4">
+              <p className="text-base font-bold text-ink">{t("باقتك جاهزة ✅", "Your plan is ready ✅")}</p>
+              <p className="mt-1 text-[15px] leading-7 text-ink-2">
+                {t(
+                  "حتى نكمل طلبك، يرجى دفع قيمة الباقة ثم إرسال إثبات الدفع.",
+                  "To complete your order, please pay for the plan and then send the payment proof.",
+                )}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-ink-3">
+                {t(
+                  "اختيار الباقة وحده ما يكمل الشراء — لازم تدفع وترسل الإثبات.",
+                  "Choosing a plan alone doesn't complete the purchase — you need to pay and send the proof.",
+                )}
+              </p>
+            </div>
+          ) : (
+            <Notice tone="info" className="mt-4">
+              {t("اختار باقتك أولًا حتى يظهر المبلغ المطلوب.", "Choose your plan first to see the amount to pay.")}
+            </Notice>
+          )}
+
+          <div className="mt-5">
+            {transfer ? (
+              <TransferDetails amount={ready ? total : null} info={transfer} />
+            ) : (
+              <Notice tone="warning">
+                {t(
+                  "تفاصيل الدفع غير متاحة حاليًا. تواصل ويانا حتى نكمل طلبك.",
+                  "Payment details aren't available right now. Contact us to complete your order.",
+                )}
+              </Notice>
+            )}
+          </div>
+        </section>
+
+        {/* ---------------- Proof ---------------- */}
+        <div ref={proofRef}>
+          <Section index={stepNumbers.proof} title={t("إثبات الدفع", "Payment proof")} done={hasProof}>
+            <p className="-mt-2 mb-4 text-[15px] leading-7 text-ink-2">
+              {t("ارفع صورة التحويل بعد إتمام عملية الدفع.", "Upload a screenshot of the transfer once you've paid.")}
+            </p>
+            <ProofPicker
+              error={proofError}
+              onChange={(value) => {
+                setHasProof(value);
+                if (value) {
+                  setProofMissing(false);
+                }
+              }}
+            />
+            <Field
+              label={t("رقم العملية / رقم التحويل (اختياري)", "Transaction / transfer number (optional)")}
+              htmlFor="paymentReference"
+              hint={t("إذا يظهر رقم للعملية بإيصال التحويل، اكتبه هنا حتى نتأكد أسرع.", "If your receipt shows a transaction number, add it so we can confirm faster.")}
+              className="mt-5"
+            >
+              <Input id="paymentReference" name="paymentReference" maxLength={120} dir="ltr" inputMode="text" autoComplete="off" className="text-start" />
+            </Field>
+          </Section>
+        </div>
+
+        {/* ---------------- Account & contact ---------------- */}
+        <Section index={stepNumbers.account} title={t("حسابك والتواصل", "Your account & contact")} done={Boolean(contact)}>
           <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface-2 p-4">
             <CircleUserRound size={22} className="shrink-0 text-brand-ink" aria-hidden />
             <div className="min-w-0 text-sm">
@@ -220,17 +326,14 @@ export function CheckoutForm({
               </p>
             </div>
           </div>
-        </Section>
 
-        {/* ---------------- Contact & payment ---------------- */}
-        <Section index={stepNumbers.contact} title={t("الدفع والتواصل", "Payment & contact")} done={Boolean(contact)}>
-          <p className="text-sm leading-7 text-ink-2">
+          <p className="mt-5 text-sm leading-7 text-ink-2">
             {t(
-              "ماكو دفع داخل الموقع. بعد إرسال الطلب، فريقنا يتواصل وياك لترتيب الدفع. اختار الطريقة الأنسب إلك:",
-              "There's no payment on the website. After you submit, our team contacts you to arrange payment. Choose how to reach you:",
+              "إذا احتجنا نتواصل وياك بخصوص طلبك، شنو الطريقة الأنسب إلك؟",
+              "If we need to reach you about your order, how should we contact you?",
             )}
           </p>
-          <fieldset className="mt-4">
+          <fieldset className="mt-3">
             <legend className="sr-only">{t("طريقة التواصل", "Contact method")}</legend>
             <div className="grid gap-3 sm:grid-cols-2">
               {contactOptions.map((option) => (
@@ -260,19 +363,6 @@ export function CheckoutForm({
               ))}
             </div>
           </fieldset>
-
-          {paymentMethods.length ? (
-            <Field label={t("طريقة الدفع المفضلة", "Preferred payment method")} htmlFor="paymentMethod" className="mt-5">
-              <Select id="paymentMethod" name="paymentMethod" defaultValue="">
-                <option value="">{t("أقرر ويا الفريق", "Decide with the team")}</option>
-                {paymentMethods.map((method) => (
-                  <option key={method} value={method}>
-                    {method}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          ) : null}
 
           <Field label={t("ملاحظة (اختياري)", "Note (optional)")} htmlFor="customerNote" className="mt-5">
             <Textarea
@@ -323,8 +413,8 @@ export function CheckoutForm({
           <p className="mt-5 flex items-start gap-2 rounded-xl bg-surface-3 p-3 text-xs leading-6 text-ink-2">
             <Info size={15} className="mt-0.5 shrink-0 text-info" aria-hidden />
             {t(
-              "إرسال الطلب ما يعني الدفع. الاشتراك يتفعّل بعد تأكيد الدفع ويا فريقنا.",
-              "Submitting doesn't charge you. Activation follows once payment is confirmed with our team.",
+              "الاشتراك يتفعّل بعد ما يراجع فريق شاشتنا إثبات الدفع ويتأكد من وصول المبلغ.",
+              "Your subscription is activated after the Shashtna team reviews the proof and confirms the payment arrived.",
             )}
           </p>
 
@@ -332,11 +422,16 @@ export function CheckoutForm({
             <SubmitButton
               size="lg"
               className="w-full"
-              disabled={!ready}
-              pendingLabel={t("جاري إرسال الطلب...", "Placing order...")}
+              disabled={!canSubmit}
+              pending={pending}
+              pendingLabel={t("جاري إرسال الطلب...", "Sending order...")}
             >
-              <Lock size={16} aria-hidden />
-              {ready ? t("تأكيد وإرسال الطلب", "Confirm and place order") : t("أكمل الاختيارات", "Complete your selection")}
+              <Send size={16} className="rtl:-scale-x-100" aria-hidden />
+              {!ready
+                ? t("أكمل الاختيارات", "Complete your selection")
+                : hasProof
+                  ? t("أرسل الطلب وإثبات الدفع", "Send order and payment proof")
+                  : t("ارفع إثبات الدفع ثم أرسل", "Upload the proof, then send")}
             </SubmitButton>
           </div>
         </div>

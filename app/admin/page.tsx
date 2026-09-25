@@ -65,7 +65,7 @@ export default async function AdminInboxPage() {
         !settings["contact.whatsapp"] && t("رقم واتساب غير مضاف — زر واتساب مخفي بالموقع.", "No WhatsApp number — WhatsApp buttons are hidden on the site."),
         !settings.savedKeys.includes("legal.terms") && t("الشروط والأحكام بعدها مسودة.", "Terms of service are still a draft."),
         !settings.savedKeys.includes("legal.privacy") && t("سياسة الخصوصية بعدها مسودة.", "The privacy policy is still a draft."),
-        !settings["payment.methods"] && t("طرق الدفع غير محددة بصفحة الدفع.", "Payment methods aren't listed on the payment page."),
+        !settings["payment.transferNumber"].trim() && t("رقم التحويل فارغ — العملاء ما يگدرون يدفعون من صفحة الطلب.", "The transfer number is empty — customers can't pay at checkout."),
       ].filter(Boolean)
     : [];
 

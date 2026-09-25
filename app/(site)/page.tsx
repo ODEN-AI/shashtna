@@ -470,7 +470,7 @@ export default async function HomePage() {
             {[
               { icon: <Sparkles size={19} aria-hidden />, title: t("اختار باقة", "Choose a plan"), body: t("قارن الباقات واختار المدة المناسبة.", "Compare plans and pick a duration.") },
               { icon: <UserPlus size={19} aria-hidden />, title: t("أرسل طلبك", "Place your order"), body: t("سجّل دخولك وأكمل الطلب — ياخذ دقيقة.", "Sign in and complete the order — it takes a minute.") },
-              { icon: <Wallet size={19} aria-hidden />, title: t("رتّب الدفع", "Arrange payment"), body: t("فريقنا يتواصل وياك لإتمام الدفع.", "Our team contacts you to complete payment.") },
+              { icon: <Wallet size={19} aria-hidden />, title: t("حوّل وارفع الإثبات", "Pay and upload proof"), body: t("حوّل المبلغ إلى رقم التحويل وارفع صورة الإثبات.", "Transfer the amount and upload a screenshot.") },
               { icon: <CalendarCheck2 size={19} aria-hidden />, title: t("شاهد", "Watch"), body: t("بعد التفعيل تلگى بياناتك بحسابك وتبدأ.", "After activation your details are in your account.") },
             ].map((step, index) => (
               <li key={step.title} className="surface relative rounded-card p-6">

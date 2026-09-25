@@ -3,6 +3,15 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
 
+  // Checkout sends the payment-proof image with the order. The browser
+  // shrinks it first; this covers photos it can't shrink (the proof itself
+  // is capped at 4 MB, under Netlify's 6 MB request limit).
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "5mb",
+    },
+  },
+
   // Pre-redesign URLs keep working (query strings such as ?plan= are kept).
   async redirects() {
     return [

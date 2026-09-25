@@ -17,6 +17,7 @@ export function SubmitButton({
   disabled,
   name,
   value,
+  pending: pendingOverride,
 }: {
   children: ReactNode;
   pendingLabel?: ReactNode;
@@ -26,8 +27,11 @@ export function SubmitButton({
   disabled?: boolean;
   name?: string;
   value?: string;
+  /** For forms submitted from onSubmit (no form action), which useFormStatus can't see. */
+  pending?: boolean;
 }) {
-  const { pending } = useFormStatus();
+  const status = useFormStatus();
+  const pending = pendingOverride ?? status.pending;
 
   return (
     <button

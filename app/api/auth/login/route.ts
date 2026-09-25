@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
 import { createAuthToken } from "@/src/lib/mobile-auth";
+import { setSessionCookie } from "@/src/lib/session";
 import { db } from "@/src/prisma/db";
 
 export async function POST(request: Request) {
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
 
     const session = createAuthToken(user.id, user.role);
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: "تم تسجيل الدخول بنجاح",
         token: session.token,
@@ -60,6 +61,10 @@ export async function POST(request: Request) {
       },
       { status: 200 },
     );
+
+    setSessionCookie(response, session.token, session.expiresAt);
+
+    return response;
   } catch (error) {
     console.error("LOGIN_ERROR:", error);
 

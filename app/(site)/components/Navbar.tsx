@@ -140,7 +140,7 @@ export default function Navbar() {
     setLanguage(nextLanguage);
   }
 
-  function logout() {
+  async function logout() {
     localStorage.removeItem(
       "user"
     );
@@ -151,6 +151,10 @@ export default function Navbar() {
 
     setUser(null);
     closeMobileMenu();
+
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    }).catch(() => undefined);
 
     window.location.href = "/";
   }

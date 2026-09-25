@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/src/lib/session";
 import {
   db,
   ensureDatabaseConnection,
@@ -63,6 +64,12 @@ export async function PATCH(
   context: RouteContext
 ) {
   try {
+    const admin = await requireAdmin(request);
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const { id } =
@@ -438,10 +445,16 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   context: RouteContext
 ) {
   try {
+    const admin = await requireAdmin(request);
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const { id } =

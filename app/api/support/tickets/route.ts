@@ -11,6 +11,7 @@ import {
   saveSupportTicket,
   type SupportTicket,
 } from "@/src/lib/support-store";
+import { requireUser } from "@/src/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,13 @@ export async function GET(request: Request) {
     await ensureDatabaseConnection();
 
     const { searchParams } = new URL(request.url);
-    const userId = Number(searchParams.get("userId"));
+    const auth = requireUser(request, searchParams.get("userId"));
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const userId = auth.userId;
 
     if (!Number.isInteger(userId) || userId <= 0) {
       return NextResponse.json(
@@ -88,7 +95,13 @@ export async function POST(request: Request) {
     await ensureDatabaseConnection();
 
     const body = await request.json();
-    const userId = Number(body.userId);
+    const auth = requireUser(request, body.userId);
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const userId = auth.userId;
     const subject = String(body.subject ?? "").trim();
     const message = String(body.message ?? "").trim();
     const category = normalizeSupportCategory(body.category);

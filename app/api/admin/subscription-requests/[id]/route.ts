@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/src/lib/session";
 import { db } from "@/src/prisma/db";
 
 type RouteContext = {
@@ -8,10 +9,16 @@ type RouteContext = {
 };
 
 export async function GET(
-  _request: Request,
+  httpRequest: Request,
   { params }: RouteContext
 ) {
   try {
+    const admin = await requireAdmin(httpRequest);
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     const { id } = await params;
     const requestId = Number(id);
 
@@ -109,6 +116,12 @@ export async function PATCH(
   { params }: RouteContext
 ) {
   try {
+    const admin = await requireAdmin(request);
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     const { id } = await params;
     const requestId = Number(id);
 

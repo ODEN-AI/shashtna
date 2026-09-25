@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/src/lib/session";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
@@ -17,6 +18,12 @@ const BLOB_STORE_NAME = "shashtna-package-images";
 
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
 

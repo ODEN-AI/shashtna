@@ -8,6 +8,7 @@ import {
   makeSupportMessageId,
   saveSupportTicket,
 } from "@/src/lib/support-store";
+import { requireUser } from "@/src/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,13 @@ export async function GET(
 
     const { id } = await params;
     const { searchParams } = new URL(request.url);
-    const userId = Number(searchParams.get("userId"));
+    const auth = requireUser(request, searchParams.get("userId"));
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const userId = auth.userId;
 
     if (!Number.isInteger(userId) || userId <= 0) {
       return NextResponse.json(
@@ -83,7 +90,13 @@ export async function POST(
 
     const { id } = await params;
     const body = await request.json();
-    const userId = Number(body.userId);
+    const auth = requireUser(request, body.userId);
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const userId = auth.userId;
     const action = String(body.action ?? "REPLY")
       .trim()
       .toUpperCase();

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/src/lib/session";
 import { ensureDatabaseConnection, db } from "@/src/prisma/db";
 
 type ServiceType = "IPTV" | "VIP";
@@ -44,8 +45,14 @@ function getDatabase(): any {
   return db as any;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const admin = await requireAdmin(request);
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const database = getDatabase();
@@ -164,6 +171,12 @@ export async function POST(
   request: NextRequest
 ) {
   try {
+    const admin = await requireAdmin(request);
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const database = getDatabase();
@@ -422,6 +435,12 @@ export async function PUT(
   request: NextRequest
 ) {
   try {
+    const admin = await requireAdmin(request);
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const database = getDatabase();
@@ -735,6 +754,12 @@ export async function DELETE(
   request: NextRequest
 ) {
   try {
+    const admin = await requireAdmin(request);
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const database = getDatabase();

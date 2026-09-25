@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
+import { createAuthToken } from "@/src/lib/mobile-auth";
+import { setSessionCookie } from "@/src/lib/session";
 import { db } from "@/src/prisma/db";
 
 export async function POST(request: Request) {
@@ -88,7 +90,9 @@ export async function POST(request: Request) {
         role: "CUSTOMER",
       });
 
-    return NextResponse.json(
+    const session = createAuthToken(user.id, user.role);
+
+    const response = NextResponse.json(
       {
         message: "تم إنشاء الحساب بنجاح",
         user: {
@@ -101,6 +105,10 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
+
+    setSessionCookie(response, session.token, session.expiresAt);
+
+    return response;
   } catch (error) {
     console.error("REGISTER_ERROR:", error);
 

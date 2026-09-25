@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/src/lib/session";
 import {
   db,
   ensureDatabaseConnection,
@@ -6,8 +7,14 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const requests =

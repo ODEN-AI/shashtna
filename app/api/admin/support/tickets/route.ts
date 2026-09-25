@@ -1,28 +1,16 @@
 import { NextResponse } from "next/server";
-import {
-  db,
-  ensureDatabaseConnection,
-} from "@/src/prisma/db";
+import { ensureDatabaseConnection } from "@/src/prisma/db";
 import {
   getAllSupportTickets,
 } from "@/src/lib/support-store";
+import { requireAdmin } from "@/src/lib/session";
 
 export const dynamic = "force-dynamic";
 
-async function getAdminUser(userId: number) {
-  if (!Number.isInteger(userId) || userId <= 0) {
-    return null;
-  }
+async function getAdminUser(request: Request) {
+  const admin = await requireAdmin(request);
 
-  const user = await db.orm.public.User.first({
-    id: userId,
-  });
-
-  if (!user || String(user.role ?? "").toUpperCase() !== "ADMIN") {
-    return null;
-  }
-
-  return user;
+  return admin.ok ? admin.user : null;
 }
 
 export async function GET(request: Request) {
@@ -30,12 +18,11 @@ export async function GET(request: Request) {
     await ensureDatabaseConnection();
 
     const { searchParams } = new URL(request.url);
-    const adminUserId = Number(searchParams.get("adminUserId"));
     const requestedStatus = String(
       searchParams.get("status") ?? "ALL",
     ).toUpperCase();
 
-    const admin = await getAdminUser(adminUserId);
+    const admin = await getAdminUser(request);
 
     if (!admin) {
       return NextResponse.json(

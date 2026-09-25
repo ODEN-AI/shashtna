@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server";
 import { db } from "@/src/prisma/db";
+import { requireUser } from "@/src/lib/session";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const userId = Number(
+    const auth = requireUser(
+      request,
       searchParams.get("userId")
     );
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const userId = auth.userId;
 
     if (!Number.isInteger(userId) || userId <= 0) {
       return NextResponse.json(

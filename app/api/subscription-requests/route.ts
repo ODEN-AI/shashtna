@@ -3,6 +3,7 @@ import {
   db,
   ensureDatabaseConnection,
 } from "@/src/prisma/db";
+import { requireUser } from "@/src/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,64 @@ function normalizeDeviceId(value: unknown) {
   return String(value).trim() || null;
 }
 
+export async function GET(request: Request) {
+  try {
+    await ensureDatabaseConnection();
+
+    const { searchParams } = new URL(request.url);
+
+    const auth = requireUser(
+      request,
+      searchParams.get("userId")
+    );
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const requests =
+      await db.orm.public.SubscriptionRequest.all();
+
+    const userRequests = requests
+      .filter(
+        (item) => item.userId === auth.userId
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() -
+          new Date(a.createdAt).getTime()
+      );
+
+    return NextResponse.json(
+      {
+        success: true,
+        requests: userRequests,
+      },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  } catch (error) {
+    console.error(
+      "GET /api/subscription-requests error:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          "حدث خطأ أثناء تحميل الطلبات.",
+        requests: [],
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     await ensureDatabaseConnection();
@@ -74,7 +133,13 @@ export async function POST(request: Request) {
     const body =
       (await request.json()) as RequestBody;
 
-    const userId = body.userId;
+    const auth = requireUser(request, body.userId);
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const userId = auth.userId;
 
     const planSlug =
       body.planSlug?.trim();

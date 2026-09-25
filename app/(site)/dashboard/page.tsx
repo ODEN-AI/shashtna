@@ -183,9 +183,13 @@ export default function DashboardPage() {
     };
   }, [user?.id]);
 
-  function logout() {
+  async function logout() {
     localStorage.removeItem("user");
     localStorage.removeItem("remember");
+
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    }).catch(() => undefined);
 
     window.location.href = "/";
   }

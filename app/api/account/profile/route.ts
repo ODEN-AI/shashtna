@@ -4,6 +4,7 @@ import {
   db,
   ensureDatabaseConnection,
 } from "@/src/prisma/db";
+import { requireUser } from "@/src/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,13 @@ export async function PUT(request: Request) {
 
     const body = await request.json();
 
-    const userId = Number(body.userId);
+    const auth = requireUser(request, body.userId);
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const userId = auth.userId;
     const name = String(body.name ?? "").trim();
     const currentPassword = String(
       body.currentPassword ?? "",

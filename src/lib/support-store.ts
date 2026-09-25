@@ -33,8 +33,14 @@ const STORE_NAME = "shashtna-support";
 const LOCAL_DIR = path.join(process.cwd(), ".data");
 const LOCAL_FILE = path.join(LOCAL_DIR, "support-tickets.json");
 
-function useNetlifyBlobs() {
-  return String(process.env.NETLIFY ?? "").toLowerCase() === "true";
+// Serverless functions have a read-only filesystem, so production always uses
+// Netlify Blobs (same rule as the media upload route). The local JSON file is
+// only for development.
+function shouldUseNetlifyBlobs() {
+  return (
+    String(process.env.NETLIFY ?? "").toLowerCase() === "true" ||
+    process.env.NODE_ENV === "production"
+  );
 }
 
 function ticketKey(id: string) {
@@ -61,7 +67,7 @@ async function writeLocalTickets(tickets: SupportTicket[]) {
 }
 
 export async function getAllSupportTickets(): Promise<SupportTicket[]> {
-  if (!useNetlifyBlobs()) {
+  if (!shouldUseNetlifyBlobs()) {
     const tickets = await readLocalTickets();
     return tickets.sort(
       (a, b) =>
@@ -102,7 +108,7 @@ export async function getAllSupportTickets(): Promise<SupportTicket[]> {
 export async function getSupportTicket(
   id: string,
 ): Promise<SupportTicket | null> {
-  if (!useNetlifyBlobs()) {
+  if (!shouldUseNetlifyBlobs()) {
     const tickets = await readLocalTickets();
     return tickets.find((ticket) => ticket.id === id) ?? null;
   }
@@ -121,7 +127,7 @@ export async function getSupportTicket(
 }
 
 export async function saveSupportTicket(ticket: SupportTicket) {
-  if (!useNetlifyBlobs()) {
+  if (!shouldUseNetlifyBlobs()) {
     const tickets = await readLocalTickets();
     const index = tickets.findIndex((item) => item.id === ticket.id);
 

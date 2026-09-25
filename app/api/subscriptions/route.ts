@@ -3,6 +3,7 @@ import {
   db,
   ensureDatabaseConnection,
 } from "@/src/prisma/db";
+import { requireUser } from "@/src/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -79,14 +80,16 @@ export async function GET(
       searchParams,
     } = new URL(request.url);
 
-    const userId = Number(
+    const auth = requireUser(
+      request,
       searchParams.get("userId")
     );
 
-    console.log(
-      "GET /api/subscriptions",
-      { userId }
-    );
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const userId = auth.userId;
 
     if (
       !Number.isInteger(userId) ||

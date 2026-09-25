@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/src/lib/session";
 import { db } from "@/src/prisma/db";
 
 function isSameDay(value: string) {
@@ -12,8 +13,14 @@ function isSameDay(value: string) {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     const [
       users,
       subscriptions,

@@ -333,7 +333,7 @@ export default function AdminDashboardPage() {
     }
   }
 
-  function logout() {
+  async function logout() {
     localStorage.removeItem(
       "user"
     );
@@ -341,6 +341,10 @@ export default function AdminDashboardPage() {
     localStorage.removeItem(
       "remember"
     );
+
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    }).catch(() => undefined);
 
     window.location.href =
       "/";

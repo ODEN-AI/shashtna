@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/src/lib/session";
 import {
   db,
   ensureDatabaseConnection,
@@ -8,6 +9,12 @@ export async function POST(
   request: Request
 ) {
   try {
+    const admin = await requireAdmin(request);
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const body = await request.json();

@@ -69,7 +69,18 @@ export default function LoginPage() {
         );
       }
 
-      window.location.href = "/dashboard";
+      const redirect = new URLSearchParams(
+        window.location.search
+      ).get("redirect");
+
+      // Only allow same-site relative redirects.
+      window.location.href =
+        redirect &&
+        redirect.startsWith("/") &&
+        !redirect.startsWith("//") &&
+        !redirect.startsWith("/\\")
+          ? redirect
+          : "/dashboard";
     } catch {
       setError(
         isArabic

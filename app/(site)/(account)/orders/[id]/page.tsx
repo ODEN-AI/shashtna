@@ -1,23 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, CheckCircle2, ImageIcon, MessageSquarePlus, Phone, Tv } from "lucide-react";
+import { ArrowRight, ImageIcon, MessageSquarePlus, Phone } from "lucide-react";
 
 import { updateOrderContactAction } from "@/app/(site)/(account)/actions";
 import { CancelOrderButton } from "@/app/components/account/OrderControls";
-import { OrderProofForm } from "@/app/components/payment/OrderProofForm";
-import { TransferDetails } from "@/app/components/payment/TransferDetails";
+import { OrderPaymentFlow } from "@/app/components/account/OrderPaymentFlow";
 import { ActionForm } from "@/app/ui/ActionForm";
 import { StatusBadge } from "@/app/ui/Badge";
 import { FacebookIcon, TelegramIcon, WhatsAppIcon } from "@/app/ui/BrandIcons";
 import { LinkButton } from "@/app/ui/Button";
 import { Card, CardHeader } from "@/app/ui/Card";
 import { Field, Select } from "@/app/ui/Field";
-import { OrderStepper } from "@/app/ui/OrderStepper";
+import { OrderJourney } from "@/app/ui/OrderJourney";
 import { Notice } from "@/app/ui/States";
 import { SubmitButton } from "@/app/ui/SubmitButton";
 import { formatDate, formatDateTime, formatPrice } from "@/src/lib/i18n";
-import { ORDER_STATUS_LABELS, REQUEST_TYPE_LABELS, isUnpaid, orderRef } from "@/src/lib/order-status";
+import { orderStage } from "@/src/lib/order-journey";
+import { ORDER_STATUS_LABELS, REQUEST_TYPE_LABELS, isUnpaid } from "@/src/lib/order-status";
 import { listEntityActivity } from "@/src/server/activity";
 import { requireCustomer } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
@@ -36,14 +36,12 @@ const CONTACT_LABELS: Record<string, { ar: string; en: string }> = {
   PHONE: { ar: "اتصال هاتفي", en: "Phone call" },
 };
 
-export default async function OrderPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ created?: string }>;
-}) {
-  const [{ id }, { created }] = await Promise.all([params, searchParams]);
+/**
+ * Everything about one order after checkout: the package, the journey,
+ * paying and uploading the proof, the review state and the history.
+ */
+export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await requireCustomer(`/orders/${id}`);
   const orderId = Number(id);
   const order = Number.isInteger(orderId) ? await getOrderForUser(user.id, orderId) : null;
@@ -60,7 +58,7 @@ export default async function OrderPage({
   ]);
   const proofUploadedAt = proofs.get(order.id) ?? null;
   const proofUrl = proofUploadedAt ? `/api/orders/${order.id}/payment-proof?v=${encodeURIComponent(proofUploadedAt)}` : null;
-  const transfer = manualTransferDetails(settings);
+  const stage = orderStage(order.status, Boolean(proofUploadedAt));
 
   const label = ORDER_STATUS_LABELS[order.status];
   const unpaid = isUnpaid(order.status);
@@ -82,20 +80,20 @@ export default async function OrderPage({
     order.requestType !== "DEVICE_PURCHASE" ? { label: t("المدة", "Duration"), value: order.durationLabel } : null,
     order.deviceName && order.requestType !== "DEVICE_PURCHASE" ? { label: t("جهاز VIP", "VIP device"), value: order.deviceName } : null,
     { label: t("المبلغ", "Amount"), value: <span className="nums">{formatPrice(order.price, lang)}</span> },
-    { label: t("طريقة التواصل", "Contact method"), value: CONTACT_LABELS[order.contactMethod]?.[lang] ?? order.contactMethod },
     order.paymentMethod ? { label: t("طريقة الدفع", "Payment method"), value: order.paymentMethod } : null,
     order.paymentReference ? { label: t("رقم العملية", "Transaction number"), value: <span className="nums" dir="ltr">{order.paymentReference}</span> } : null,
-    proofUrl
-      ? {
-          label: t("إثبات الدفع", "Payment proof"),
-          value: (
-            <a href={proofUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-brand-ink underline-offset-4 hover:underline">
-              <ImageIcon size={15} aria-hidden />
-              {t("عرض الصورة", "View image")}
-            </a>
-          ),
-        }
-      : null,
+    {
+      label: t("إثبات الدفع", "Payment proof"),
+      value: proofUrl ? (
+        <a href={proofUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-brand-ink underline-offset-4 hover:underline">
+          <ImageIcon size={15} aria-hidden />
+          {t("عرض الصورة", "View image")}
+        </a>
+      ) : (
+        t("لم يُرفع بعد", "Not uploaded yet")
+      ),
+    },
+    { label: t("طريقة التواصل", "Contact method"), value: CONTACT_LABELS[order.contactMethod]?.[lang] ?? order.contactMethod },
     { label: t("تاريخ الطلب", "Placed on"), value: <span className="nums">{formatDate(order.createdAt, lang)}</span> },
   ].filter(Boolean) as { label: string; value: React.ReactNode }[];
 
@@ -106,66 +104,25 @@ export default async function OrderPage({
         {t("الطلبات", "Orders")}
       </LinkButton>
 
-      {created === "1" ? (
-        <div className="surface-raised flex items-start gap-4 rounded-panel border-success/30 p-6">
-          <CheckCircle2 size={28} className="shrink-0 text-success" aria-hidden />
-          <div>
-            <h1 className="text-xl font-bold text-ink">{t("تم إرسال طلبك ✅", "Your order has been sent ✅")}</h1>
-            <p className="mt-1 text-[15px] leading-7 text-ink-2">
-              {proofUploadedAt
-                ? t(
-                    "تم استلام إثبات الدفع، وسيتم مراجعته من فريق شاشتنا قبل تفعيل الاشتراك.",
-                    "We've received your payment proof. The Shashtna team will review it before activating your subscription.",
-                  )
-                : t(
-                    "لسه ما وصلنا إثبات الدفع. حوّل المبلغ وارفع صورة الإثبات من هذه الصفحة.",
-                    "We haven't received a payment proof yet. Transfer the amount and upload the proof on this page.",
-                  )}
-            </p>
-            <p className="mt-1 text-sm text-ink-3">
-              {t(`رقم طلبك ${orderRef(order.id)}، وتكدر تتابع كل مرحلة من هنا.`, `Your order number is ${order.number}; you can follow every step here.`)}
-            </p>
-          </div>
-        </div>
-      ) : null}
-
-      <Card className="p-6 sm:p-8">
+      <Card className="p-5 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-semibold text-ink-3">{t("الطلب", "Order")}</p>
-            <p className="nums mt-1 text-2xl font-bold text-ink">{order.number}</p>
-            <p className="mt-1 text-sm text-ink-2">{order.serviceName}</p>
+            <h1 className="nums mt-1 text-2xl font-bold text-ink">{order.number}</h1>
+            <p className="mt-1 text-sm text-ink-2">
+              {order.serviceName}
+              {order.requestType !== "DEVICE_PURCHASE" ? ` · ${order.durationLabel}` : ""}
+            </p>
           </div>
           <div className="text-end">
             <StatusBadge status={order.status} label={label[lang]} />
             <p className="nums mt-3 text-2xl font-bold text-ink">{formatPrice(order.price, lang)}</p>
           </div>
         </div>
-        <div className="mt-8">
-          <OrderStepper status={order.status} lang={lang} />
-        </div>
-        {order.status !== "CANCELLED" && order.status !== "REJECTED" ? (
-          <div className="mt-6 rounded-2xl border border-line bg-surface-2 p-4">
-            <p className="text-sm font-bold text-ink">{t("شنو الخطوة الجاية؟", "What happens next?")}</p>
-            <p className="mt-1 text-sm leading-7 text-ink-2">
-              {unpaid && proofUploadedAt
-                ? t(
-                    "تم استلام إثبات الدفع، وسيتم مراجعته من فريق شاشتنا قبل تفعيل الاشتراك.",
-                    "We've received your payment proof. The Shashtna team will review it before activating your subscription.",
-                  )
-                : lang === "ar"
-                  ? label.hintAr
-                  : label.hintEn}
-            </p>
-          </div>
-        ) : null}
-        {order.status === "COMPLETED" && order.subscriptionId ? (
-          <LinkButton href={`/subscriptions/${order.subscriptionId}`} className="mt-5">
-            <Tv size={16} aria-hidden />
-            {t("عرض الاشتراك", "View subscription")}
-          </LinkButton>
-        ) : null}
+        {stage === "CANCELLED" || stage === "REJECTED" ? null : <OrderJourney stage={stage} lang={lang} className="mt-8" />}
       </Card>
+
+      <OrderPaymentFlow order={order} stage={stage} proofUrl={proofUrl} transfer={manualTransferDetails(settings)} lang={lang} />
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         <Card className="p-6">
@@ -187,55 +144,6 @@ export default async function OrderPage({
         </Card>
 
         <div className="space-y-6">
-          {unpaid ? (
-            <Card className="border-2 border-brand/50 p-6" raised>
-              <CardHeader title={t("الدفع", "Payment")} />
-              {proofUrl ? (
-                <div className="mt-4 space-y-4">
-                  <Notice tone="success">
-                    {t(
-                      "تم استلام إثبات الدفع ✅ وسيتم مراجعته من فريق شاشتنا قبل تفعيل الاشتراك.",
-                      "Payment proof received ✅ The Shashtna team will review it before activating your subscription.",
-                    )}
-                  </Notice>
-                  <a href={proofUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-2xl border border-line bg-black/30">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={proofUrl} alt={t("إثبات الدفع المرسل", "Payment proof you sent")} className="max-h-72 w-full object-contain" />
-                  </a>
-                  <details className="group rounded-2xl border border-line bg-surface-2 px-4 py-1 open:pb-4">
-                    <summary className="flex min-h-12 cursor-pointer list-none items-center text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
-                      {t("رفعت صورة غلط؟ أرسل صورة جديدة", "Wrong image? Send a new one")}
-                    </summary>
-                    <OrderProofForm orderId={order.id} paymentReference={order.paymentReference} replacing />
-                  </details>
-                </div>
-              ) : (
-                <div className="mt-4 space-y-6">
-                  <p className="text-[15px] leading-7 text-ink-2">
-                    {t(
-                      "حتى نكمل طلبك، حوّل قيمة الطلب ثم ارفع صورة إثبات الدفع.",
-                      "To complete your order, transfer the amount and then upload the payment proof.",
-                    )}
-                  </p>
-                  {transfer ? (
-                    <TransferDetails
-                      amount={order.price}
-                      info={transfer}
-                      uploadHint={t("ارفع صورة الإثبات بالأسفل.", "Upload the screenshot below.")}
-                    />
-                  ) : null}
-                  <div className="border-t border-line pt-5">
-                    <p className="text-base font-bold text-ink">{t("إثبات الدفع", "Payment proof")}</p>
-                    <p className="mb-4 mt-1 text-sm text-ink-2">
-                      {t("ارفع صورة التحويل بعد إتمام عملية الدفع.", "Upload a screenshot of the transfer once you've paid.")}
-                    </p>
-                    <OrderProofForm orderId={order.id} paymentReference={order.paymentReference} replacing={false} />
-                  </div>
-                </div>
-              )}
-            </Card>
-          ) : null}
-
           {unpaid ? (
             <Card className="p-6">
               <CardHeader

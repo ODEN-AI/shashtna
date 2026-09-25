@@ -82,7 +82,8 @@ export async function uploadPaymentProofAction(_prev: ActionState, formData: For
     });
 
     revalidatePath(`/orders/${orderId}`);
-    return { ok: true, message: "تم استلام إثبات الدفع، وسيتم مراجعته من فريق شاشتنا قبل تفعيل الاشتراك." };
+    revalidatePath("/dashboard");
+    return { ok: true, message: "تم رفع إثبات الدفع ✅ طلبك قيد المراجعة." };
   } catch (error) {
     return failure(error, "تعذر رفع الصورة، حاول مرة أخرى.");
   }

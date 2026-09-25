@@ -31,16 +31,7 @@ async function copyText(text: string) {
  * The manual-transfer destination: amount, method, transfer number (with a
  * copy button), account name and step-by-step instructions.
  */
-export function TransferDetails({
-  amount,
-  info,
-  uploadHint,
-}: {
-  amount: number | null;
-  info: TransferInfo;
-  /** Where the proof goes; checkout says "here", the order page says "below". */
-  uploadHint?: string;
-}) {
+export function TransferDetails({ amount, info }: { amount: number | null; info: TransferInfo }) {
   const { t, language } = useLanguage();
   const [copied, setCopied] = useState<"ok" | "failed" | null>(null);
   const timer = useRef<number | undefined>(undefined);
@@ -53,10 +44,9 @@ export function TransferDetails({
   }
 
   const steps = [
-    t("حوّل المبلغ أعلاه إلى رقم التحويل.", "Transfer the amount above to the transfer number."),
-    t("بعد إتمام التحويل، التقط صورة لإثبات العملية.", "When the transfer is done, take a screenshot of it."),
-    uploadHint ?? t("ارفع صورة الإثبات هنا.", "Upload the screenshot here."),
-    t("أرسل الطلب حتى نراجع عملية الدفع.", "Send the order so we can check the payment."),
+    t("حوّل المبلغ إلى رقم التحويل.", "Transfer the amount to the transfer number."),
+    t("بعد إتمام التحويل، ارفع إثبات الدفع.", "Once the transfer is done, upload the payment proof."),
+    t("أرسل الإثبات حتى نراجع الطلب.", "Send the proof so we can review the order."),
   ];
 
   return (
@@ -104,7 +94,7 @@ export function TransferDetails({
 
         {info.recipientName ? (
           <div className="px-4 py-3">
-            <dt className="text-sm text-ink-3">{t("اسم الحساب", "Account name")}</dt>
+            <dt className="text-sm text-ink-3">{t("اسم المستفيد", "Recipient name")}</dt>
             <dd dir="ltr" data-testid="recipient-name" className="mt-1 break-words text-start text-base font-bold text-ink rtl:text-end">
               {info.recipientName}
             </dd>

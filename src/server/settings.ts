@@ -54,12 +54,13 @@ export const SETTING_DEFINITIONS = {
     default: "Daily, 10 AM – 11 PM",
     multiline: false,
   },
-  // Manual transfer destination shown at checkout. These are public on
+  // Manual transfer destination shown on the customer's order (dashboard and
+  // order page) after checkout. These are public on
   // purpose: customers transfer the order amount here and upload a proof.
   "payment.transferNumber": {
     group: "payment",
-    labelAr: "رقم التحويل (يظهر للعملاء بصفحة الدفع)",
-    labelEn: "Transfer number (shown to customers at checkout)",
+    labelAr: "رقم التحويل (يظهر للعملاء بصفحة طلبهم)",
+    labelEn: "Transfer number (shown to customers on their order)",
     default: "9286253712",
     multiline: false,
   },

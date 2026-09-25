@@ -18,8 +18,19 @@ export const metadata: Metadata = {
   alternates: { canonical: "/plans" },
 };
 
-export default async function PlansPage() {
-  const { t, lang } = await getI18n();
+function positiveId(value: unknown) {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 ? number : null;
+}
+
+export default async function PlansPage({ searchParams }: { searchParams: Promise<{ renew?: string; upgrade?: string }> }) {
+  const [{ t, lang }, params] = await Promise.all([getI18n(), searchParams]);
+  // Renewals and upgrades start on the subscription page and pick the plan
+  // here; checkout (which checks ownership) receives both.
+  const renewId = positiveId(params.renew);
+  const upgradeId = positiveId(params.upgrade);
+  const checkoutHref = (pkg: CatalogPackage) =>
+    `/checkout?plan=${encodeURIComponent(pkg.slug)}${renewId ? `&renew=${renewId}` : upgradeId ? `&upgrade=${upgradeId}` : ""}`;
 
   let packages: CatalogPackage[] | null = null;
 
@@ -66,10 +77,17 @@ export default async function PlansPage() {
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-[15px] leading-8 text-ink-2">
             {t(
-              "كل الأسعار بالدينار العراقي وواضحة قبل الطلب. الدفع يتم بالتنسيق ويا فريقنا بعد إرسال الطلب.",
-              "All prices are in Iraqi dinars and shown before you order. Payment is arranged with our team after you submit the order.",
+              "كل الأسعار بالدينار العراقي وواضحة قبل الطلب. بعد تأكيد الطلب تدفع بالتحويل من حسابك وترفع إثبات الدفع.",
+              "All prices are in Iraqi dinars and shown before you order. After confirming, you pay by transfer from your account and upload the proof.",
             )}
           </p>
+          {renewId || upgradeId ? (
+            <Notice tone="info" className="mx-auto mt-6 max-w-xl text-start">
+              {upgradeId
+                ? t("اختار الباقة الجديدة لترقية اشتراكك.", "Choose the new plan for your upgrade.")
+                : t("اختار مدة التجديد لاشتراكك.", "Choose the renewal plan for your subscription.")}
+            </Notice>
+          ) : null}
           {packages && packages.length ? (
             <nav className="mt-8 flex justify-center gap-2" aria-label={t("أنواع الباقات", "Plan types")}>
               {groups
@@ -120,7 +138,7 @@ export default async function PlansPage() {
                         pkg={pkg}
                         lang={lang}
                         maxFeatures={8}
-                        href={`/checkout?plan=${encodeURIComponent(pkg.slug)}`}
+                        href={checkoutHref(pkg)}
                       />
                     ))}
                   </div>
@@ -155,7 +173,7 @@ export default async function PlansPage() {
                           {pkg.serviceType === "VIP" ? t("مطلوب — يُختار عند الطلب", "Required — chosen at checkout") : "—"}
                         </td>
                         <td className="px-4 py-3.5 text-end">
-                          <LinkButton href={`/checkout?plan=${encodeURIComponent(pkg.slug)}`} size="sm" variant="secondary">
+                          <LinkButton href={checkoutHref(pkg)} size="sm" variant="secondary">
                             {t("اختيار", "Choose")}
                           </LinkButton>
                         </td>

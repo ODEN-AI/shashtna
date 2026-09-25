@@ -14,8 +14,8 @@ export const FAQ: FaqItem[] = [
     topic: "start",
     q: { ar: "شلون أشترك بشاشتنا؟", en: "How do I subscribe?" },
     a: {
-      ar: "اختار الباقة المناسبة، سجّل دخولك أو أنشئ حساب، وبصفحة إتمام الطلب حوّل المبلغ إلى رقم التحويل الظاهر وارفع صورة إثبات الدفع. فريقنا يراجع الدفع، وبعد تأكيده يتم تفعيل اشتراكك وتلگى تفاصيله بحسابك.",
-      en: "Pick a plan, sign in or create an account, and at checkout transfer the amount to the transfer number shown and upload a screenshot of the payment. Our team reviews it, and once confirmed your subscription is activated and appears in your account.",
+      ar: "اختار الباقة المناسبة، سجّل دخولك أو أنشئ حساب، وأكّد الطلب. بعدها تنتقل لحسابك، تحوّل المبلغ إلى رقم التحويل الظاهر وترفع صورة إثبات الدفع. فريقنا يراجع الدفع، وبعد تأكيده يتم تفعيل اشتراكك وتلگى تفاصيله بحسابك.",
+      en: "Pick a plan, sign in or create an account, and confirm the order. You then go to your account, transfer the amount to the transfer number shown and upload a screenshot of the payment. Our team reviews it, and once confirmed your subscription is activated and appears in your account.",
     },
   },
   {
@@ -23,8 +23,8 @@ export const FAQ: FaqItem[] = [
     topic: "payment",
     q: { ar: "شلون أدفع؟ هل أكدر أدفع بالبطاقة بالموقع؟", en: "How do I pay? Can I pay by card on the website?" },
     a: {
-      ar: "الدفع حاليًا بالتحويل اليدوي: تحوّل مبلغ الطلب إلى رقم التحويل الظاهر بصفحة إتمام الطلب، وترفع صورة إثبات الدفع، وفريقنا يراجعها قبل التفعيل. ماكو دفع مباشر بالبطاقة داخل الموقع، وما نطلب منك أبدًا رمز PIN أو CVV أو رمز التحقق OTP.",
-      en: "Payment is currently by manual transfer: send the order amount to the transfer number shown at checkout, upload a screenshot as proof, and our team reviews it before activation. There's no direct card payment on the website, and we never ask for your PIN, CVV or OTP code.",
+      ar: "الدفع حاليًا بالتحويل اليدوي: بعد تأكيد الطلب تحوّل مبلغه إلى رقم التحويل الظاهر بحسابك، وترفع صورة إثبات الدفع، وفريقنا يراجعها قبل التفعيل. ماكو دفع مباشر بالبطاقة داخل الموقع، وما نطلب منك أبدًا رمز PIN أو CVV أو رمز التحقق OTP.",
+      en: "Payment is currently by manual transfer: after confirming your order, send the amount to the transfer number shown in your account, upload a screenshot as proof, and our team reviews it before activation. There's no direct card payment on the website, and we never ask for your PIN, CVV or OTP code.",
     },
   },
   {

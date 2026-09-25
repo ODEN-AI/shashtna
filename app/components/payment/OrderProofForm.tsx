@@ -10,6 +10,7 @@ import { Notice } from "@/app/ui/States";
 import { SubmitButton } from "@/app/ui/SubmitButton";
 
 import { ProofPicker } from "./ProofPicker";
+import { markProofSent } from "./ProofReceivedAnchor";
 
 /** Upload or replace the transfer proof for an unpaid order. */
 export function OrderProofForm({
@@ -47,6 +48,7 @@ export function OrderProofForm({
     }
 
     const formData = new FormData(event.currentTarget);
+    markProofSent(orderId);
     startTransition(() => action(formData));
   }
 

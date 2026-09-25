@@ -95,7 +95,7 @@ export default async function SubscriptionDetailPage({ params }: { params: Promi
                 {expired ? t("إعادة التفعيل", "Reactivate") : subscription.state === "EXPIRING" ? t("جدّد الآن", "Renew now") : t("تجديد", "Renew")}
               </LinkButton>
               {canUpgrade ? (
-                <LinkButton href={`/checkout?upgrade=${subscription.id}`} size="lg" variant="ghost">
+                <LinkButton href={`/plans?upgrade=${subscription.id}`} size="lg" variant="ghost">
                   <ArrowUpCircle size={17} aria-hidden />
                   {t("ترقية", "Upgrade")}
                 </LinkButton>

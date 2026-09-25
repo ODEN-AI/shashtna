@@ -46,3 +46,10 @@ dist/
 
 # Local Netlify folder
 .netlify
+
+# IPTV playlists can contain account credentials; never commit them
+*.m3u
+*.m3u8
+
+# local data written by the dev support-ticket store
+/.data/

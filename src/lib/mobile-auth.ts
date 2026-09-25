@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 
+/** HttpOnly cookie that carries the website session token. */
+export const SESSION_COOKIE = "shashtna_session";
+
 export type MobileAuthPayload = {
   sub: number;
   role?: string;

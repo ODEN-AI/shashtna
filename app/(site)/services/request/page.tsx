@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, MessageCircle, Send, Sparkles } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useId, useMemo, useState } from "react";
 import { useLanguage } from "../../components/LanguageProvider";
+import { submitServiceLead } from "../actions";
 
 const TELEGRAM_URL = "https://t.me/shashtna";
 const MESSENGER_URL = "https://www.facebook.com/profile.php?id=61594341596034";
@@ -58,6 +59,9 @@ export default function ServicesRequestPage() {
   const [timeline, setTimeline] = useState("");
   const [details, setDetails] = useState("");
   const [sent, setSent] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const detailsId = useId();
 
   const message = useMemo(() => {
     if (isArabic) {
@@ -85,14 +89,35 @@ Project details:
 ${details || "Not provided yet"}`;
   }, [budget, details, isArabic, name, phone, projectType, timeline]);
 
-  const openTelegram = () => {
-    setSent(true);
-    window.open(`${TELEGRAM_URL}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
-  };
+  const telegramHref = `${TELEGRAM_URL}?text=${encodeURIComponent(message)}`;
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  // Save the lead first so it is never lost, then let the visitor continue
+  // on Telegram with a normal link tap (popup blockers stop window.open
+  // after an await on mobile).
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    openTelegram();
+
+    if (saving) {
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const result = await submitServiceLead({ name, phone, projectType, budget, timeline, details });
+
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      setSent(true);
+    } catch {
+      setError(isArabic ? "تعذر إرسال الطلب، حاول مرة ثانية." : "Couldn't send the request. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -184,10 +209,11 @@ ${details || "Not provided yet"}`;
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-200">
+                  <label htmlFor={detailsId} className="text-xs font-black text-slate-700 dark:text-slate-200">
                     {isArabic ? "تفاصيل المشروع" : "Project details"}
                   </label>
                   <textarea
+                    id={detailsId}
                     value={details}
                     onChange={(event) => setDetails(event.target.value)}
                     rows={7}
@@ -197,12 +223,38 @@ ${details || "Not provided yet"}`;
                 </div>
               </div>
 
+              {error ? (
+                <p role="alert" className="mt-5 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-400">
+                  {error}
+                </p>
+              ) : null}
+
+              {sent ? (
+                <div role="status" className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center">
+                  <p className="text-sm font-black text-emerald-400">
+                    {isArabic ? "وصلنا طلبك وراح نتواصل وياك." : "We received your request and will get in touch."}
+                  </p>
+                  <a
+                    href={telegramHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-black text-white transition hover:bg-blue-700"
+                  >
+                    <Send size={16} />
+                    {isArabic ? "كمّل النقاش على Telegram" : "Continue on Telegram"}
+                  </a>
+                </div>
+              ) : null}
+
               <button
                 type="submit"
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-4 text-sm font-black text-white shadow-xl shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700"
+                disabled={saving || sent}
+                className="mt-6 flex w-full disabled:cursor-not-allowed disabled:opacity-60 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-4 text-sm font-black text-white shadow-xl shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700"
               >
                 <Send size={17} />
-                {isArabic ? "إرسال ومناقشة المشروع" : "Send & discuss the project"}
+                {saving
+                  ? isArabic ? "جاري الإرسال..." : "Sending..."
+                  : isArabic ? "إرسال ومناقشة المشروع" : "Send & discuss the project"}
               </button>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -226,11 +278,6 @@ ${details || "Not provided yet"}`;
                 </a>
               </div>
 
-              {sent && (
-                <p className="mt-4 text-center text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                  {isArabic ? "تم تجهيز الرسالة وفتح Telegram لإكمال الإرسال." : "Your message is ready in Telegram."}
-                </p>
-              )}
             </form>
           </div>
         </div>
@@ -252,10 +299,13 @@ function Field({
   placeholder: string;
   required?: boolean;
 }) {
+  const id = useId();
+
   return (
     <div>
-      <label className="text-xs font-black text-slate-700 dark:text-slate-200">{label}</label>
+      <label htmlFor={id} className="text-xs font-black text-slate-700 dark:text-slate-200">{label}</label>
       <input
+        id={id}
         required={required}
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -277,10 +327,13 @@ function SelectField({
   onChange: (value: string) => void;
   options: string[];
 }) {
+  const id = useId();
+
   return (
     <div>
-      <label className="text-xs font-black text-slate-700 dark:text-slate-200">{label}</label>
+      <label htmlFor={id} className="text-xs font-black text-slate-700 dark:text-slate-200">{label}</label>
       <select
+        id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-950/50 dark:text-white"

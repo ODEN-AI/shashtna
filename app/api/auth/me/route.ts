@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { requireMobileAuth } from "@/src/lib/mobile-auth";
+import { requireUser } from "@/src/lib/session";
 import { db, ensureDatabaseConnection } from "@/src/prisma/db";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    const auth = requireMobileAuth(request);
+    const auth = requireUser(request);
 
     if (!auth.ok) {
       return auth.response;

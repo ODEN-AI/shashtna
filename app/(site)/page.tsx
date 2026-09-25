@@ -1,984 +1,644 @@
-﻿"use client";
-
 import Link from "next/link";
 import {
   ArrowLeft,
+  CalendarCheck2,
   Check,
-  ChevronLeft,
+  CircleHelp,
+  Clock3,
+  Crown,
   Headphones,
+  MonitorPlay,
+  PackageCheck,
+  ReceiptText,
   ShieldCheck,
-  Globe,
-  Radio,
-  ShoppingCart,
   Smartphone,
   Sparkles,
-  Tv2,
-  Zap,
+  Tv,
+  UserPlus,
+  Wallet,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 
-import { useLanguage } from "./components/LanguageProvider";
+import { AccountStrip } from "@/app/components/site/AccountStrip";
+import { AnnouncementCarousel } from "@/app/ui/AnnouncementCarousel";
+import { Badge } from "@/app/ui/Badge";
+import { LinkButton } from "@/app/ui/Button";
+import { PackageCard } from "@/app/ui/PackageCard";
+import { Container, Eyebrow, SectionHeading } from "@/app/ui/Page";
+import { EmptyState } from "@/app/ui/States";
+import { FacebookIcon, TelegramIcon, WhatsAppIcon } from "@/app/ui/BrandIcons";
+import { FAQ } from "@/src/content/help";
+import { formatPrice, type Lang } from "@/src/lib/i18n";
+import { getSessionUser } from "@/src/server/auth";
+import {
+  getActiveApps,
+  getActivePackages,
+  platformsOf,
+  rankPopular,
+  type CatalogPackage,
+} from "@/src/server/catalog";
+import { getLiveAnnouncements } from "@/src/server/content";
+import { getI18n } from "@/src/server/i18n";
+import { getSettings, safeExternalUrl, whatsappLink } from "@/src/server/settings";
 
-type PopularPackage = {
-  id: number;
-  name: string;
-  slug: string;
-  price: number;
-  durationMonths: number;
-  durationLabel: string;
-  description: string;
-  specifications: string;
-  notes: string | null;
-  imageUrl: string | null;
-  isActive: boolean;
-  salesCount: number;
-};
+export const dynamic = "force-dynamic";
 
-const steps = [
-  {
-    number: "01",
-    titleAr: "اختر الباقة",
-    titleEn: "Choose a plan",
-    descriptionAr:
-      "شوف الباقات المتوفرة واختر الاشتراك المناسب لك.",
-    descriptionEn:
-      "Browse the available plans and choose the one that suits you.",
-  },
-  {
-    number: "02",
-    titleAr: "أنشئ حسابك",
-    titleEn: "Create your account",
-    descriptionAr:
-      "سجل بياناتك حتى نقدر ندير اشتراكك وطلباتك بسهولة.",
-    descriptionEn:
-      "Create your account so we can manage your subscription and orders easily.",
-  },
-  {
-    number: "03",
-    titleAr: "فعّل اشتراكك",
-    titleEn: "Activate your subscription",
-    descriptionAr:
-      "بعد إتمام الطلب تحصل على بيانات الاشتراك والتعليمات.",
-    descriptionEn:
-      "After completing your order, you will receive your subscription details and instructions.",
-  },
-];
-
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("en-US").format(price);
+function planHref(pkg: CatalogPackage) {
+  return `/checkout?plan=${encodeURIComponent(pkg.slug)}`;
 }
 
-export default function HomePage() {
-  const { language } = useLanguage();
-  const isArabic = language === "ar";
+function minPrice(packages: CatalogPackage[]) {
+  return packages.length ? Math.min(...packages.map((pkg) => pkg.price)) : null;
+}
 
-  const [popularPackages, setPopularPackages] =
-    useState<PopularPackage[]>([]);
+function durations(packages: CatalogPackage[]) {
+  return [...new Set(packages.map((pkg) => pkg.durationLabel))];
+}
 
-  const [packagesLoading, setPackagesLoading] =
-    useState(true);
+export default async function HomePage() {
+  const [{ t, lang, isAr }, user, packages, apps, slides, settings] = await Promise.all([
+    getI18n(),
+    getSessionUser().catch(() => null),
+    getActivePackages().catch(() => [] as CatalogPackage[]),
+    getActiveApps().catch(() => []),
+    getLiveAnnouncements("WEBSITE", "HOME_CAROUSEL").catch(() => []),
+    getSettings(),
+  ]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadPopularPackages() {
-      try {
-        setPackagesLoading(true);
-
-        const response = await fetch(
-          "/api/popular-packages",
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
-
-        const data =
-          (await response.json()) as {
-            success?: boolean;
-            packages?: PopularPackage[];
-          };
-
-        if (
-          !response.ok ||
-          !data.success
-        ) {
-          throw new Error(
-            "Failed to load popular packages."
-          );
-        }
-
-        if (!cancelled) {
-          setPopularPackages(
-            Array.isArray(data.packages)
-              ? data.packages
-              : []
-          );
-        }
-      } catch (error) {
-        console.error(
-          "Homepage popular packages error:",
-          error
-        );
-
-        if (!cancelled) {
-          setPopularPackages([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setPackagesLoading(false);
-        }
-      }
-    }
-
-    void loadPopularPackages();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const iptv = packages.filter((pkg) => pkg.serviceType === "IPTV");
+  const vip = packages.filter((pkg) => pkg.serviceType === "VIP");
+  const popular = rankPopular(packages, 3);
+  const cheapest = minPrice(packages);
+  const platforms = platformsOf(apps);
+  const player = apps.find((app) => app.isPlayer);
+  const hours = isAr ? settings["support.hours"] : settings["support.hoursEn"];
 
   return (
-    <main
-      dir={isArabic ? "rtl" : "ltr"}
-      className="min-h-screen overflow-hidden bg-white text-slate-900 transition-colors duration-500 dark:bg-[#070b14] dark:text-slate-100"
-    >
-      {/* =====================================================
-          HERO
-          ===================================================== */}
+    <>
+      {user ? <AccountStrip user={user} /> : null}
 
-      <section className="relative isolate overflow-hidden bg-white transition-colors duration-500 dark:bg-[#070b14]">
-        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -right-56 -top-56 h-[620px] w-[620px] rounded-full bg-blue-500/[0.10] blur-[110px] dark:bg-blue-500/[0.08]" />
-
-          <div className="absolute -bottom-64 -left-56 h-[600px] w-[600px] rounded-full bg-cyan-400/[0.09] blur-[110px] dark:bg-cyan-400/[0.06]" />
-
-          <div className="absolute right-[8%] top-24 h-[280px] w-[280px] rounded-full border border-blue-200/50 dark:border-blue-400/[0.10]" />
-
-          <div className="absolute right-[11%] top-28 h-[210px] w-[210px] rounded-full border border-cyan-200/40 dark:border-cyan-400/[0.08]" />
-
-          <div className="absolute right-[15%] top-36 h-[130px] w-[130px] rounded-full border border-blue-200/30 dark:border-blue-400/[0.06]" />
-
-          <div
-            className="absolute inset-0 opacity-[0.32] dark:opacity-[0.14]"
-            style={{
-              backgroundImage:
-                "linear-gradient(to right, rgba(15,23,42,0.025) 1px, transparent 1px), linear-gradient(to bottom, rgba(15,23,42,0.025) 1px, transparent 1px)",
-              backgroundSize:
-                "44px 44px",
-              maskImage:
-                "linear-gradient(to bottom, black 0%, transparent 78%)",
-              WebkitMaskImage:
-                "linear-gradient(to bottom, black 0%, transparent 78%)",
-            }}
-          />
-        </div>
-
-        <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-5 pb-20 pt-12 sm:pt-16 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pb-28 lg:pt-20">
-          <div className="relative z-10">
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-blue-200/70 bg-white/70 px-4 py-2 text-xs font-black text-blue-700 shadow-sm backdrop-blur-xl dark:border-blue-400/20 dark:bg-blue-500/[0.08] dark:text-blue-400">
-              <Sparkles size={14} />
-
-              {isArabic
-                ? "ترفيهك، بطريقة أبسط"
-                : "Your entertainment, made simple"}
-            </div>
-
-            <h1 className="max-w-2xl text-4xl font-black leading-[1.08] tracking-tight text-slate-950 sm:text-5xl lg:text-6xl xl:text-[68px] dark:text-white">
-              {isArabic ? (
-                <>
-                  كل ما تحب،
-                  <span className="mt-2 block bg-gradient-to-l from-blue-700 via-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                    بشاشة واحدة.
-                  </span>
-                </>
-              ) : (
-                <>
-                  Everything you love,
-                  <span className="mt-2 block bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                    on one screen.
-                  </span>
-                </>
-              )}
+      {/* ============================ HERO ============================ */}
+      <section className="bg-cinema relative overflow-hidden">
+        <Container className="grid items-center gap-12 py-14 lg:grid-cols-[1.05fr_1fr] lg:py-24">
+          <div className="animate-fade-up">
+            <Eyebrow>IPTV · VIP · Shashtna Player</Eyebrow>
+            <h1 className="mt-5 text-balance text-4xl font-bold leading-[1.15] text-ink sm:text-5xl lg:text-[3.4rem]">
+              {t("قنواتك وأفلامك ومسلسلاتك،", "Your channels, films and series,")}{" "}
+              <span className="text-gradient">{t("باشتراك واحد واضح", "in one clear subscription")}</span>
             </h1>
-
-            <p className="mt-7 max-w-xl text-base leading-8 text-slate-500 sm:text-lg dark:text-slate-400">
-              {isArabic
-                ? "مع شاشتنا، تحصل على اشتراكك بطريقة واضحة وسهلة، وتتابع تفاصيل حسابك واشتراكك من مكان واحد."
-                : "With Shashtna, getting your subscription is simple and clear, while your account and subscription details stay organized in one place."}
+            <p className="mt-6 max-w-xl text-pretty text-base leading-8 text-ink-2 sm:text-lg">
+              {t(
+                "اختار باقتك، أكمل طلبك بخطوات بسيطة، وتابع اشتراكك وتجديده من حسابك — وشغّل كلشي على Shashtna Player.",
+                "Pick a plan, complete your order in a few simple steps, and manage your subscription and renewals from your account — then watch on Shashtna Player.",
+              )}
             </p>
-
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/plans"
-                className="group relative flex items-center justify-center gap-2 overflow-hidden rounded-2xl bg-blue-600 px-7 py-4 text-sm font-black text-white shadow-xl shadow-blue-600/20 transition-all duration-300 hover:-translate-y-1 hover:bg-blue-700 hover:shadow-blue-600/30"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-
-                <span className="relative">
-                  {isArabic
-                    ? "استكشف الباقات"
-                    : "Explore plans"}
-                </span>
-
-                <ArrowLeft
-                  size={18}
-                  className={`relative transition-transform duration-300 ${
-                    isArabic
-                      ? "group-hover:-translate-x-1.5"
-                      : "rotate-180 group-hover:translate-x-1.5"
-                  }`}
-                />
-              </Link>
-
-              <Link
-                href="/register"
-                className="group flex items-center justify-center gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-7 py-4 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:bg-blue-50/80 hover:text-blue-700 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-blue-500/40 dark:hover:bg-slate-800"
-              >
-                {isArabic
-                  ? "إنشاء حساب"
-                  : "Create account"}
-              </Link>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <LinkButton href="#plans" size="lg">
+                {t("شوف الباقات", "See plans")}
+                <ArrowLeft size={18} className="ltr:rotate-180" aria-hidden />
+              </LinkButton>
+              <LinkButton href="/watch/player" variant="secondary" size="lg">
+                <MonitorPlay size={18} aria-hidden />
+                Shashtna Player
+              </LinkButton>
             </div>
-
-            <div className="mt-10 flex flex-wrap gap-x-8 gap-y-4">
-              <TrustItem
-                icon={<ShieldCheck size={17} />}
-                text={
-                  isArabic
-                    ? "إدارة سهلة"
-                    : "Easy management"
-                }
-              />
-
-              <TrustItem
-                icon={<Zap size={17} />}
-                text={
-                  isArabic
-                    ? "تفعيل سريع"
-                    : "Fast activation"
-                }
-              />
-
-              <TrustItem
-                icon={<Headphones size={17} />}
-                text={
-                  isArabic
-                    ? "دعم فني"
-                    : "Technical support"
-                }
-              />
-            </div>
+            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-ink-2">
+              {cheapest !== null ? (
+                <li className="flex items-center gap-2">
+                  <Wallet size={16} className="text-glow" aria-hidden />
+                  {t("تبدأ من ", "From ")}
+                  <span className="nums font-bold text-ink">{formatPrice(cheapest, lang)}</span>
+                </li>
+              ) : null}
+              <li className="flex items-center gap-2">
+                <PackageCheck size={16} className="text-glow" aria-hidden />
+                {t("تتبّع طلبك خطوة بخطوة", "Track your order step by step")}
+              </li>
+              {hours ? (
+                <li className="flex items-center gap-2">
+                  <Clock3 size={16} className="text-glow" aria-hidden />
+                  {t("دعم ", "Support ")}
+                  {hours}
+                </li>
+              ) : null}
+            </ul>
           </div>
 
-          {/* =====================================================
-              HERO VIDEO
-              ===================================================== */}
-
-          <div className="relative mx-auto w-full max-w-xl lg:max-w-[580px]">
-            <div className="absolute inset-8 rounded-[48px] bg-blue-500/[0.18] blur-3xl dark:bg-blue-500/[0.09]" />
-
-            <div className="pointer-events-none absolute -right-10 -top-10 hidden h-40 w-40 rounded-full border border-blue-300/40 sm:block dark:border-blue-400/10" />
-
-            <div className="pointer-events-none absolute -bottom-12 -left-10 hidden h-36 w-36 rounded-full border border-cyan-300/40 sm:block dark:border-cyan-400/10" />
-
-            <div className="euclid-surface relative rounded-[34px] border border-white/80 bg-white/[0.62] p-3 shadow-[0_30px_80px_rgba(15,23,42,0.15)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-slate-900/[0.50] dark:shadow-[0_30px_80px_rgba(0,0,0,0.38)]">
-              <div className="relative flex min-h-[260px] items-center justify-center overflow-hidden rounded-[27px] border border-white/[0.12] bg-slate-950 p-0 shadow-inner sm:min-h-[330px] lg:min-h-[360px]">
+          <div className="relative mx-auto w-full max-w-xl animate-fade-up [animation-delay:120ms]">
+            <div
+              aria-hidden
+              className="absolute -inset-10 rounded-full bg-[radial-gradient(closest-side,rgba(47,107,255,0.28),transparent)]"
+            />
+            <div className="relative rounded-[1.9rem] border border-white/10 bg-gradient-to-b from-[#1a2440] to-[#0b1222] p-2.5 shadow-[0_40px_120px_-40px_rgba(47,107,255,0.6)]">
+              <div className="overflow-hidden rounded-[1.4rem] bg-black">
                 <video
-                  className="relative z-10 block h-auto max-h-full w-auto max-w-full"
-                  src="/videos/shashtna-ad.mp4"
+                  className="block aspect-[16/10] w-full object-cover"
+                  src="/videos/shashtna-ad-web.mp4"
+                  poster="/videos/shashtna-ad-poster.jpg"
                   autoPlay
                   muted
                   loop
                   playsInline
                   preload="metadata"
+                  aria-label={t("إعلان شاشتنا", "Shashtna promo video")}
                 />
-
-                {/* Shashtna logo only */}
-                <div className="absolute left-5 top-5 z-20 flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-white backdrop-blur-xl">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/10">
-                    <Tv2 size={17} />
-                  </div>
-
-                  <span className="text-sm font-black">
-                    شاشتنا
-                  </span>
-                </div>
               </div>
             </div>
+            <div aria-hidden className="mx-auto h-3 w-40 rounded-b-2xl bg-gradient-to-b from-[#1a2440] to-transparent" />
           </div>
-        </div>
-
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-50/80 to-transparent dark:from-[#0b1120] dark:to-transparent" />
+        </Container>
       </section>
 
-      {/* =====================================================
-          FEATURE STRIP
-          ===================================================== */}
+      {/* ======================= ADS / ANNOUNCEMENTS ======================= */}
+      {slides.length ? (
+        <Container className="py-6">
+          <AnnouncementCarousel
+            slides={slides.map((slide) => ({
+              id: slide.id,
+              title: slide.title,
+              description: slide.description,
+              imageUrl: slide.imageUrl,
+              ctaLabel: slide.ctaLabel,
+              ctaUrl: slide.ctaUrl,
+              style: slide.style,
+            }))}
+            label={t("إعلانات شاشتنا", "Shashtna announcements")}
+            previousLabel={t("السابق", "Previous")}
+            nextLabel={t("التالي", "Next")}
+          />
+        </Container>
+      ) : null}
 
-      <section className="relative border-y border-slate-200/70 bg-slate-50/70 backdrop-blur-xl transition-colors duration-500 dark:border-slate-800/70 dark:bg-slate-900/55">
-        <div className="mx-auto grid max-w-7xl gap-px px-5 sm:grid-cols-3 lg:px-8">
-          <Feature
-            icon={<Tv2 size={21} />}
-            title={
-              isArabic
-                ? "ترفيه متنوع"
-                : "Varied entertainment"
-            }
-            description={
-              isArabic
-                ? "اختر الباقة التي تناسب استخدامك."
-                : "Choose the plan that fits your needs."
+      {/* ========================= POPULAR PLANS ========================= */}
+      <section id="plans" className="scroll-mt-20 py-16 sm:py-20">
+        <Container>
+          <SectionHeading
+            eyebrow={t("الباقات", "Plans")}
+            title={t("اختار الباقة اللي تناسبك", "Choose the plan that suits you")}
+            description={t(
+              "أسعار واضحة قبل الطلب. الباقات الأكثر طلبًا حسب الاشتراكات الفعلية عندنا.",
+              "Clear prices before you order. Ranked by real subscriptions.",
+            )}
+            action={
+              <LinkButton href="/plans" variant="ghost">
+                {t("كل الباقات", "All plans")}
+                <ArrowLeft size={16} className="ltr:rotate-180" aria-hidden />
+              </LinkButton>
             }
           />
-
-          <Feature
-            icon={<ShieldCheck size={21} />}
-            title={
-              isArabic
-                ? "إدارة واضحة"
-                : "Clear management"
-            }
-            description={
-              isArabic
-                ? "تابع اشتراكك وبياناتك من حسابك."
-                : "Track your subscription and details from your account."
-            }
-          />
-
-          <Feature
-            icon={<Headphones size={21} />}
-            title={
-              isArabic
-                ? "دعم مستمر"
-                : "Ongoing support"
-            }
-            description={
-              isArabic
-                ? "نساعدك عند الحاجة بخطوات واضحة."
-                : "We help you whenever you need it with clear guidance."
-            }
-          />
-        </div>
-      </section>
-
-      {/* =====================================================
-          POPULAR PLANS
-          ===================================================== */}
-
-      <section className="relative overflow-hidden bg-white transition-colors duration-500 dark:bg-[#070b14]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-[-200px] top-32 h-[420px] w-[420px] rounded-full bg-cyan-400/[0.045] blur-3xl dark:bg-cyan-400/[0.035]" />
-
-          <div className="absolute right-[-180px] top-24 h-[430px] w-[430px] rounded-full bg-blue-500/[0.05] blur-3xl dark:bg-blue-500/[0.04]" />
-        </div>
-
-        <div className="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex rounded-full border border-blue-200/70 bg-blue-50/70 px-3 py-1.5 text-[10px] font-black tracking-[0.2em] text-blue-600 dark:border-blue-400/10 dark:bg-blue-500/[0.06] dark:text-blue-400">
-              {isArabic
-                ? "الأكثر مبيعًا"
-                : "BEST SELLERS"}
-            </span>
-
-            <h2 className="mt-5 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl dark:text-white">
-              {isArabic
-                ? "الباقات الأكثر طلبًا"
-                : "Our most popular plans"}
-            </h2>
-
-            <p className="mt-4 text-sm leading-7 text-slate-500 sm:text-base dark:text-slate-400">
-              {isArabic
-                ? "هذي أكثر الباقات مبيعًا حسب الاشتراكات المسجلة عندنا."
-                : "These are our best-selling plans based on recorded subscriptions."}
-            </p>
-          </div>
-
-          {packagesLoading ? (
-            <div className="mt-14 grid gap-5 lg:grid-cols-3">
-              {[1, 2, 3].map(
-                (item) => (
-                  <div
-                    key={item}
-                    className="h-[430px] animate-pulse rounded-[28px] border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900"
-                  />
-                )
-              )}
-            </div>
-          ) : popularPackages.length === 0 ? (
-            <div className="mx-auto mt-14 max-w-2xl rounded-[28px] border border-slate-200 bg-slate-50 p-10 text-center dark:border-slate-800 dark:bg-slate-900">
-              <Tv2
-                size={32}
-                className="mx-auto text-slate-400"
-              />
-
-              <h3 className="mt-4 text-lg font-black text-slate-900 dark:text-white">
-                {isArabic
-                  ? "ماكو باقات مبيعاتها متاحة حاليًا"
-                  : "No popular plans available yet"}
-              </h3>
-
-              <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-400">
-                {isArabic
-                  ? "تكدر تشوف جميع الباقات المنشورة من صفحة الباقات."
-                  : "You can view all published plans from the plans page."}
-              </p>
-
-              <Link
-                href="/plans"
-                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3.5 text-sm font-black text-white transition hover:bg-blue-700"
-              >
-                {isArabic
-                  ? "عرض كل الباقات"
-                  : "View all plans"}
-
-                <ArrowLeft
-                  size={17}
-                  className={
-                    isArabic
-                      ? ""
-                      : "rotate-180"
-                  }
+          {popular.length ? (
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {popular.map((pkg, index) => (
+                <PackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  lang={lang}
+                  href={planHref(pkg)}
+                  featured={index === 0 && !popular.some((item) => item.isPopular)}
                 />
-              </Link>
+              ))}
             </div>
           ) : (
-            <div className="mt-14 grid gap-5 lg:grid-cols-3">
-              {popularPackages.map(
-                (plan, index) => {
-                  const isFeatured =
-                    index === 0;
+            <EmptyState
+              className="mt-10"
+              title={t("ماكو باقات منشورة حاليًا", "No plans are published right now")}
+              description={t(
+                "راح تظهر الباقات هنا أول ما تنشر. تكدر تتواصل ويانا بأي وقت.",
+                "Plans will appear here as soon as they're published. You can contact us any time.",
+              )}
+              action={
+                <LinkButton href="/help/contact" variant="secondary">
+                  {t("تواصل ويانا", "Contact us")}
+                </LinkButton>
+              }
+            />
+          )}
+        </Container>
+      </section>
 
-                  return (
-                    <div
-                      key={plan.id}
-                      className={`euclid-surface group relative overflow-hidden rounded-[28px] border p-7 ${
-                        isFeatured
-                          ? "border-blue-400/70 bg-gradient-to-b from-blue-50/90 via-white to-white shadow-[0_20px_60px_rgba(37,99,235,0.12)] dark:border-blue-500/50 dark:from-blue-950/50 dark:via-slate-900 dark:to-slate-900 dark:shadow-[0_20px_60px_rgba(30,64,175,0.18)]"
-                          : "border-slate-200/80 bg-white/75 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60"
-                      }`}
-                    >
-                      <div
-                        className={`pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full blur-3xl ${
-                          isFeatured
-                            ? "bg-blue-400/20"
-                            : "bg-cyan-400/10"
-                        }`}
-                      />
-
-                      {isFeatured && (
-                        <div className="absolute -top-0 right-6 rounded-b-xl bg-blue-600 px-4 py-2 text-[10px] font-black text-white shadow-lg shadow-blue-600/20">
-                          {isArabic
-                            ? "الأكثر مبيعًا"
-                            : "BEST SELLER"}
-                        </div>
-                      )}
-
-                      <div className="relative flex items-start justify-between">
-                        <div>
-                          <h3 className="text-lg font-black text-slate-950 dark:text-white">
-                            {plan.name}
-                          </h3>
-
-                          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                            {plan.durationLabel}
-                          </p>
-                        </div>
-
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50/80 text-blue-600 shadow-sm dark:border-blue-500/10 dark:bg-blue-500/[0.09] dark:text-blue-400">
-                          <Tv2 size={21} />
-                        </div>
-                      </div>
-
-                      <div className="relative mt-8">
-                        <span className="text-3xl font-black text-slate-950 dark:text-white">
-                          {formatPrice(
-                            plan.price
-                          )}
-                        </span>
-
-                        <span
-                          className={`${
-                            isArabic
-                              ? "mr-2"
-                              : "ml-2"
-                          } text-xs font-bold text-slate-400`}
-                        >
-                          IQD
-                        </span>
-                      </div>
-
-                      <p className="relative mt-3 line-clamp-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                        {plan.description}
-                      </p>
-
-                      <div className="my-6 h-px bg-slate-100 dark:bg-slate-800" />
-
-                      <div className="relative space-y-3">
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/[0.10] dark:text-blue-400">
-                            <Check size={13} />
-                          </div>
-
-                          {isArabic
-                            ? `مدة الاشتراك: ${plan.durationLabel}`
-                            : `Duration: ${plan.durationLabel}`}
-                        </div>
-
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/[0.10] dark:text-blue-400">
-                            <Zap size={13} />
-                          </div>
-
-                          {isArabic
-                            ? "تفعيل بعد إتمام الطلب"
-                            : "Activation after placing your request"}
-                        </div>
-
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/[0.10] dark:text-blue-400">
-                            <ShieldCheck size={13} />
-                          </div>
-
-                          {isArabic
-                            ? "دعم ومتابعة من حسابك"
-                            : "Support and account tracking"}
-                        </div>
-                      </div>
-
-                      <Link
-                        href={`/plans`}
-                        className={`relative mt-8 flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-black transition-all duration-300 hover:-translate-y-0.5 ${
-                          isFeatured
-                            ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:shadow-blue-600/30"
-                            : "border border-slate-200 bg-white/80 text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-blue-500/40 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                        }`}
-                      >
-                        {isArabic
-                          ? "عرض الباقة"
-                          : "View plan"}
-
-                        <ChevronLeft
-                          size={16}
-                          className={`transition-transform duration-300 ${
-                            isArabic
-                              ? "group-hover:-translate-x-0.5"
-                              : "rotate-180 group-hover:translate-x-0.5"
-                          }`}
-                        />
-                      </Link>
+      {/* ========================= COMPARE ========================= */}
+      {iptv.length || vip.length ? (
+        <section className="border-y border-line bg-surface/40 py-16 sm:py-20">
+          <Container>
+            <SectionHeading
+              align="center"
+              eyebrow={t("المقارنة", "Compare")}
+              title={t("IPTV أو VIP؟", "IPTV or VIP?")}
+              description={t(
+                "نوعين من الاشتراك. الفرق الأساسي هو الجهاز وطريقة الدخول.",
+                "Two kinds of subscription. The main difference is the device and how you sign in.",
+              )}
+            />
+            <div className="mt-10 grid gap-5 md:grid-cols-2">
+              {[
+                {
+                  key: "IPTV",
+                  list: iptv,
+                  icon: <Tv size={20} aria-hidden />,
+                  title: t("باقات IPTV", "IPTV plans"),
+                  body: t(
+                    "قنوات رياضية وترفيهية وأفلام ومسلسلات عبر الإنترنت، على جهازك وتطبيقك.",
+                    "Sports and entertainment channels, films and series online, on your own device and app.",
+                  ),
+                  rows: [
+                    { label: t("الجهاز", "Device"), value: t("جهازك الخاص مع تطبيق مدعوم", "Your own device with a supported app") },
+                    { label: t("الدخول", "Sign-in"), value: t("اسم مستخدم وكلمة مرور", "Username and password") },
+                  ],
+                },
+                {
+                  key: "VIP",
+                  list: vip,
+                  icon: <Crown size={20} aria-hidden />,
+                  title: t("باقات VIP", "VIP plans"),
+                  body: t(
+                    "تجربة مشاهدة مميزة مع جهاز VIP مخصص مرتبط باشتراكك.",
+                    "A premium experience with a dedicated VIP device linked to your subscription.",
+                  ),
+                  rows: [
+                    { label: t("الجهاز", "Device"), value: t("جهاز VIP ضمن الطلب", "VIP device included in the order") },
+                    { label: t("الدخول", "Sign-in"), value: t("مرتبط برقم الجهاز", "Linked to the device ID") },
+                  ],
+                },
+              ].map((column) =>
+                column.list.length ? (
+                  <article key={column.key} className="surface flex flex-col rounded-panel p-6 sm:p-8">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-surface-3 text-glow">
+                        {column.icon}
+                      </span>
+                      <h3 className="text-xl font-bold text-ink">{column.title}</h3>
                     </div>
-                  );
-                }
+                    <p className="mt-4 text-sm leading-7 text-ink-2">{column.body}</p>
+                    <dl className="mt-6 divide-y divide-line border-y border-line">
+                      {[
+                        ...column.rows,
+                        { label: t("المدد المتاحة", "Durations"), value: durations(column.list).join(" · ") },
+                        {
+                          label: t("يبدأ من", "Starts at"),
+                          value: formatPrice(minPrice(column.list) ?? 0, lang),
+                        },
+                      ].map((row) => (
+                        <div key={row.label} className="flex items-start justify-between gap-4 py-3.5 text-sm">
+                          <dt className="text-ink-3">{row.label}</dt>
+                          <dd className="nums text-end font-semibold text-ink">{row.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <div className="mt-6">
+                      <LinkButton href={`/plans#${column.key.toLowerCase()}`} variant="secondary" className="w-full">
+                        {t("شوف باقات ", "See ")}
+                        {column.key}
+                        {isAr ? "" : " plans"}
+                      </LinkButton>
+                    </div>
+                  </article>
+                ) : null,
               )}
             </div>
-          )}
+          </Container>
+        </section>
+      ) : null}
 
-          {popularPackages.length > 0 && (
-            <div className="mt-8 text-center">
-              <Link
-                href="/plans"
-                className="group inline-flex items-center gap-2 text-sm font-black text-blue-600 transition hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                {isArabic
-                  ? "شوف كل الباقات"
-                  : "View all plans"}
-
-                <ArrowLeft
-                  size={16}
-                  className={`transition-transform duration-300 ${
-                    isArabic
-                      ? "group-hover:-translate-x-1"
-                      : "rotate-180 group-hover:translate-x-1"
-                  }`}
-                />
-              </Link>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* =====================================================
-          WHY US
-          ===================================================== */}
-
-      <section className="relative isolate overflow-hidden bg-slate-950">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute right-[-12%] top-[-35%] h-[700px] w-[700px] rounded-full bg-blue-600/[0.10] blur-3xl" />
-
-          <div className="absolute left-[-10%] bottom-[-30%] h-[580px] w-[580px] rounded-full bg-cyan-400/[0.08] blur-3xl" />
-
-          <div
-            className="absolute inset-0 opacity-[0.18]"
-            style={{
-              backgroundImage:
-                "linear-gradient(to right, rgba(148,163,184,0.035) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.035) 1px, transparent 1px)",
-              backgroundSize:
-                "44px 44px",
-            }}
-          />
-
-          <div className="absolute right-[7%] top-20 h-72 w-72 rounded-full border border-blue-400/[0.08]" />
-
-          <div className="absolute right-[10%] top-24 h-56 w-56 rounded-full border border-cyan-400/[0.06]" />
-        </div>
-
-        <div className="relative mx-auto grid max-w-7xl gap-12 px-5 py-20 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-24">
+      {/* ========================= SHASHTNA PLAYER ========================= */}
+      <section className="py-16 sm:py-24">
+        <Container className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <span className="inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/[0.05] px-3 py-1.5 text-[10px] font-black tracking-[0.2em] text-cyan-400">
-              {isArabic
-                ? "ليش شاشتنا"
-                : "WHY SHASHTNA"}
-            </span>
-
-            <h2 className="mt-5 text-3xl font-black leading-tight text-white sm:text-4xl">
-              {isArabic ? (
-                <>
-                  مو مجرد اشتراك،
-                  <span className="block bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text text-transparent">
-                    تجربة أبسط.
-                  </span>
-                </>
-              ) : (
-                <>
-                  More than a subscription,
-                  <span className="block bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text text-transparent">
-                    a simpler experience.
-                  </span>
-                </>
+            <Eyebrow>Shashtna Player</Eyebrow>
+            <h2 className="mt-3 text-balance text-3xl font-bold leading-tight text-ink sm:text-4xl">
+              {t("المشغل الرسمي لشاشتنا", "The official Shashtna player")}
+            </h2>
+            <p className="mt-4 max-w-lg text-[15px] leading-8 text-ink-2">
+              {t(
+                "تطبيق Shashtna Player مصمم لأندرويد وأندرويد TV. حمّله، سجّل دخولك، وابدأ المشاهدة.",
+                "Shashtna Player is built for Android and Android TV. Install it, sign in and start watching.",
               )}
-            </h2>
-
-            <p className="mt-5 max-w-xl text-sm leading-8 text-slate-400 sm:text-base">
-              {isArabic
-                ? "صممنا شاشتنا حتى تكون كل خطوة واضحة: من اختيار الباقة إلى إدارة الاشتراك ومتابعة التفاصيل من حسابك."
-                : "Shashtna is designed to keep every step clear, from choosing a plan to managing your subscription and tracking its details from your account."}
             </p>
-
-            <Link
-              href="/plans"
-              className="group mt-8 inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white px-6 py-3.5 text-sm font-black text-slate-900 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-blue-50"
-            >
-              {isArabic
-                ? "شوف الباقات"
-                : "View plans"}
-
-              <ArrowLeft
-                size={17}
-                className={`transition-transform duration-300 ${
-                  isArabic
-                    ? "group-hover:-translate-x-1"
-                    : "rotate-180 group-hover:translate-x-1"
-                }`}
-              />
-            </Link>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <DarkFeature
-              icon={<Sparkles size={21} />}
-              title={
-                isArabic
-                  ? "واجهة بسيطة"
-                  : "Simple interface"
-              }
-              description={
-                isArabic
-                  ? "بدون قوائم معقدة أو خطوات غير واضحة."
-                  : "No complicated menus or unclear steps."
-              }
-            />
-
-            <DarkFeature
-              icon={<ShieldCheck size={21} />}
-              title={
-                isArabic
-                  ? "كل شيء بحسابك"
-                  : "Everything in your account"
-              }
-              description={
-                isArabic
-                  ? "تابع الاشتراكات والطلبات من مكان واحد."
-                  : "Manage subscriptions and orders from one place."
-              }
-            />
-
-            <DarkFeature
-              icon={<Zap size={21} />}
-              title={
-                isArabic
-                  ? "تجربة سريعة"
-                  : "Fast experience"
-              }
-              description={
-                isArabic
-                  ? "الوصول للمعلومات التي تحتاجها بسهولة."
-                  : "Get to the information you need quickly."
-              }
-            />
-
-            <DarkFeature
-              icon={<Headphones size={21} />}
-              title={
-                isArabic
-                  ? "دعم فني"
-                  : "Technical support"
-              }
-              description={
-                isArabic
-                  ? "فريقنا موجود لمساعدتك عند الحاجة."
-                  : "Our team is here whenever you need help."
-              }
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* =====================================================
-          HOW IT WORKS
-          ===================================================== */}
-
-      <section className="relative overflow-hidden bg-white transition-colors duration-500 dark:bg-[#070b14]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute right-[-180px] top-1/2 h-[420px] w-[420px] -translate-y-1/2 rounded-full bg-blue-500/[0.04] blur-3xl dark:bg-blue-500/[0.035]" />
-
-          <div className="absolute left-[-170px] top-20 h-[360px] w-[360px] rounded-full bg-cyan-400/[0.04] blur-3xl dark:bg-cyan-400/[0.03]" />
-        </div>
-
-        <div className="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex rounded-full border border-blue-200/70 bg-blue-50/70 px-3 py-1.5 text-[10px] font-black tracking-[0.2em] text-blue-600 dark:border-blue-400/10 dark:bg-blue-500/[0.06] dark:text-blue-400">
-              {isArabic
-                ? "شلون تشتغل"
-                : "HOW IT WORKS"}
-            </span>
-
-            <h2 className="mt-5 text-3xl font-black text-slate-950 sm:text-4xl dark:text-white">
-              {isArabic
-                ? "اشترك بثلاث خطوات"
-                : "Subscribe in three steps"}
-            </h2>
-
-            <p className="mt-4 text-sm leading-7 text-slate-500 sm:text-base dark:text-slate-400">
-              {isArabic
-                ? "خلّينا نخلي العملية أبسط ما يمكن."
-                : "We keep the process as simple as possible."}
-            </p>
-          </div>
-
-          <div className="relative mt-16 grid gap-10 md:grid-cols-3 md:gap-8">
-            <div className="pointer-events-none absolute right-[16%] left-[16%] top-10 hidden h-px bg-gradient-to-l from-blue-200 via-cyan-200 to-blue-200 dark:from-blue-900/70 dark:via-cyan-900/70 dark:to-blue-900/70 md:block" />
-
-            {steps.map(
-              (step) => (
-                <div
-                  key={step.number}
-                  className="group relative text-center"
-                >
-                  <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-full border-[7px] border-white bg-gradient-to-br from-blue-600 to-cyan-500 text-lg font-black text-white shadow-xl shadow-blue-600/20 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-blue-600/30 dark:border-[#070b14]">
-                    {step.number}
-                  </div>
-
-                  <h3 className="mt-7 text-lg font-black text-slate-950 dark:text-white">
-                    {isArabic
-                      ? step.titleAr
-                      : step.titleEn}
-                  </h3>
-
-                  <p className="mx-auto mt-3 max-w-xs text-sm leading-7 text-slate-500 dark:text-slate-400">
-                    {isArabic
-                      ? step.descriptionAr
-                      : step.descriptionEn}
-                  </p>
-                </div>
-              )
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* =====================================================
-          DIGITAL SERVICES
-          ===================================================== */}
-      <section className="border-t border-slate-200/70 bg-slate-50/70 dark:border-slate-800/70 dark:bg-slate-900/40">
-        <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <span className="text-xs font-black tracking-[0.2em] text-blue-600 dark:text-blue-400">
-                {isArabic ? "شاشتنا للحلول الرقمية" : "SHASHTNA DIGITAL SOLUTIONS"}
-              </span>
-              <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
-                {isArabic ? "مو بس ترفيه. نبني منتجات رقمية أيضاً." : "More than entertainment. We build digital products too."}
-              </h2>
-              <p className="mt-4 text-sm leading-8 text-slate-500 dark:text-slate-400 sm:text-base">
-                {isArabic
-                  ? "مواقع، متاجر، تطبيقات Android، Android TV، وحلول IPTV مخصصة حسب مشروعك."
-                  : "Websites, stores, Android apps, Android TV and custom IPTV solutions built around your project."}
-              </p>
+            <ul className="mt-6 space-y-3 text-sm text-ink-2">
+              {[
+                t("بيانات اشتراكك موجودة بحسابك وجاهزة للنسخ", "Your subscription details are in your account, ready to copy"),
+                t("روابط تحميل وخطوات إعداد واضحة", "Clear download links and setup steps"),
+                t("دعم فني مرتبط باشتراكك عند الحاجة", "Support linked to your subscription when you need it"),
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <Check size={17} className="mt-0.5 shrink-0 text-glow" aria-hidden />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <LinkButton href="/watch/player" size="lg">
+                <MonitorPlay size={18} aria-hidden />
+                {player ? t("تحميل Shashtna Player", "Get Shashtna Player") : t("عن Shashtna Player", "About Shashtna Player")}
+              </LinkButton>
             </div>
-
-            <Link
-              href="/services"
-              className="group inline-flex w-fit items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-700 dark:bg-white dark:text-slate-950 dark:hover:bg-blue-50"
-            >
-              {isArabic ? "استكشف خدمات شاشتنا" : "Explore Shashtna services"}
-              <ArrowLeft size={16} className={isArabic ? "transition-transform group-hover:-translate-x-1" : "rotate-180 transition-transform group-hover:translate-x-1"} />
-            </Link>
-          </div>
-
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {[
-              { icon: Globe, label: isArabic ? "تطوير المواقع" : "Web Development" },
-              { icon: ShoppingCart, label: isArabic ? "المتاجر الإلكترونية" : "E-Commerce" },
-              { icon: Smartphone, label: isArabic ? "تطبيقات Android" : "Android Apps" },
-              { icon: Tv2, label: isArabic ? "Android TV" : "Android TV" },
-              { icon: Radio, label: isArabic ? "حلول IPTV" : "IPTV Solutions" },
-            ].map(({ icon: Icon, label }) => (
-              <Link
-                key={String(label)}
-                href="/services"
-                className="group rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/55 dark:hover:border-blue-500/30"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                  <Icon size={20} />
-                </div>
-                <div className="mt-5 text-sm font-black text-slate-900 dark:text-white">{label}</div>
-                <div className="mt-2 text-xs font-bold text-slate-400 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                  {isArabic ? "اعرف أكثر" : "Learn more"}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* =====================================================
-          CTA
-          ===================================================== */}
-
-      <section className="relative overflow-hidden bg-white px-5 pb-20 transition-colors duration-500 dark:bg-[#070b14] lg:px-8 lg:pb-28">
-        <div className="euclid-surface relative mx-auto max-w-7xl overflow-hidden rounded-[34px] border border-blue-400/20 bg-gradient-to-l from-blue-700 via-blue-600 to-cyan-500 px-7 py-12 text-center shadow-[0_25px_70px_rgba(37,99,235,0.20)] sm:px-12 lg:py-16">
-          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border border-white/10" />
-
-          <div className="pointer-events-none absolute -right-12 top-16 h-44 w-44 rounded-full border border-white/[0.06]" />
-
-          <div className="pointer-events-none absolute -bottom-28 -left-20 h-72 w-72 rounded-full border border-white/10" />
-
-          <div className="pointer-events-none absolute left-[8%] top-[18%] h-4 w-4 rounded-full bg-white/20 blur-[1px]" />
-
-          <div className="pointer-events-none absolute right-[14%] bottom-[18%] h-3 w-3 rounded-full bg-white/20 blur-[1px]" />
-
-          <div className="relative">
-            <h2 className="text-3xl font-black text-white sm:text-4xl">
-              {isArabic
-                ? "جاهز تبدأ؟"
-                : "Ready to get started?"}
-            </h2>
-
-            <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-blue-100 sm:text-base">
-              {isArabic
-                ? "اختار الباقة المناسبة إلك وخلّينا نخلي تجربة الاشتراك أسهل."
-                : "Choose the plan that suits you and let us make your subscription experience easier."}
+            <p className="mt-5 inline-flex items-center gap-2 text-xs text-ink-3">
+              <Badge tone="neutral">{t("قريبًا", "Coming soon")}</Badge>
+              {t("ربط التلفزيون بحسابك برمز QR بدل إدخال البيانات يدويًا.", "Link your TV to your account with a QR code instead of typing details.")}
             </p>
+          </div>
 
-            <Link
-              href="/plans"
-              className="group mt-8 inline-flex items-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-black text-blue-700 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-blue-50"
-            >
-              {isArabic
-                ? "استعرض الباقات"
-                : "Browse plans"}
+          <PlayerIllustration lang={lang} />
+        </Container>
+      </section>
 
-              <ArrowLeft
-                size={18}
-                className={`transition-transform duration-300 ${
-                  isArabic
-                    ? "group-hover:-translate-x-1"
-                    : "rotate-180 group-hover:translate-x-1"
-                }`}
-              />
-            </Link>
+      {/* ========================= WATCH ON ========================= */}
+      <section className="border-y border-line bg-surface/40 py-16 sm:py-20">
+        <Container>
+          <SectionHeading
+            eyebrow={t("شاهد على", "Watch on")}
+            title={t("شغّل اشتراكك على جهازك", "Watch on your device")}
+            description={t(
+              "المنصات اللي عندنا لها تطبيق جاهز، مع رابط التحميل وخطوات الإعداد.",
+              "Platforms with a ready app, including download links and setup steps.",
+            )}
+            action={
+              <LinkButton href="/watch" variant="ghost">
+                {t("كل الأجهزة", "All devices")}
+                <ArrowLeft size={16} className="ltr:rotate-180" aria-hidden />
+              </LinkButton>
+            }
+          />
+          {platforms.length ? (
+            <ul className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {platforms.map(({ platform, apps: platformApps }) => (
+                <li key={platform}>
+                  <Link
+                    href={`/watch#${encodeURIComponent(platform)}`}
+                    className="surface group flex h-full flex-col rounded-card p-5 transition hover:-translate-y-0.5 hover:border-brand/50"
+                  >
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-surface-3 text-brand-ink transition group-hover:text-glow">
+                      {/tv|تلفز/i.test(platform) ? <Tv size={20} aria-hidden /> : <Smartphone size={20} aria-hidden />}
+                    </span>
+                    <span className="mt-4 text-base font-bold text-ink">{platform}</span>
+                    <span className="mt-1 text-xs text-ink-3">
+                      {isAr
+                        ? `${platformApps.length} ${platformApps.length === 1 ? "تطبيق" : "تطبيقات"}`
+                        : `${platformApps.length} app${platformApps.length === 1 ? "" : "s"}`}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+              {vip.length ? (
+                <li>
+                  <Link
+                    href="/devices"
+                    className="surface group flex h-full flex-col rounded-card p-5 transition hover:-translate-y-0.5 hover:border-glow/50"
+                  >
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-surface-3 text-glow">
+                      <Crown size={20} aria-hidden />
+                    </span>
+                    <span className="mt-4 text-base font-bold text-ink">{t("أجهزة VIP", "VIP devices")}</span>
+                    <span className="mt-1 text-xs text-ink-3">{t("جاهزة لباقات VIP", "Ready for VIP plans")}</span>
+                  </Link>
+                </li>
+              ) : null}
+            </ul>
+          ) : (
+            <EmptyState
+              className="mt-10"
+              compact
+              title={t("قائمة التطبيقات قيد التحديث", "The apps list is being updated")}
+              description={t("تواصل ويانا ونساعدك تختار التطبيق المناسب لجهازك.", "Contact us and we'll help you choose the right app for your device.")}
+            />
+          )}
+        </Container>
+      </section>
+
+      {/* ========================= TRUST ========================= */}
+      <section className="py-16 sm:py-24">
+        <Container>
+          <SectionHeading
+            align="center"
+            eyebrow={t("ليش شاشتنا", "Why Shashtna")}
+            title={t("خدمة واضحة من أول خطوة", "A clear service from the first step")}
+          />
+          <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                icon: <Wallet size={20} aria-hidden />,
+                title: t("أسعار معلنة", "Published prices"),
+                body: t("سعر كل باقة ومدتها واضحين قبل ما ترسل الطلب.", "Every plan's price and duration are shown before you order."),
+              },
+              {
+                icon: <PackageCheck size={20} aria-hidden />,
+                title: t("طلب تتابعه", "Orders you can follow"),
+                body: t("كل طلب إله رقم وحالة تتحدث لحد التفعيل.", "Every order has a number and a status that updates until activation."),
+              },
+              {
+                icon: <ReceiptText size={20} aria-hidden />,
+                title: t("حسابك بإيدك", "Your account, in your hands"),
+                body: t("اشتراكاتك وتواريخ الانتهاء والإيصالات والتجديد بمكان واحد.", "Subscriptions, expiry dates, receipts and renewals in one place."),
+              },
+              {
+                icon: <Headphones size={20} aria-hidden />,
+                title: t("دعم مرتبط باشتراكك", "Support tied to your plan"),
+                body: t("افتح تذكرة من حسابك وتوصلك إشعارات الرد.", "Open a ticket from your account and get notified of replies."),
+              },
+            ].map((item) => (
+              <li key={item.title} className="surface rounded-card p-6">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand/15 text-brand-ink">
+                  {item.icon}
+                </span>
+                <h3 className="mt-5 text-base font-bold text-ink">{item.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-ink-2">{item.body}</p>
+              </li>
+            ))}
+          </ul>
+        </Container>
+      </section>
+
+      {/* ========================= HOW IT WORKS ========================= */}
+      <section className="border-y border-line bg-surface/40 py-16 sm:py-20">
+        <Container>
+          <SectionHeading
+            eyebrow={t("شلون تشتغل", "How it works")}
+            title={t("من الاختيار للمشاهدة بأربع خطوات", "From choosing to watching in four steps")}
+          />
+          <ol className="mt-10 grid gap-5 md:grid-cols-4">
+            {[
+              { icon: <Sparkles size={19} aria-hidden />, title: t("اختار باقة", "Choose a plan"), body: t("قارن الباقات واختار المدة المناسبة.", "Compare plans and pick a duration.") },
+              { icon: <UserPlus size={19} aria-hidden />, title: t("أرسل طلبك", "Place your order"), body: t("سجّل دخولك وأكمل الطلب — ياخذ دقيقة.", "Sign in and complete the order — it takes a minute.") },
+              { icon: <Wallet size={19} aria-hidden />, title: t("رتّب الدفع", "Arrange payment"), body: t("فريقنا يتواصل وياك لإتمام الدفع.", "Our team contacts you to complete payment.") },
+              { icon: <CalendarCheck2 size={19} aria-hidden />, title: t("شاهد", "Watch"), body: t("بعد التفعيل تلگى بياناتك بحسابك وتبدأ.", "After activation your details are in your account.") },
+            ].map((step, index) => (
+              <li key={step.title} className="surface relative rounded-card p-6">
+                <span className="nums absolute end-5 top-5 text-4xl font-bold text-line-strong">{index + 1}</span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface-3 text-glow">
+                  {step.icon}
+                </span>
+                <h3 className="mt-5 text-base font-bold text-ink">{step.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-ink-2">{step.body}</p>
+              </li>
+            ))}
+          </ol>
+        </Container>
+      </section>
+
+      {/* ========================= FAQ + SUPPORT ========================= */}
+      <section className="py-16 sm:py-24">
+        <Container className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
+          <div>
+            <SectionHeading eyebrow={t("أسئلة شائعة", "FAQ")} title={t("قبل ما تشترك", "Before you subscribe")} />
+            <div className="mt-8 space-y-3">
+              {FAQ.slice(0, 5).map((item) => (
+                <details key={item.id} className="surface group rounded-2xl px-5 py-1 open:pb-4">
+                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 text-[15px] font-bold text-ink [&::-webkit-details-marker]:hidden">
+                    {item.q[lang]}
+                    <span aria-hidden className="text-xl leading-none text-ink-3 transition group-open:rotate-45">
+                      +
+                    </span>
+                  </summary>
+                  <p className="text-sm leading-7 text-ink-2">{item.a[lang]}</p>
+                </details>
+              ))}
+            </div>
+            <LinkButton href="/help#faq" variant="ghost" className="mt-5">
+              <CircleHelp size={16} aria-hidden />
+              {t("كل الأسئلة", "All questions")}
+            </LinkButton>
+          </div>
+
+          <SupportCard lang={lang} settings={settings} hours={hours} />
+        </Container>
+      </section>
+
+      {/* ========================= FINAL CTA ========================= */}
+      <section className="pb-20">
+        <Container>
+          <div className="relative overflow-hidden rounded-panel border border-brand/30 bg-gradient-to-br from-[#123594] via-[#0b1d52] to-[#070d1c] px-6 py-12 text-center sm:px-12 sm:py-16">
+            <div aria-hidden className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-glow/70 to-transparent" />
+            <ShieldCheck size={30} className="mx-auto text-glow" aria-hidden />
+            <h2 className="mx-auto mt-5 max-w-2xl text-balance text-3xl font-bold text-white sm:text-4xl">
+              {t("جاهز تبدأ المشاهدة؟", "Ready to start watching?")}
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-[15px] leading-8 text-white/75">
+              {t("اختار باقتك، وخلي الباقي علينا.", "Pick your plan and leave the rest to us.")}
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <LinkButton href="/plans" variant="glow" size="lg">
+                {t("استعرض الباقات", "Browse plans")}
+              </LinkButton>
+              {!user ? (
+                <LinkButton href="/register" variant="secondary" size="lg">
+                  {t("إنشاء حساب", "Create account")}
+                </LinkButton>
+              ) : null}
+            </div>
+          </div>
+        </Container>
+      </section>
+    </>
+  );
+}
+
+function SupportCard({
+  lang,
+  settings,
+  hours,
+}: {
+  lang: Lang;
+  settings: Awaited<ReturnType<typeof getSettings>>;
+  hours: string;
+}) {
+  const isAr = lang === "ar";
+  const t = (ar: string, en: string) => (isAr ? ar : en);
+  const channels = [
+    safeExternalUrl(settings["contact.telegram"]) && {
+      href: safeExternalUrl(settings["contact.telegram"])!,
+      label: "Telegram",
+      icon: <TelegramIcon size={18} />,
+    },
+    whatsappLink(settings["contact.whatsapp"]) && {
+      href: whatsappLink(settings["contact.whatsapp"])!,
+      label: "WhatsApp",
+      icon: <WhatsAppIcon size={18} />,
+    },
+    safeExternalUrl(settings["contact.facebook"]) && {
+      href: safeExternalUrl(settings["contact.facebook"])!,
+      label: "Facebook",
+      icon: <FacebookIcon size={18} />,
+    },
+  ].filter(Boolean) as { href: string; label: string; icon: React.ReactNode }[];
+
+  return (
+    <aside className="surface-raised h-fit rounded-panel p-6 sm:p-8">
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/15 text-brand-ink">
+        <Headphones size={22} aria-hidden />
+      </span>
+      <h2 className="mt-5 text-xl font-bold text-ink">{t("نحتاج نساعدك؟", "Need a hand?")}</h2>
+      <p className="mt-2 text-sm leading-7 text-ink-2">
+        {t("مركز المساعدة بيه حلول لأكثر المشاكل شيوعًا، وفريقنا موجود إذا احتجت.", "The help centre covers the most common issues, and our team is here if you need them.")}
+      </p>
+      {hours ? (
+        <p className="mt-4 inline-flex items-center gap-2 rounded-xl border border-line bg-surface-3 px-3 py-2 text-xs font-semibold text-ink-2">
+          <Clock3 size={14} aria-hidden />
+          {hours}
+        </p>
+      ) : null}
+      <div className="mt-6 grid gap-2">
+        <LinkButton href="/help" variant="primary">
+          {t("مركز المساعدة", "Help centre")}
+        </LinkButton>
+        {channels.map((channel) => (
+          <LinkButton key={channel.label} href={channel.href} external variant="secondary">
+            {channel.icon}
+            {channel.label}
+          </LinkButton>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+/** Stylised Player UI. Decorative only — it doesn't show real content. */
+function PlayerIllustration({ lang }: { lang: Lang }) {
+  const isAr = lang === "ar";
+  const categories = isAr
+    ? ["مباشر", "رياضة", "أفلام", "مسلسلات", "أطفال"]
+    : ["Live", "Sports", "Movies", "Series", "Kids"];
+  const tiles = [
+    "from-[#2f6bff] to-[#0b1d52]",
+    "from-[#22d3ee]/80 to-[#0b2a3d]",
+    "from-[#6d4bff] to-[#1b1340]",
+    "from-[#1e40af] to-[#0a1024]",
+    "from-[#0ea5e9] to-[#0b1d33]",
+    "from-[#3b82f6] to-[#101a33]",
+  ];
+
+  return (
+    <div aria-hidden className="relative mx-auto w-full max-w-xl">
+      <div className="absolute -inset-8 rounded-full bg-[radial-gradient(closest-side,rgba(34,211,238,0.14),transparent)]" />
+      <div className="relative rounded-[1.9rem] border border-white/10 bg-gradient-to-b from-[#1a2440] to-[#0b1222] p-2.5">
+        <div className="grid aspect-[16/10] grid-cols-[30%_1fr] overflow-hidden rounded-[1.4rem] bg-[#060b17]">
+          <div className="border-e border-white/5 bg-[#08101f] p-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand text-[10px] font-bold text-white">ش</span>
+              <span className="text-[11px] font-bold text-white/80">Player</span>
+            </div>
+            <ul className="mt-4 space-y-1.5">
+              {categories.map((category, index) => (
+                <li
+                  key={category}
+                  className={`rounded-md px-2 py-1.5 text-[10px] font-semibold ${index === 0 ? "bg-brand/25 text-white" : "text-white/45"}`}
+                >
+                  {category}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="p-3">
+            <div className="h-[42%] rounded-lg bg-gradient-to-br from-[#1b3d9e] via-[#0e1e4d] to-[#070d1c] p-3">
+              <div className="h-1.5 w-16 rounded bg-white/70" />
+              <div className="mt-1.5 h-1 w-24 rounded bg-white/30" />
+              <div className="mt-3 h-4 w-12 rounded bg-white/85" />
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {tiles.map((tile) => (
+                <div key={tile} className={`aspect-video rounded-md bg-gradient-to-br ${tile}`} />
+              ))}
+            </div>
           </div>
         </div>
-      </section>
-    </main>
-  );
-}
-
-/* =========================================================
-   SMALL COMPONENTS
-   ========================================================= */
-
-function TrustItem({
-  icon,
-  text,
-}: {
-  icon: React.ReactNode;
-  text: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
-      <span className="text-blue-600 dark:text-blue-400">
-        {icon}
-      </span>
-
-      <span>{text}</span>
-    </div>
-  );
-}
-
-function Feature({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="group flex items-center gap-4 px-5 py-7 sm:justify-center sm:px-8">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-slate-200/80 bg-white text-blue-600 shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-md dark:border-slate-700/80 dark:bg-slate-800 dark:text-blue-400">
-        {icon}
       </div>
-
-      <div>
-        <h3 className="text-sm font-black text-slate-900 dark:text-white">
-          {title}
-        </h3>
-
-        <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-          {description}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function DarkFeature({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.04] p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-white/[0.14] hover:bg-white/[0.06]">
-      <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-blue-500/[0.08] blur-2xl transition-opacity duration-300 group-hover:bg-cyan-400/[0.10]" />
-
-      <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-400/10 bg-blue-500/[0.12] text-cyan-400">
-        {icon}
-      </div>
-
-      <h3 className="relative mt-5 text-base font-black text-white">
-        {title}
-      </h3>
-
-      <p className="relative mt-2 text-xs leading-6 text-slate-400">
-        {description}
-      </p>
     </div>
   );
 }

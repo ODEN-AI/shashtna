@@ -1,751 +1,194 @@
-"use client";
+import type { Metadata } from "next";
+import { Crown, Info, Tv } from "lucide-react";
 
-import {
-  Check,
-  ChevronLeft,
-  CircleAlert,
-  Loader2,
-  MessageCircle,
-  ShieldCheck,
-  Sparkles,
-  Tv,
-  Zap,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { LinkButton } from "@/app/ui/Button";
+import { PackageCard } from "@/app/ui/PackageCard";
+import { Container, Eyebrow, SectionHeading } from "@/app/ui/Page";
+import { EmptyState, ErrorState, Notice } from "@/app/ui/States";
+import { FAQ } from "@/src/content/help";
+import { formatPrice } from "@/src/lib/i18n";
+import { getActivePackages, type CatalogPackage } from "@/src/server/catalog";
+import { getI18n } from "@/src/server/i18n";
 
-import { useLanguage } from "../components/LanguageProvider";
+export const dynamic = "force-dynamic";
 
-type PackageData = {
-  id: number;
-  name: string;
-  slug: string;
-  serviceType: string;
-  price: number;
-  durationMonths: number;
-  durationLabel: string;
-  description: string;
-  specifications: string;
-  notes: string | null;
-  imageUrl: string | null;
-  isActive: boolean;
+export const metadata: Metadata = {
+  title: "الباقات",
+  description: "باقات شاشتنا IPTV وVIP بأسعار ومدد واضحة. اختار باقتك وأكمل طلبك بخطوات بسيطة.",
+  alternates: { canonical: "/plans" },
 };
 
-type CurrentUser = {
-  id: number;
-  name?: string;
-  phone?: string;
-  role?: string;
-};
+export default async function PlansPage() {
+  const { t, lang } = await getI18n();
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("en-US").format(price);
-}
+  let packages: CatalogPackage[] | null = null;
 
-export default function PlansPage() {
-  const { language } = useLanguage();
-  const router = useRouter();
+  try {
+    packages = await getActivePackages();
+  } catch (error) {
+    console.error("PLANS_PAGE_ERROR:", error);
+  }
 
-  const isArabic = language === "ar";
-
-  const [packages, setPackages] =
-    useState<PackageData[]>([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
-  useEffect(() => {
-    void loadPackages();
-  }, []);
-
-  async function loadPackages() {
-    try {
-      setLoading(true);
-      setError("");
-
-      const response = await fetch(
-        "/api/packages",
+  const groups = packages
+    ? [
         {
-          method: "GET",
-          cache: "no-store",
-        }
-      );
+          key: "iptv",
+          icon: <Tv size={20} aria-hidden />,
+          title: t("باقات IPTV", "IPTV plans"),
+          description: t(
+            "قنوات رياضية وترفيهية وأفلام ومسلسلات عبر الإنترنت، تستخدمها على جهازك والتطبيق المناسب إلك. بعد التفعيل تستلم اسم مستخدم وكلمة مرور بحسابك.",
+            "Sports and entertainment channels, films and series online, on your own device and app. After activation you get a username and password in your account.",
+          ),
+          items: packages.filter((pkg) => pkg.serviceType === "IPTV"),
+        },
+        {
+          key: "vip",
+          icon: <Crown size={20} aria-hidden />,
+          title: t("باقات VIP", "VIP plans"),
+          description: t(
+            "تجربة مشاهدة مميزة مع جهاز VIP مخصص. عند الطلب تختار الجهاز المتوافق، وسعر الطلب يشمل الباقة والجهاز.",
+            "A premium experience with a dedicated VIP device. When ordering you pick a compatible device, and the order price covers the plan and the device.",
+          ),
+          items: packages.filter((pkg) => pkg.serviceType === "VIP"),
+        },
+      ]
+    : [];
 
-      const data =
-        await response.json();
-
-      if (
-        !response.ok ||
-        !data.success
-      ) {
-        throw new Error(
-          data.message ||
-            (isArabic
-              ? "تعذر تحميل الباقات."
-              : "Unable to load plans.")
-        );
-      }
-
-      const activePackages:
-        PackageData[] =
-        Array.isArray(data.packages)
-          ? data.packages.filter(
-              (pkg: PackageData) =>
-                pkg.isActive === true
-            )
-          : [];
-
-      setPackages(activePackages);
-    } catch (error) {
-      console.error(
-        "Plans page error:",
-        error
-      );
-
-      setError(
-        error instanceof Error
-          ? error.message
-          : isArabic
-            ? "حدث خطأ أثناء تحميل الباقات."
-            : "Something went wrong while loading plans."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function getCurrentUser():
-    CurrentUser | null {
-    try {
-      const savedUser =
-        window.localStorage.getItem(
-          "user"
-        );
-
-      if (!savedUser) {
-        return null;
-      }
-
-      const parsedUser: unknown =
-        JSON.parse(savedUser);
-
-      if (
-        !parsedUser ||
-        typeof parsedUser !==
-          "object" ||
-        !("id" in parsedUser)
-      ) {
-        return null;
-      }
-
-      const userId =
-        (
-          parsedUser as {
-            id?: unknown;
-          }
-        ).id;
-
-      if (
-        typeof userId !==
-          "number" ||
-        !Number.isFinite(userId) ||
-        userId <= 0
-      ) {
-        return null;
-      }
-
-      return parsedUser as CurrentUser;
-    } catch {
-      return null;
-    }
-  }
-
-  function choosePlan(
-    slug: string
-  ) {
-    const encodedSlug =
-      encodeURIComponent(slug);
-
-    const currentUser =
-      getCurrentUser();
-
-    if (
-      currentUser !== null
-    ) {
-      router.push(
-        "/contact?plan=" +
-          encodedSlug
-      );
-
-      return;
-    }
-
-    router.push(
-      "/register?plan=" +
-        encodedSlug
-    );
-  }
-
-  const iptvPackages =
-    packages.filter(
-      (pkg) =>
-        pkg.serviceType.toUpperCase() !==
-        "VIP"
-    );
-
-  const vipPackages =
-    packages.filter(
-      (pkg) =>
-        pkg.serviceType.toUpperCase() ===
-        "VIP"
-    );
+  const paymentFaq = FAQ.filter((item) => item.topic === "payment" || item.id === "activation");
 
   return (
-    <main
-      dir={
-        isArabic
-          ? "rtl"
-          : "ltr"
-      }
-      className="min-h-screen"
-    >
-      <section className="mx-auto max-w-7xl px-5 pb-14 pt-14 lg:px-8 lg:pt-20">
-        <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="absolute -left-28 -top-28 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
-
-          <div className="absolute -bottom-32 -right-24 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
-
-          <div className="relative px-6 py-12 text-center sm:px-10 lg:px-16 lg:py-16">
-            <div className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-black text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
-              <Sparkles size={14} />
-
-              {isArabic
-                ? "باقات شاشتنا"
-                : "Shashtna Plans"}
-            </div>
-
-            <h1 className="mx-auto max-w-4xl text-4xl font-black tracking-tight text-slate-900 dark:text-white sm:text-5xl lg:text-6xl">
-              {isArabic
-                ? "اختار الاشتراك المناسب إلك"
-                : "Choose the subscription that fits you"}
-            </h1>
-
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-500 dark:text-slate-400 sm:text-lg">
-              {isArabic
-                ? "اختار من باقات IPTV العادية أو باقات VIP المصممة لتجربة مشاهدة مختلفة."
-                : "Choose from our regular IPTV plans or our VIP experience."}
-            </p>
-          </div>
-        </div>
+    <>
+      <section className="bg-cinema border-b border-line">
+        <Container className="py-14 text-center sm:py-20">
+          <Eyebrow>{t("باقات شاشتنا", "Shashtna plans")}</Eyebrow>
+          <h1 className="mx-auto mt-4 max-w-3xl text-balance text-4xl font-bold leading-tight text-ink sm:text-5xl">
+            {t("اختار الاشتراك المناسب إلك", "Choose the subscription that fits you")}
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-[15px] leading-8 text-ink-2">
+            {t(
+              "كل الأسعار بالدينار العراقي وواضحة قبل الطلب. الدفع يتم بالتنسيق ويا فريقنا بعد إرسال الطلب.",
+              "All prices are in Iraqi dinars and shown before you order. Payment is arranged with our team after you submit the order.",
+            )}
+          </p>
+          {packages && packages.length ? (
+            <nav className="mt-8 flex justify-center gap-2" aria-label={t("أنواع الباقات", "Plan types")}>
+              {groups
+                .filter((group) => group.items.length)
+                .map((group) => (
+                  <LinkButton key={group.key} href={`#${group.key}`} variant="secondary" size="sm">
+                    {group.icon}
+                    {group.title}
+                  </LinkButton>
+                ))}
+            </nav>
+          ) : null}
+        </Container>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 pb-20 lg:px-8">
-        {loading ? (
-          <div className="flex min-h-80 items-center justify-center">
-            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm font-bold text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-              <Loader2
-                size={20}
-                className="animate-spin text-blue-600"
-              />
-
-              {isArabic
-                ? "جاري تحميل الباقات..."
-                : "Loading plans..."}
-            </div>
-          </div>
-        ) : error ? (
-          <div className="mx-auto flex max-w-xl items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
-            <CircleAlert size={19} />
-
-            {error}
-          </div>
-        ) : packages.length ===
-          0 ? (
-          <div className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <Tv
-              size={32}
-              className="mx-auto text-slate-400"
-            />
-
-            <h2 className="mt-4 text-xl font-black text-slate-900 dark:text-white">
-              {isArabic
-                ? "لا توجد باقات منشورة حاليًا"
-                : "No published plans available"}
-            </h2>
-
-            <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-400">
-              {isArabic
-                ? "راح تظهر الباقات هنا بعد تفعيلها ونشرها من لوحة الإدارة."
-                : "Plans will appear here once they are activated and published from the admin panel."}
-            </p>
-          </div>
+      <Container className="py-14">
+        {packages === null ? (
+          <ErrorState
+            title={t("تعذر تحميل الباقات", "Plans couldn't be loaded")}
+            description={t("صار خطأ مؤقت. حدّث الصفحة بعد شوية.", "A temporary error occurred. Refresh the page shortly.")}
+            action={<LinkButton href="/plans" variant="secondary">{t("إعادة المحاولة", "Try again")}</LinkButton>}
+          />
+        ) : packages.length === 0 ? (
+          <EmptyState
+            title={t("ماكو باقات منشورة حاليًا", "No plans are published right now")}
+            description={t("راح تظهر الباقات هنا أول ما تنشر.", "Plans will appear here as soon as they're published.")}
+            action={<LinkButton href="/help/contact" variant="secondary">{t("تواصل ويانا", "Contact us")}</LinkButton>}
+          />
         ) : (
-          <div className="space-y-16">
-            {iptvPackages.length >
-              0 && (
-              <section>
-                <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-black text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
-                      <Tv size={14} />
-
-                      {isArabic
-                        ? "الخدمة الأساسية"
-                        : "Main service"}
-                    </div>
-
-                    <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-                      {isArabic
-                        ? "باقات IPTV"
-                        : "IPTV Plans"}
-                    </h2>
-
-                    <p className="mt-3 max-w-2xl text-sm leading-8 text-slate-500 dark:text-slate-400 sm:text-base">
-                      {isArabic
-                        ? "خدمة لمشاهدة القنوات الرياضية والترفيهية والأفلام والمسلسلات عبر الإنترنت، وتكدر تستخدمها على الجهاز أو التطبيق المناسب إلك."
-                        : "A service for watching sports and entertainment channels, movies, and series over the internet, using the device or app that suits you."}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid gap-6 lg:grid-cols-3">
-                  {iptvPackages.map(
-                    (pkg) => (
-                      <PlanCard
-                        key={pkg.id}
-                        pkg={pkg}
-                        isArabic={
-                          isArabic
-                        }
-                        isVip={false}
-                        onChoose={
-                          choosePlan
-                        }
-                      />
-                    )
-                  )}
-                </div>
-              </section>
-            )}
-
-            {vipPackages.length >
-              0 && (
-              <section>
-                <div className="mb-8 overflow-hidden rounded-[2rem] border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-6 shadow-sm dark:border-blue-500/20 dark:from-blue-950/20 dark:via-slate-900 dark:to-cyan-950/20 sm:p-8">
-                  <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-20">
+            {groups
+              .filter((group) => group.items.length)
+              .map((group) => (
+                <section key={group.key} id={group.key} className="scroll-mt-24">
+                  <div className="flex items-start gap-4">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface-2 text-glow">
+                      {group.icon}
+                    </span>
                     <div>
-                      <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-black text-blue-700 shadow-sm dark:border-blue-500/20 dark:bg-slate-900 dark:text-blue-300">
-                        <Sparkles
-                          size={14}
-                        />
-
-                        {isArabic
-                          ? "تجربة مميزة"
-                          : "Premium experience"}
-                      </div>
-
-                      <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-                        {isArabic
-                          ? "باقات VIP"
-                          : "VIP Plans"}
-                      </h2>
-
-                      <p className="mt-3 max-w-2xl text-sm leading-8 text-slate-600 dark:text-slate-300 sm:text-base">
-                        {isArabic
-                          ? "اشتراك مميز يوفرلك تجربة مشاهدة مميزة وسلسة، ويجمع بين جودة الخدمة والأجهزة المخصصة للـVIP."
-                          : "A premium subscription designed to provide a smooth and distinctive viewing experience, combining service quality with dedicated VIP devices."}
-                      </p>
-                    </div>
-
-                    <div className="shrink-0 rounded-3xl border border-blue-200 bg-white/80 px-5 py-4 shadow-sm backdrop-blur-xl dark:border-blue-500/20 dark:bg-slate-900/70">
-                      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">
-                        VIP
-                      </div>
-
-                      <div className="mt-1 text-sm font-black text-slate-800 dark:text-white">
-                        {isArabic
-                          ? "تجربة مشاهدة مميزة"
-                          : "A premium viewing experience"}
-                      </div>
+                      <h2 className="text-2xl font-bold text-ink sm:text-3xl">{group.title}</h2>
+                      <p className="mt-2 max-w-3xl text-sm leading-7 text-ink-2">{group.description}</p>
                     </div>
                   </div>
-                </div>
-
-                <div className="grid gap-6 lg:grid-cols-3">
-                  {vipPackages.map(
-                    (pkg) => (
-                      <PlanCard
+                  <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                    {group.items.map((pkg) => (
+                      <PackageCard
                         key={pkg.id}
                         pkg={pkg}
-                        isArabic={
-                          isArabic
-                        }
-                        isVip
-                        onChoose={
-                          choosePlan
-                        }
+                        lang={lang}
+                        maxFeatures={8}
+                        href={`/checkout?plan=${encodeURIComponent(pkg.slug)}`}
                       />
-                    )
+                    ))}
+                  </div>
+                </section>
+              ))}
+
+            <section aria-labelledby="compare-heading">
+              <SectionHeading
+                eyebrow={t("المقارنة", "Compare")}
+                title={<span id="compare-heading">{t("كل الباقات جنب بعض", "All plans side by side")}</span>}
+              />
+              <div className="surface mt-8 overflow-x-auto rounded-card">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b border-line text-xs text-ink-3">
+                      <th scope="col" className="px-4 py-3 text-start font-semibold">{t("الباقة", "Plan")}</th>
+                      <th scope="col" className="px-4 py-3 text-start font-semibold">{t("النوع", "Type")}</th>
+                      <th scope="col" className="px-4 py-3 text-start font-semibold">{t("المدة", "Duration")}</th>
+                      <th scope="col" className="px-4 py-3 text-start font-semibold">{t("السعر", "Price")}</th>
+                      <th scope="col" className="px-4 py-3 text-start font-semibold">{t("جهاز VIP", "VIP device")}</th>
+                      <th scope="col" className="px-4 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {packages.map((pkg) => (
+                      <tr key={pkg.id} className="border-b border-line/70 last:border-0">
+                        <th scope="row" className="px-4 py-3.5 text-start font-bold text-ink">{pkg.name}</th>
+                        <td className="px-4 py-3.5 text-ink-2">{pkg.serviceType}</td>
+                        <td className="px-4 py-3.5 text-ink-2">{pkg.durationLabel}</td>
+                        <td className="nums px-4 py-3.5 font-semibold text-ink">{formatPrice(pkg.price, lang)}</td>
+                        <td className="px-4 py-3.5 text-ink-2">
+                          {pkg.serviceType === "VIP" ? t("مطلوب — يُختار عند الطلب", "Required — chosen at checkout") : "—"}
+                        </td>
+                        <td className="px-4 py-3.5 text-end">
+                          <LinkButton href={`/checkout?plan=${encodeURIComponent(pkg.slug)}`} size="sm" variant="secondary">
+                            {t("اختيار", "Choose")}
+                          </LinkButton>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Notice tone="info" className="mt-4">
+                <span className="inline-flex items-start gap-2">
+                  <Info size={16} className="mt-1 shrink-0" aria-hidden />
+                  {t(
+                    "سعر باقات VIP الظاهر للباقة فقط؛ عند الطلب ينضاف سعر جهاز VIP اللي تختاره.",
+                    "VIP prices shown are for the plan only; the price of the VIP device you choose is added at checkout.",
                   )}
-                </div>
-              </section>
-            )}
+                </span>
+              </Notice>
+            </section>
+
+            <section>
+              <SectionHeading eyebrow={t("قبل الطلب", "Before ordering")} title={t("الدفع والتفعيل", "Payment and activation")} />
+              <div className="mt-6 grid gap-3 md:grid-cols-3">
+                {paymentFaq.map((item) => (
+                  <div key={item.id} className="surface rounded-card p-5">
+                    <h3 className="text-sm font-bold text-ink">{item.q[lang]}</h3>
+                    <p className="mt-2 text-sm leading-7 text-ink-2">{item.a[lang]}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
         )}
-
-        {!loading &&
-          !error &&
-          packages.length >
-            0 && (
-            <div className="mt-16 grid gap-4 md:grid-cols-3">
-              <InfoCard
-                icon={
-                  <Zap size={20} />
-                }
-                title={
-                  isArabic
-                    ? "تفعيل سريع"
-                    : "Fast activation"
-                }
-                text={
-                  isArabic
-                    ? "بعد إرسال الطلب والتواصل ويانا، يتم تجهيز اشتراكك وتفعيله."
-                    : "After sending your request and contacting us, your subscription is prepared and activated."
-                }
-              />
-
-              <InfoCard
-                icon={
-                  <ShieldCheck
-                    size={20}
-                  />
-                }
-                title={
-                  isArabic
-                    ? "متابعة سهلة"
-                    : "Easy tracking"
-                }
-                text={
-                  isArabic
-                    ? "تابع معلومات اشتراكك من حسابك بكل سهولة."
-                    : "Track your subscription details easily from your account."
-                }
-              />
-
-              <InfoCard
-                icon={
-                  <MessageCircle
-                    size={20}
-                  />
-                }
-                title={
-                  isArabic
-                    ? "تواصل مباشر"
-                    : "Direct contact"
-                }
-                text={
-                  isArabic
-                    ? "عند الطلب، تكدر تختار طريقة التواصل المناسبة إلك."
-                    : "Choose your preferred contact method when requesting."
-                }
-              />
-            </div>
-          )}
-      </section>
-    </main>
-  );
-}
-
-function PlanCard({
-  pkg,
-  isArabic,
-  isVip,
-  onChoose,
-}: {
-  pkg: PackageData;
-  isArabic: boolean;
-  isVip: boolean;
-  onChoose: (
-    slug: string
-  ) => void;
-}) {
-  const featured = false;
-
-  let cardClassName =
-    "group relative overflow-hidden rounded-[2rem] border bg-white shadow-sm transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl dark:bg-slate-900 ";
-
-  if (isVip) {
-    cardClassName +=
-      "border-blue-200 shadow-blue-500/5 dark:border-blue-500/20";
-  } else if (
-    featured
-  ) {
-    cardClassName +=
-      "border-blue-500/50 shadow-blue-500/10";
-  } else {
-    cardClassName +=
-      "border-slate-200 dark:border-slate-800";
-  }
-
-  let durationClassName =
-    "mb-2 text-xs font-black uppercase tracking-[0.14em] ";
-
-  if (isVip) {
-    durationClassName +=
-      "text-blue-600 dark:text-blue-400";
-  } else if (
-    featured
-  ) {
-    durationClassName +=
-      "text-blue-600 dark:text-blue-400";
-  } else {
-    durationClassName +=
-      "text-slate-400";
-  }
-
-  let imagePlaceholderClassName =
-    "absolute inset-0 flex items-center justify-center ";
-
-  if (isVip) {
-    imagePlaceholderClassName +=
-      "bg-gradient-to-br from-blue-50 via-white to-cyan-100 dark:from-blue-950/30 dark:via-slate-900 dark:to-cyan-950/20";
-  } else {
-    imagePlaceholderClassName +=
-      "bg-gradient-to-br from-slate-100 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-blue-950/40";
-  }
-
-  let imageIconContainerClassName =
-    "flex h-20 w-20 items-center justify-center rounded-3xl border shadow-sm backdrop-blur-xl ";
-
-  if (isVip) {
-    imageIconContainerClassName +=
-      "border-blue-200 bg-white/80 text-blue-300 dark:border-blue-500/20 dark:bg-slate-900/70 dark:text-blue-500";
-  } else {
-    imageIconContainerClassName +=
-      "border-slate-200 bg-white/80 text-slate-300 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-600";
-  }
-
-  let priceBoxClassName =
-    "my-7 rounded-2xl p-5 ";
-
-  if (isVip) {
-    priceBoxClassName +=
-      "border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 dark:border-blue-500/10 dark:from-blue-950/20 dark:to-cyan-950/20";
-  } else {
-    priceBoxClassName +=
-      "bg-slate-50 dark:bg-slate-800/70";
-  }
-
-  let buttonClassName =
-    "mt-8 flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-black text-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 ";
-
-  if (isVip) {
-    buttonClassName +=
-      "bg-gradient-to-r from-blue-700 to-cyan-500 shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30";
-  } else if (
-    featured
-  ) {
-    buttonClassName +=
-      "bg-gradient-to-r from-blue-700 to-cyan-500 shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30";
-  } else {
-    buttonClassName +=
-      "bg-slate-950 hover:bg-blue-700 dark:bg-slate-800 dark:hover:bg-blue-700";
-  }
-
-  return (
-    <article
-      className={
-        cardClassName
-      }
-    >
-      {isVip && (
-        <div className="absolute left-0 right-0 top-0 z-30 h-1 bg-gradient-to-r from-blue-700 via-cyan-500 to-blue-400" />
-      )}
-
-      {featured &&
-        !isVip && (
-          <div className="absolute left-0 right-0 top-0 z-30 h-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500" />
-        )}
-
-      {isVip && (
-        <div className="absolute right-5 top-5 z-40 inline-flex items-center gap-2 rounded-full border border-white/20 bg-blue-700/90 px-3 py-1.5 text-[11px] font-black text-white shadow-lg shadow-blue-900/20 backdrop-blur-xl">
-          <Sparkles
-            size={13}
-          />
-
-          VIP
-        </div>
-      )}
-
-      <div className="relative h-72 overflow-hidden bg-slate-100 dark:bg-slate-800">
-        {pkg.imageUrl ? (
-          <img
-            src={pkg.imageUrl}
-            alt={pkg.name}
-            className="absolute inset-0 h-full w-full object-cover transition duration-700 ease-out group-hover:scale-105"
-          />
-        ) : (
-          <div
-            className={
-              imagePlaceholderClassName
-            }
-          >
-            <div
-              className={
-                imageIconContainerClassName
-              }
-            >
-              {isVip ? (
-                <Sparkles
-                  size={38}
-                />
-              ) : (
-                <Tv
-                  size={38}
-                />
-              )}
-            </div>
-          </div>
-        )}
-
-        <div
-          className={
-            "pointer-events-none absolute inset-x-0 bottom-0 h-28 " +
-            (isVip
-              ? "bg-gradient-to-t from-blue-950/20 to-transparent"
-              : "bg-gradient-to-t from-slate-950/10 to-transparent")
-          }
-        />
-      </div>
-
-      <div className="relative p-7">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div
-              className={
-                durationClassName
-              }
-            >
-              {pkg.durationLabel}
-            </div>
-
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white">
-              {pkg.name}
-            </h3>
-          </div>
-
-          <div className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left dark:border-slate-700 dark:bg-slate-800/70">
-            <div className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
-              {isArabic
-                ? "المدة"
-                : "DURATION"}
-            </div>
-
-            <div className="mt-0.5 text-xs font-black text-slate-700 dark:text-slate-200">
-              {pkg.durationMonths}{" "}
-              {isArabic
-                ? "شهر"
-                : pkg.durationMonths ===
-                    1
-                  ? "month"
-                  : "months"}
-            </div>
-          </div>
-        </div>
-
-        <div
-          className={
-            priceBoxClassName
-          }
-        >
-          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-            {isArabic
-              ? "السعر"
-              : "PRICE"}
-          </div>
-
-          <div className="mt-1 flex items-end gap-2">
-            <span className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
-              {formatPrice(
-                pkg.price
-              )}
-            </span>
-
-            <span className="pb-1 text-sm font-bold text-slate-400">
-              IQD
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50/70 p-5 dark:border-slate-700 dark:bg-slate-800/50">
-          <p className="text-sm leading-7 text-slate-600 dark:text-slate-300">
-            {pkg.description}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() =>
-            onChoose(pkg.slug)
-          }
-          className={
-            buttonClassName
-          }
-        >
-          {isVip
-            ? isArabic
-              ? "استكشف اشتراك VIP"
-              : "Explore VIP subscription"
-            : isArabic
-              ? "اختيار الاشتراك"
-              : "Choose plan"}
-
-          <ChevronLeft
-            size={18}
-            className={
-              "transition-transform duration-300 " +
-              (isArabic
-                ? "group-hover:-translate-x-1"
-                : "rotate-180 group-hover:translate-x-1")
-            }
-          />
-        </button>
-
-        {pkg.notes && (
-          <p className="mt-4 text-center text-xs leading-6 text-slate-400">
-            {pkg.notes}
-          </p>
-        )}
-      </div>
-    </article>
-  );
-}
-
-function InfoCard({
-  icon,
-  title,
-  text,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-        {icon}
-      </div>
-
-      <h3 className="mt-4 text-base font-black text-slate-900 dark:text-white">
-        {title}
-      </h3>
-
-      <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-400">
-        {text}
-      </p>
-    </div>
+      </Container>
+    </>
   );
 }

@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { shouldUseBlobStorage as isBlobStorage } from "@/src/lib/runtime";
+import { requireAdmin } from "@/src/lib/session";
 import { getStore } from "@netlify/blobs";
 
 export const runtime = "nodejs";
@@ -26,6 +28,12 @@ function getExtension(file: File) {
 
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request, "content");
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -82,7 +90,7 @@ export async function POST(request: Request) {
       type: file.type,
     });
 
-    const isProduction = process.env.NODE_ENV === "production";
+    const isProduction = isBlobStorage();
 
     if (isProduction) {
       const store = getStore("shashtna-media");

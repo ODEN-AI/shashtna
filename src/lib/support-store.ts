@@ -2,6 +2,8 @@ import { getStore } from "@netlify/blobs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { shouldUseBlobStorage as isBlobStorage } from "@/src/lib/runtime";
+
 export type SupportTicketStatus =
   | "OPEN"
   | "IN_PROGRESS"
@@ -27,14 +29,27 @@ export type SupportTicket = {
   updatedAt: string;
   lastSender: "CUSTOMER" | "ADMIN";
   messages: SupportMessage[];
+  /** What the ticket is about, when opened from a subscription, order,
+   * app or device. Absent on tickets created before the redesign. */
+  context?: SupportTicketContext;
+};
+
+export type SupportTicketContext = {
+  subscriptionId?: number;
+  orderId?: number;
+  app?: string;
+  device?: string;
+  topic?: string;
 };
 
 const STORE_NAME = "shashtna-support";
 const LOCAL_DIR = path.join(process.cwd(), ".data");
 const LOCAL_FILE = path.join(LOCAL_DIR, "support-tickets.json");
 
-function useNetlifyBlobs() {
-  return String(process.env.NETLIFY ?? "").toLowerCase() === "true";
+// Netlify Blobs on Netlify (read-only function filesystem); a local JSON file
+// in development or a local production build. See src/lib/runtime.ts.
+function shouldUseNetlifyBlobs() {
+  return isBlobStorage();
 }
 
 function ticketKey(id: string) {
@@ -61,7 +76,7 @@ async function writeLocalTickets(tickets: SupportTicket[]) {
 }
 
 export async function getAllSupportTickets(): Promise<SupportTicket[]> {
-  if (!useNetlifyBlobs()) {
+  if (!shouldUseNetlifyBlobs()) {
     const tickets = await readLocalTickets();
     return tickets.sort(
       (a, b) =>
@@ -102,7 +117,7 @@ export async function getAllSupportTickets(): Promise<SupportTicket[]> {
 export async function getSupportTicket(
   id: string,
 ): Promise<SupportTicket | null> {
-  if (!useNetlifyBlobs()) {
+  if (!shouldUseNetlifyBlobs()) {
     const tickets = await readLocalTickets();
     return tickets.find((ticket) => ticket.id === id) ?? null;
   }
@@ -121,7 +136,7 @@ export async function getSupportTicket(
 }
 
 export async function saveSupportTicket(ticket: SupportTicket) {
-  if (!useNetlifyBlobs()) {
+  if (!shouldUseNetlifyBlobs()) {
     const tickets = await readLocalTickets();
     const index = tickets.findIndex((item) => item.id === ticket.id);
 
@@ -164,7 +179,10 @@ export function normalizeSupportCategory(value: unknown) {
 
   if (
     category === "subscription" ||
-    category === "device"
+    category === "device" ||
+    category === "app" ||
+    category === "playback" ||
+    category === "payment"
   ) {
     return category;
   }

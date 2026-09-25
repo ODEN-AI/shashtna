@@ -9,6 +9,9 @@ model User {
   role         String   @default("CUSTOMER")
   createdAt    TimestamptzString @default(now())
   updatedAt    temporal.updatedAtString()
+  preferredContact String?
+  renewalReminders Boolean  @default(true)
+  marketingOptIn   Boolean  @default(false)
 
   subscriptions        Subscription[]
   subscriptionRequests SubscriptionRequest[]
@@ -31,6 +34,7 @@ model Subscription {
   maxConnections  Int      @default(1)
   createdAt       TimestamptzString @default(now())
   updatedAt       temporal.updatedAtString()
+  packageId       Int?
 }
 
 model Package {
@@ -112,6 +116,11 @@ model SubscriptionRequest {
   status          String   @default("PENDING")
   createdAt       TimestamptzString @default(now())
   updatedAt       TimestamptzString @default(now())
+  paymentMethod    String?
+  paymentReference String?
+  customerNote     String?
+  adminNote        String?
+  subscriptionId   Int?
 }
 
 model Receipt {
@@ -127,4 +136,117 @@ model Receipt {
   bonusYears      Int      @default(0)
   status          String   @default("PAID")
   createdAt       TimestamptzString @default(now())
+  orderId         Int?
+}
+
+// Unified activity log: admin audit trail, customer-visible history and
+// order / subscription timelines.
+model ActivityEvent {
+  id              Int      @id @default(autoincrement())
+  actorUserId     Int?
+  actorRole       String?
+  userId          Int?
+  entityType      String
+  entityId        String?
+  action          String
+  summary         String
+  details         String?
+  customerVisible Boolean  @default(false)
+  createdAt       TimestamptzString @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// In-app notifications shown in My Shashtna.
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String
+  title     String
+  body      String
+  link      String?
+  dedupeKey String?  @unique
+  readAt    TimestamptzString?
+  createdAt TimestamptzString @default(now())
+
+  @@index([userId])
+}
+
+// Ads and announcements for the website and (later) Shashtna Player.
+model Announcement {
+  id          Int      @id @default(autoincrement())
+  kind        String   @default("AD")
+  title       String
+  description String?
+  imageUrl    String?
+  ctaLabel    String?
+  ctaUrl      String?
+  target      String   @default("ALL")
+  placement   String   @default("HOME_CAROUSEL")
+  style       String   @default("STANDARD")
+  priority    Int      @default(0)
+  isActive    Boolean  @default(true)
+  startsAt    TimestamptzString?
+  endsAt      TimestamptzString?
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
+}
+
+// Admin-published service status incidents and maintenance windows.
+model ServiceIncident {
+  id          Int      @id @default(autoincrement())
+  title       String
+  message     String
+  status      String
+  component   String   @default("ALL")
+  isPublished Boolean  @default(true)
+  startsAt    TimestamptzString @default(now())
+  resolvedAt  TimestamptzString?
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
+}
+
+// Admin-editable site content and configuration (contact links, hours,
+// payment instructions, policy text).
+model SiteSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  updatedBy   Int?
+  updatedAt   temporal.updatedAtString()
+}
+
+// Leads from the Shashtna Digital (agency) request form.
+model ServiceLead {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  name        String
+  phone       String
+  projectType String
+  budget      String?
+  timeline    String?
+  details     String
+  status      String   @default("NEW")
+  adminNote   String?
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
+}
+
+// Staff-assisted password reset: a customer requests a reset, staff verify
+// the customer and issue a short-lived one-time code.
+model PasswordReset {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  status    String   @default("REQUESTED")
+  codeHash  String?
+  attempts  Int      @default(0)
+  expiresAt TimestamptzString?
+  issuedBy  Int?
+  issuedAt  TimestamptzString?
+  usedAt    TimestamptzString?
+  createdAt TimestamptzString @default(now())
+
+  @@index([userId])
 }

@@ -1,31 +1,21 @@
 import { NextResponse } from "next/server";
-import {
-  db,
-  ensureDatabaseConnection,
-} from "@/src/prisma/db";
+import { ensureDatabaseConnection } from "@/src/prisma/db";
 import {
   getSupportTicket,
   makeSupportMessageId,
   normalizeSupportStatus,
   saveSupportTicket,
 } from "@/src/lib/support-store";
+import { logActivity } from "@/src/server/activity";
+import { notify } from "@/src/server/notifications";
+import { requireAdmin } from "@/src/lib/session";
 
 export const dynamic = "force-dynamic";
 
-async function getAdminUser(userId: number) {
-  if (!Number.isInteger(userId) || userId <= 0) {
-    return null;
-  }
+async function getAdminUser(request: Request) {
+  const admin = await requireAdmin(request, "support");
 
-  const user = await db.orm.public.User.first({
-    id: userId,
-  });
-
-  if (!user || String(user.role ?? "").toUpperCase() !== "ADMIN") {
-    return null;
-  }
-
-  return user;
+  return admin.ok ? admin.user : null;
 }
 
 export async function GET(
@@ -36,10 +26,8 @@ export async function GET(
     await ensureDatabaseConnection();
 
     const { id } = await params;
-    const { searchParams } = new URL(request.url);
-    const adminUserId = Number(searchParams.get("adminUserId"));
 
-    const admin = await getAdminUser(adminUserId);
+    const admin = await getAdminUser(request);
 
     if (!admin) {
       return NextResponse.json(
@@ -89,11 +77,10 @@ export async function POST(
 
     const { id } = await params;
     const body = await request.json();
-    const adminUserId = Number(body.adminUserId);
     const message = String(body.message ?? "").trim();
     const requestedStatus = body.status ?? null;
 
-    const admin = await getAdminUser(adminUserId);
+    const admin = await getAdminUser(request);
 
     if (!admin) {
       return NextResponse.json(
@@ -143,6 +130,27 @@ export async function POST(
     }
 
     await saveSupportTicket(ticket);
+
+    if (message) {
+      await notify({
+        userId: ticket.userId,
+        type: "TICKET_REPLY",
+        title: "رد جديد من الدعم الفني",
+        body: `وصل رد على تذكرتك «${ticket.subject}».`,
+        link: `/support/${encodeURIComponent(ticket.id)}`,
+      });
+    }
+
+    await logActivity({
+      actor: admin,
+      userId: ticket.userId,
+      entityType: "TICKET",
+      entityId: ticket.id,
+      action: message ? "TICKET_REPLIED" : "TICKET_STATUS",
+      summary: message
+        ? `رد الدعم على التذكرة «${ticket.subject}»`
+        : `تم تحديث حالة التذكرة «${ticket.subject}» إلى ${ticket.status}`,
+    });
 
     return NextResponse.json({
       success: true,

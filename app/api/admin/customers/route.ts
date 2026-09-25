@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/src/lib/session";
 import { db } from "@/src/prisma/db";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request, "customers");
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     const users = await db.orm.public.User.all();
 
     const customers = users.map((user) => ({

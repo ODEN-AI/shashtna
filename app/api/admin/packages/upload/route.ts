@@ -1,5 +1,7 @@
 import { getStore } from "@netlify/blobs";
 import { NextResponse } from "next/server";
+import { shouldUseBlobStorage as isBlobStorage } from "@/src/lib/runtime";
+import { requireAdmin } from "@/src/lib/session";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
@@ -17,6 +19,12 @@ const BLOB_STORE_NAME = "shashtna-package-images";
 
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request, "catalogue");
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -67,7 +75,7 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
 
     const isProduction =
-      process.env.NODE_ENV === "production";
+      isBlobStorage();
 
     if (isProduction) {
       const store = getStore(BLOB_STORE_NAME);
@@ -133,7 +141,7 @@ export async function POST(request: Request) {
       {
         success: false,
         message:
-          process.env.NODE_ENV === "production"
+          isBlobStorage()
             ? `فشل رفع الصورة على الخادم: ${message}`
             : message,
       },

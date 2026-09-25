@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/src/lib/session";
 import { db } from "@/src/prisma/db";
 
 function makeSlug(name: string) {
@@ -11,13 +12,17 @@ function makeSlug(name: string) {
     .replace(/^-|-$/g, "");
 }
 
-export async function GET() {
+// Public: the /apps page reads this catalog. Only admins see inactive apps.
+export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request, "catalogue");
     const apps = await db.orm.public.App.all();
 
     return NextResponse.json({
       success: true,
-      apps,
+      apps: admin.ok
+        ? apps
+        : apps.filter((app) => app.isActive),
     });
   } catch (error) {
     console.error("GET /api/admin/apps error:", error);
@@ -34,6 +39,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request, "catalogue");
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     const body = await request.json();
 
     const name = String(body.name ?? "").trim();
@@ -149,6 +160,12 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const admin = await requireAdmin(request, "catalogue");
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     const body = await request.json();
 
     const id = Number(body.id);
@@ -313,6 +330,12 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const admin = await requireAdmin(request, "catalogue");
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     const body = await request.json();
 
     const id = Number(body.id);

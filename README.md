@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shashtna (شاشتنا)
 
-## Getting Started
+The Shashtna website: plans, checkout, the customer area (My Shashtna), help
+centre and the staff operations console. Arabic-first (RTL), dark UI, set in
+Thmanyah Sans.
 
-First, run the development server:
+To run it locally, see **[LOCAL_SETUP.md](LOCAL_SETUP.md)**.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Stack
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Next.js 16 (App Router, server components and server actions)
+- React 19, Tailwind CSS v4
+- Prisma Next 8 on PostgreSQL (`src/prisma/contract.prisma`, migrations in `migrations/app`)
+- Netlify Blobs for support tickets and uploads when deployed on Netlify
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Layout
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Path | What it holds |
+| ---- | ------------- |
+| `app/(site)` | Public pages: home, plans, Watch On (`/apps`, `/devices`, `/watch`), help, status, legal, auth, checkout |
+| `app/(site)/(account)` | My Shashtna: dashboard, subscriptions, orders, receipts, support, account, notifications |
+| `app/admin` | Operations console: inbox, orders, activations, renewals, customers, support, content, insights, system |
+| `app/api` | JSON APIs used by the site, the admin and the Shashtna Player app |
+| `app/ui` | Design system components |
+| `src/lib` | Pure domain logic: roles, order state machine, subscription state, i18n, sessions |
+| `src/server` | Server-only services: orders, subscriptions, notifications, settings, content |
+| `src/content` | Help, FAQ and legal copy |
+| `tests` | Unit tests (`npm test`) |
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Command | Does |
+| ------- | ---- |
+| `npm run dev` | Development server |
+| `npm run build` / `npm start` | Production build / serve |
+| `npm test` | Unit tests |
+| `npm run lint` | ESLint |
+| `npm run contract:emit` | Regenerate the Prisma contract after editing `contract.prisma` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Sessions are HttpOnly signed cookies (website) or Bearer tokens (mobile);
+  admin access is checked on the server against the role stored in the database.
+- Payment is arranged manually with the Shashtna team; the site records orders
+  and their status but does not take payments online.
+- Legal pages are drafts and have not been reviewed by a lawyer.

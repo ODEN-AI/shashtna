@@ -1,231 +1,197 @@
-"use client";
-
+import type { Metadata } from "next";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import {
-  ArrowRight,
-  CalendarDays,
-  Mail,
-  Phone,
-  ShieldCheck,
-  UserRound,
-} from "lucide-react";
+import { notFound } from "next/navigation";
+import { ArrowRight, Bell, Phone } from "lucide-react";
 
-type Customer = {
-  id: number;
-  name: string;
-  phone: string;
-  email: string;
-  role: string;
-  createdAt: string;
-};
+import { Forbidden } from "@/app/components/admin/Forbidden";
+import { Badge, StatusBadge } from "@/app/ui/Badge";
+import { WhatsAppIcon } from "@/app/ui/BrandIcons";
+import { LinkButton } from "@/app/ui/Button";
+import { Card, CardHeader } from "@/app/ui/Card";
+import { formatDate, formatDateTime, formatPrice } from "@/src/lib/i18n";
+import { ORDER_STATUS_LABELS } from "@/src/lib/order-status";
+import { ROLE_LABELS, hasPermission } from "@/src/lib/roles";
+import { SUBSCRIPTION_STATE_LABELS } from "@/src/lib/subscription-state";
+import { db } from "@/src/prisma/db";
+import { requireStaffPage } from "@/src/server/auth";
+import { getI18n } from "@/src/server/i18n";
+import { listOrdersForUser } from "@/src/server/orders";
+import { whatsappLink } from "@/src/server/settings";
+import { listReceiptsForUser, listSubscriptionsForUser } from "@/src/server/subscriptions";
+import { TICKET_STATUS_LABELS, listTicketsForUser } from "@/src/server/tickets";
 
-export default function CustomerDetailsPage() {
-  const [customer, setCustomer] =
-    useState<Customer | null>(null);
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "ملف العميل" };
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+export default async function CustomerPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { user: staff, allowed } = await requireStaffPage(`/admin/customers/${id}`, "customers");
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const pathParts =
-          window.location.pathname.split("/");
+  if (!allowed) {
+    return <Forbidden />;
+  }
 
-        const id =
-          pathParts[pathParts.length - 1];
+  const customerId = Number(id);
+  const customer = Number.isInteger(customerId) ? await db.orm.public.User.first({ id: customerId }) : null;
 
-        const response = await fetch(
-          "/api/admin/customers",
-          {
-            cache: "no-store",
-          }
-        );
+  if (!customer) {
+    notFound();
+  }
 
-        const data = await response.json();
+  const [{ t, lang }, subscriptions, orders, receipts, tickets, activity] = await Promise.all([
+    getI18n(),
+    listSubscriptionsForUser(customer.id),
+    listOrdersForUser(customer.id),
+    listReceiptsForUser(customer.id),
+    listTicketsForUser(customer.id).catch(() => []),
+    db.orm.public.ActivityEvent.where({ userId: customer.id }).orderBy((event) => event.createdAt.desc()).limit(20).all(),
+  ]);
 
-        if (!response.ok || !data.success) {
-          throw new Error(
-            data.message ||
-              "تعذر جلب بيانات العملاء"
-          );
-        }
-
-        const found = data.customers?.find(
-          (item: Customer) =>
-            String(item.id) === String(id)
-        );
-
-        if (!found) {
-          throw new Error(
-            "العميل غير موجود"
-          );
-        }
-
-        setCustomer(found);
-      } catch (err) {
-        console.error(err);
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : "حدث خطأ أثناء جلب بيانات العميل"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, []);
+  const paid = receipts.reduce((sum, receipt) => sum + receipt.price, 0);
+  const wa = whatsappLink(customer.phone.replace(/^0/, "964"), `مرحبًا ${customer.name}، معك فريق شاشتنا.`);
 
   return (
-    <main
-      dir="rtl"
-      className="min-h-screen bg-slate-50 p-5 text-slate-900 transition-colors dark:bg-slate-950 dark:text-white lg:p-8"
-    >
-      <div className="mx-auto max-w-5xl">
+    <div className="space-y-6">
+      <LinkButton href="/admin/customers" variant="ghost" size="sm" className="-ms-3">
+        <ArrowRight size={16} className="ltr:rotate-180" aria-hidden />
+        {t("العملاء", "Customers")}
+      </LinkButton>
 
-        <Link
-          href="/admin/customers"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-blue-600 transition hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-        >
-          <ArrowRight size={17} />
-          العودة إلى العملاء
-        </Link>
-
-        {loading ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="h-7 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-            <div className="mt-4 h-4 w-72 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-          </div>
-        ) : error ? (
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center dark:border-red-900/50 dark:bg-red-950/30">
-
-            <h1 className="text-xl font-black text-red-700 dark:text-red-400">
-              تعذر فتح العميل
-            </h1>
-
-            <p className="mt-2 text-sm text-red-600 dark:text-red-400/80">
-              {error}
+      <Card className="p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold text-ink">{customer.name}</h1>
+              <Badge tone={customer.role === "CUSTOMER" ? "neutral" : "brand"}>{ROLE_LABELS[customer.role]?.[lang] ?? customer.role}</Badge>
+            </div>
+            <p className="nums mt-1 text-sm text-ink-2" dir="ltr">{customer.phone}</p>
+            {customer.email ? <p className="text-sm text-ink-3">{customer.email}</p> : null}
+            <p className="mt-2 text-xs text-ink-3">
+              {t("انضم ", "Joined ")}
+              <span className="nums">{formatDate(String(customer.createdAt), lang)}</span>
+              {customer.preferredContact ? ` · ${t("يفضّل: ", "Prefers: ")}${customer.preferredContact}` : ""}
             </p>
-
           </div>
-        ) : customer ? (
-          <>
+          <div className="flex flex-wrap gap-2">
+            <LinkButton href={`tel:${customer.phone.replace(/[^\d+]/g, "")}`} external variant="secondary" size="sm">
+              <Phone size={15} aria-hidden />
+              {t("اتصال", "Call")}
+            </LinkButton>
+            {wa ? (
+              <LinkButton href={wa} external variant="secondary" size="sm">
+                <WhatsAppIcon size={15} />
+                WhatsApp
+              </LinkButton>
+            ) : null}
+            {hasPermission(staff.role, "support") ? (
+              <LinkButton href={`/admin/notifications?phone=${encodeURIComponent(customer.phone)}`} variant="secondary" size="sm">
+                <Bell size={15} aria-hidden />
+                {t("إرسال إشعار", "Send notification")}
+              </LinkButton>
+            ) : null}
+          </div>
+        </div>
+        <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-line pt-5 sm:grid-cols-4">
+          {[
+            { label: t("الاشتراكات", "Subscriptions"), value: subscriptions.length },
+            { label: t("الطلبات", "Orders"), value: orders.length },
+            { label: t("التذاكر", "Tickets"), value: tickets.length },
+            { label: t("مجموع المدفوع (إيصالات)", "Paid (receipts)"), value: formatPrice(paid, lang) },
+          ].map((item) => (
+            <div key={item.label}>
+              <dt className="text-xs text-ink-3">{item.label}</dt>
+              <dd className="nums mt-1 text-lg font-bold text-ink">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </Card>
 
-            <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                  {customer.role.toUpperCase() === "ADMIN" ? (
-                    <ShieldCheck size={28} />
-                  ) : (
-                    <UserRound size={28} />
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex flex-wrap items-center gap-3">
-
-                    <h1 className="text-2xl font-black">
-                      {customer.name}
-                    </h1>
-
-                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-black text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
-                      {customer.role.toUpperCase()}
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card className="p-6">
+          <CardHeader
+            title={t("الاشتراكات", "Subscriptions")}
+            action={<LinkButton href="/admin/subscriptions" variant="ghost" size="sm">{t("إدارة", "Manage")}</LinkButton>}
+          />
+          {subscriptions.length ? (
+            <ul className="mt-4 divide-y divide-line">
+              {subscriptions.map((subscription) => (
+                <li key={subscription.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+                  <span className="min-w-0">
+                    <span className="block truncate font-bold text-ink">{subscription.packageName}</span>
+                    <span className="nums block text-xs text-ink-3">
+                      #{subscription.id} · {formatDate(subscription.startDate, lang)} – {formatDate(subscription.expiryDate, lang)}
                     </span>
+                    <span className="nums block text-xs text-ink-3" dir="ltr">
+                      {subscription.username ?? subscription.deviceId ?? ""}
+                    </span>
+                  </span>
+                  <StatusBadge status={subscription.state} label={SUBSCRIPTION_STATE_LABELS[subscription.state][lang]} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 text-sm text-ink-3">{t("ماكو اشتراكات.", "No subscriptions.")}</p>
+          )}
+        </Card>
 
-                  </div>
+        <Card className="p-6">
+          <CardHeader title={t("الطلبات", "Orders")} />
+          {orders.length ? (
+            <ul className="mt-4 divide-y divide-line">
+              {orders.slice(0, 10).map((order) => (
+                <li key={order.id}>
+                  <Link href={`/admin/orders/${order.id}`} className="flex items-center justify-between gap-3 py-3 text-sm">
+                    <span className="min-w-0">
+                      <span className="nums block font-bold text-ink">{order.number}</span>
+                      <span className="block truncate text-xs text-ink-3">
+                        {order.serviceName} · {formatPrice(order.price, lang)}
+                      </span>
+                    </span>
+                    <StatusBadge status={order.status} label={ORDER_STATUS_LABELS[order.status][lang]} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 text-sm text-ink-3">{t("ماكو طلبات.", "No orders.")}</p>
+          )}
+        </Card>
 
-                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                    معرف الحساب: #{customer.id}
-                  </p>
-                </div>
+        <Card className="p-6">
+          <CardHeader title={t("تذاكر الدعم", "Support tickets")} />
+          {tickets.length ? (
+            <ul className="mt-4 divide-y divide-line">
+              {tickets.slice(0, 10).map((ticket) => (
+                <li key={ticket.id}>
+                  <Link href={`/admin/support/${encodeURIComponent(ticket.id)}`} className="flex items-center justify-between gap-3 py-3 text-sm">
+                    <span className="truncate font-semibold text-ink">{ticket.subject}</span>
+                    <StatusBadge status={ticket.status} label={TICKET_STATUS_LABELS[ticket.status]?.[lang] ?? ticket.status} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 text-sm text-ink-3">{t("ماكو تذاكر.", "No tickets.")}</p>
+          )}
+        </Card>
 
-              </div>
-
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-
-              <InfoCard
-                icon={<Mail size={20} />}
-                label="البريد الإلكتروني"
-                value={customer.email}
-                ltr
-              />
-
-              <InfoCard
-                icon={<Phone size={20} />}
-                label="رقم الهاتف"
-                value={customer.phone}
-                ltr
-              />
-
-              <InfoCard
-                icon={<ShieldCheck size={20} />}
-                label="الصلاحية"
-                value={customer.role.toUpperCase()}
-              />
-
-              <InfoCard
-                icon={<CalendarDays size={20} />}
-                label="تاريخ التسجيل"
-                value={new Date(
-                  customer.createdAt
-                ).toLocaleDateString("ar-IQ")}
-              />
-
-            </div>
-
-          </>
-        ) : null}
-
+        <Card className="p-6">
+          <CardHeader title={t("النشاط", "Activity")} />
+          {activity.length ? (
+            <ol className="mt-4 space-y-3">
+              {activity.map((event) => (
+                <li key={event.id} className="flex items-start gap-3 text-sm">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" aria-hidden />
+                  <span className="flex-1 text-ink-2">{event.summary}</span>
+                  <span className="nums shrink-0 text-xs text-ink-3">{formatDateTime(event.createdAt, lang)}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="mt-4 text-sm text-ink-3">{t("ماكو نشاط مسجل.", "No recorded activity.")}</p>
+          )}
+        </Card>
       </div>
-    </main>
-  );
-}
-
-function InfoCard({
-  icon,
-  label,
-  value,
-  ltr,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  ltr?: boolean;
-}) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
-      <div className="flex items-center gap-3">
-
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-          {icon}
-        </div>
-
-        <div>
-          <p className="text-xs font-bold text-slate-400">
-            {label}
-          </p>
-
-          <p
-            className={`mt-1 text-sm font-black ${
-              ltr ? "text-left" : ""
-            }`}
-            dir={ltr ? "ltr" : "rtl"}
-          >
-            {value}
-          </p>
-        </div>
-
-      </div>
-
     </div>
   );
 }

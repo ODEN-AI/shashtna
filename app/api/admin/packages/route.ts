@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/src/lib/session";
 import {
   db,
   ensureDatabaseConnection,
@@ -52,8 +53,14 @@ function normalizeDeviceIds(
   ];
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request, "catalogue");
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const packages =
@@ -134,6 +141,12 @@ export async function POST(
   request: Request
 ) {
   try {
+    const admin = await requireAdmin(request, "catalogue");
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const body =

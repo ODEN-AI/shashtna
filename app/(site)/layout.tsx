@@ -1,38 +1,23 @@
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
-import PageTransition from "./components/PageTransition";
-import { LanguageProvider } from "./components/LanguageProvider";
+import { CustomerBottomNav } from "@/app/components/site/CustomerBottomNav";
+import { SiteFooter } from "@/app/components/site/SiteFooter";
+import { SiteHeader } from "@/app/components/site/SiteHeader";
+import { getSessionUser } from "@/src/server/auth";
 
-export default function SiteLayout({
+export default async function SiteLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getSessionUser().catch(() => null);
+
   return (
-    <LanguageProvider>
-      <div className="min-h-screen overflow-x-hidden bg-white text-slate-900 dark:bg-[#070b14] dark:text-white">
-        <Navbar />
-
-        <div className="relative isolate">
-          <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-            <div className="euclid-orb euclid-orb-blue" />
-            <div className="euclid-orb euclid-orb-cyan" />
-
-            <div className="euclid-ring euclid-ring-one" />
-            <div className="euclid-ring euclid-ring-two" />
-
-            <div className="euclid-grid" />
-          </div>
-
-          <PageTransition>
-            <main className="min-h-[calc(100vh-80px)]">
-              {children}
-            </main>
-          </PageTransition>
-        </div>
-
-        <Footer />
-      </div>
-    </LanguageProvider>
+    <div className="flex min-h-screen flex-col overflow-x-clip">
+      <SiteHeader user={user ? { name: user.name, isStaff: user.isStaff } : null} />
+      <main id="main" className={user ? "flex-1 pb-safe lg:pb-0" : "flex-1"}>
+        {children}
+      </main>
+      <SiteFooter />
+      {user ? <CustomerBottomNav /> : null}
+    </div>
   );
 }

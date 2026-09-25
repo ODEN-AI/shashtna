@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/src/lib/session";
+import { isOpen } from "@/src/lib/order-status";
+import { logActivity } from "@/src/server/activity";
+import { completeOrderWithSubscription } from "@/src/server/orders";
 import {
   db,
   ensureDatabaseConnection,
@@ -267,8 +271,14 @@ function getNewDurationLabel(
   )}`;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request, "subscriptions");
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const subscriptions =
@@ -393,6 +403,12 @@ export async function PATCH(
   request: Request
 ) {
   try {
+    const admin = await requireAdmin(request, "subscriptions");
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const body =
@@ -716,6 +732,16 @@ export async function PATCH(
       );
     }
 
+    await logActivity({
+      actor: admin.user,
+      userId: updated.userId,
+      entityType: "SUBSCRIPTION",
+      entityId: updated.id,
+      action: "SUBSCRIPTION_UPDATED",
+      summary: `تم تحديث بيانات الاشتراك (الحالة: ${updated.status}، الانتهاء: ${String(updated.expiryDate).slice(0, 10)})`,
+      customerVisible: true,
+    });
+
     return NextResponse.json(
       {
         success: true,
@@ -788,6 +814,12 @@ export async function POST(
   request: Request
 ) {
   try {
+    const admin = await requireAdmin(request, "subscriptions");
+
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     await ensureDatabaseConnection();
 
     const body =
@@ -906,8 +938,9 @@ export async function POST(
     }
 
     if (
-      subscriptionRequest.status !==
-      "PENDING"
+      !isOpen(
+        subscriptionRequest.status
+      )
     ) {
       return NextResponse.json(
         {
@@ -1099,7 +1132,18 @@ export async function POST(
             }
           )[0];
 
+      // A renewal ordered for a specific subscription renews that one.
+      const targetedSubscription =
+        subscriptionRequest.subscriptionId
+          ? customerSubscriptions.find(
+              (subscription) =>
+                subscription.id ===
+                subscriptionRequest.subscriptionId
+            )
+          : undefined;
+
       const existingSubscription =
+        targetedSubscription ??
         activeSubscription ??
         expiredSubscription ??
         [
@@ -1234,6 +1278,9 @@ export async function POST(
 
             userId,
 
+            orderId:
+              requestId,
+
             subscriptionId:
               existingSubscription.id,
 
@@ -1258,25 +1305,18 @@ export async function POST(
         );
 
       const updatedRequest =
-        await db.orm.public.SubscriptionRequest
-          .where({
-            id:
-              requestId,
-          })
-          .update({
-            status:
-              "ACCEPTED",
-
+        await completeOrderWithSubscription(
+          admin.user,
+          requestId,
+          existingSubscription.id,
+          {
             price,
-
             durationMonths:
               renewalMonths!,
-
             durationLabel,
-
-            bonusYears:
-              0,
-          });
+            bonusYears: 0,
+          }
+        );
 
       if (
         !updatedRequest
@@ -1636,6 +1676,13 @@ export async function POST(
           packageName:
             serviceName,
 
+          packageId:
+            (
+              await db.orm.public.Package.first({
+                slug: subscriptionRequest.planSlug,
+              })
+            )?.id ?? null,
+
           startDate:
             normalizedStartDate,
 
@@ -1658,6 +1705,9 @@ export async function POST(
           receiptNumber,
 
           userId,
+
+          orderId:
+            requestId,
 
           subscriptionId:
             created.id,
@@ -1682,25 +1732,19 @@ export async function POST(
       );
 
     const updatedRequest =
-      await db.orm.public.SubscriptionRequest
-        .where({
-          id:
-            requestId,
-        })
-        .update({
-          status:
-            "ACCEPTED",
-
+      await completeOrderWithSubscription(
+        admin.user,
+        requestId,
+        created.id,
+        {
           price,
-
           durationMonths:
             finalDurationMonths,
-
           durationLabel:
             finalDurationLabel,
-
           bonusYears,
-        });
+        }
+      );
 
     if (
       !updatedRequest

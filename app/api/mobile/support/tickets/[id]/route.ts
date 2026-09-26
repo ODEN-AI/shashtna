@@ -1,54 +1,27 @@
-import {
-  GET as baseGET,
-  POST as basePOST,
-} from "@/app/api/support/tickets/[id]/route";
-import { requireMobileAuth } from "@/src/lib/mobile-auth";
+import { closeTicket, getTicketForUser, replyToTicket } from "@/src/server/tickets";
+import { fail, ok, readJson, withMobileUser } from "@/src/server/mobile-api";
+import { shapeTicket } from "@/src/server/mobile";
 
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
-  const auth = requireMobileAuth(request);
+export const dynamic = "force-dynamic";
 
-  if (!auth.ok) {
-    return auth.response;
+export const GET = withMobileUser<{ id: string }>(async ({ user, params }) => {
+  const ticket = await getTicketForUser(user.id, decodeURIComponent(params.id));
+
+  return ticket ? ok({ ticket: shapeTicket(ticket, true) }) : fail(404, "NOT_FOUND", "التذكرة غير موجودة.");
+});
+
+/** `{ message }` adds a reply; `{ action: "close" }` closes the ticket. */
+export const POST = withMobileUser<{ id: string }>(async ({ request, user, params }) => {
+  const id = decodeURIComponent(params.id);
+  const body = await readJson(request);
+  const result =
+    body.action === "close" ? await closeTicket(user, id) : await replyToTicket(user, id, String(body.message ?? ""));
+
+  if (!result.ok) {
+    return fail(400, "VALIDATION", result.error);
   }
 
-  const url = new URL(request.url);
-  url.searchParams.set("userId", String(auth.userId));
+  const ticket = await getTicketForUser(user.id, id);
 
-  return baseGET(
-    new Request(url.toString(), {
-      method: "GET",
-      headers: request.headers,
-    }),
-    context,
-  );
-}
-
-export async function POST(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
-  const auth = requireMobileAuth(request);
-
-  if (!auth.ok) {
-    return auth.response;
-  }
-
-  const body = await request.json();
-  body.userId = auth.userId;
-
-  const headers = new Headers(request.headers);
-  headers.set("Content-Type", "application/json");
-  headers.delete("Content-Length");
-
-  return basePOST(
-    new Request(request.url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    }),
-    context,
-  );
-}
+  return ticket ? ok({ ticket: shapeTicket(ticket, true) }) : fail(404, "NOT_FOUND", "التذكرة غير موجودة.");
+});

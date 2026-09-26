@@ -1,7 +1,7 @@
 import { db } from "@/src/prisma/db";
 import { toDate } from "@/src/lib/i18n";
 
-export const ANNOUNCEMENT_TARGETS = ["ALL", "WEBSITE", "PLAYER"] as const;
+export const ANNOUNCEMENT_TARGETS = ["ALL", "WEBSITE", "MOBILE", "PLAYER"] as const;
 export const ANNOUNCEMENT_PLACEMENTS = ["HOME_CAROUSEL", "BANNER", "DASHBOARD"] as const;
 export const ANNOUNCEMENT_STYLES = ["STANDARD", "HIGHLIGHT", "INFO", "WARNING"] as const;
 export const ANNOUNCEMENT_KINDS = ["AD", "ANNOUNCEMENT"] as const;
@@ -9,7 +9,7 @@ export const ANNOUNCEMENT_KINDS = ["AD", "ANNOUNCEMENT"] as const;
 export const INCIDENT_STATUSES = ["DEGRADED", "OUTAGE", "MAINTENANCE"] as const;
 export const INCIDENT_COMPONENTS = ["ALL", "IPTV", "VIP", "PLAYER", "WEBSITE"] as const;
 
-type Surface = "WEBSITE" | "PLAYER";
+type Surface = "WEBSITE" | "PLAYER" | "MOBILE";
 
 function isLive(
   item: { isActive: boolean; startsAt: string | null; endsAt: string | null },
@@ -37,6 +37,26 @@ export async function getLiveAnnouncements(surface: Surface, placement?: string)
   return rows.filter(
     (item) => isLive(item, now) && (!placement || item.placement === placement),
   );
+}
+
+/**
+ * One announcement if it is live on the given surface (used by the website
+ * page /announcements/[id] and the mobile detail screen). Returns null once
+ * it is deactivated, expired or removed, so both clients follow the same
+ * lifecycle.
+ */
+export async function getLiveAnnouncement(id: number, surface: Surface) {
+  if (!Number.isInteger(id) || id <= 0) {
+    return null;
+  }
+
+  const item = await db.orm.public.Announcement.first({ id });
+
+  if (!item || !(item.target === "ALL" || item.target === surface) || !isLive(item, Date.now())) {
+    return null;
+  }
+
+  return item;
 }
 
 export async function getActiveIncidents() {

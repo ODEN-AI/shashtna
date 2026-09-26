@@ -54,7 +54,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
   const status = (item: (typeof items)[number]) => lifecycle[announcementLifecycle(item)];
 
   const labels = {
-    target: { ALL: t("الموقع + التطبيق", "Website + Player"), WEBSITE: t("الموقع فقط", "Website only"), PLAYER: t("Shashtna Player فقط", "Shashtna Player only") } as Record<string, string>,
+    target: { ALL: t("الكل (الموقع + تطبيق الهاتف + Player)", "Everywhere (website + mobile app + Player)"), WEBSITE: t("الموقع فقط", "Website only"), MOBILE: t("تطبيق الهاتف فقط", "Mobile app only"), PLAYER: t("Shashtna Player فقط", "Shashtna Player only") } as Record<string, string>,
     placement: { HOME_CAROUSEL: t("الصفحة الرئيسية (عرض متحرك)", "Homepage carousel"), BANNER: t("شريط إعلاني", "Banner"), DASHBOARD: t("لوحة العميل", "Customer dashboard") } as Record<string, string>,
     style: { STANDARD: t("عادي", "Standard"), HIGHLIGHT: t("مميز", "Highlight"), INFO: t("معلومة", "Info"), WARNING: t("تنبيه", "Warning") } as Record<string, string>,
   };
@@ -64,8 +64,8 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
       <PageHeader
         title={t("الإعلانات والتنبيهات", "Ads & announcements")}
         description={t(
-          "تظهر على الموقع حسب المكان المختار. الإعلانات الموجهة لـ Shashtna Player متاحة للتطبيق عبر /api/announcements?surface=PLAYER.",
-          "Shown on the website by placement. Items targeted at Shashtna Player are served to the app at /api/announcements?surface=PLAYER.",
+          "نفس السجل يظهر على الموقع (حسب المكان المختار) وبتطبيق الهاتف: نوع «إعلان تجاري / عرض» يظهر بقسم العروض، و«تنبيه» بقسم الأخبار. أي تعديل أو إيقاف أو انتهاء يسري على الاثنين مباشرة.",
+          "The same record is shown on the website (by placement) and in the mobile app: ads appear under Offers, announcements under News. Any edit, deactivation or expiry applies to both immediately.",
         )}
       />
 
@@ -147,7 +147,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={t("النوع", "Kind")} htmlFor="kind">
                 <Select id="kind" name="kind" defaultValue={editing?.kind ?? "AD"}>
-                  <option value="AD">{t("إعلان", "Ad")}</option>
+                  <option value="AD">{t("إعلان تجاري / عرض", "Ad / offer")}</option>
                   <option value="ANNOUNCEMENT">{t("تنبيه / خبر", "Announcement")}</option>
                 </Select>
               </Field>

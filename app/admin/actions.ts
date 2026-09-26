@@ -18,6 +18,7 @@ import {
   INCIDENT_STATUSES,
 } from "@/src/server/content";
 import { notify } from "@/src/server/notifications";
+import { cancelCampaign, createCampaign, sendCampaign } from "@/src/server/push-campaigns";
 import { updateOrderStatus } from "@/src/server/orders";
 import { dismissReset, issueResetCode } from "@/src/server/password-reset";
 import { SETTING_KEYS, saveSetting, type SettingKey } from "@/src/server/settings";
@@ -491,41 +492,73 @@ export async function setUserRoleAction(_prev: AdminState, formData: FormData): 
 
 // ----------------------------------------------------------- notifications
 
-export async function sendNotificationAction(_prev: AdminState, formData: FormData): Promise<AdminState> {
+/**
+ * "إشعارات الهواتف": create a campaign as a draft, schedule it, or send it
+ * now. Permissions, audience rules and destination checks live in
+ * src/server/push-campaigns.ts and are enforced there for every path.
+ */
+export async function createPushCampaignAction(_prev: AdminState, formData: FormData): Promise<AdminState> {
   try {
-    const staff = await guard("support");
-    const title = text(formData.get("title"), 120);
-    const body = text(formData.get("body"), 600);
-    const phone = text(formData.get("phone"), 40);
-    let link = optionalText(formData.get("link"), 300);
-
-    if (!title || !body) {
-      return { ok: false, message: "العنوان والنص مطلوبين." };
-    }
-
-    if (link && (!link.startsWith("/") || link.startsWith("//"))) {
-      link = null;
-    }
-
-    const user = await db.orm.public.User.first({ phone });
-
-    if (!user) {
-      return { ok: false, message: "ماكو عميل بهذا الرقم." };
-    }
-
-    await notify({ userId: user.id, type: "MESSAGE", title, body, link });
-    await logActivity({
-      actor: staff,
-      userId: user.id,
-      entityType: "NOTIFICATION",
-      action: "NOTIFICATION_SENT",
-      summary: `إرسال إشعار «${title}» إلى ${user.name}`,
+    const staff = await guard("notifications");
+    const scheduled = text(formData.get("scheduledAt"), 20);
+    const result = await createCampaign(staff, {
+      title: formData.get("title"),
+      body: formData.get("body"),
+      type: formData.get("type"),
+      imageUrl: formData.get("imageUrl"),
+      audience: formData.get("audience"),
+      customerPhone: formData.get("phone"),
+      destinationKind: formData.get("destinationKind"),
+      destinationParam: formData.get("destinationParam"),
+      mode: formData.get("mode"),
+      // The form asks for Baghdad time (UTC+3, no daylight saving).
+      scheduledAt: scheduled ? `${scheduled.length === 16 ? `${scheduled}:00` : scheduled}+03:00` : null,
     });
 
+    if (!result.ok) {
+      return { ok: false, message: result.error };
+    }
+
     revalidatePath("/admin/notifications");
-    return { ok: true, message: `تم إرسال الإشعار إلى ${user.name}.` };
+
+    if ("sent" in result && result.sent) {
+      const sent = result.sent;
+      return {
+        ok: true,
+        message: `تم الإرسال إلى ${sent.recipients} حساب — ${sent.accepted} من ${sent.devices} جهاز استلم الإشعار${sent.failed ? ` (${sent.failed} فشل)` : ""}.`,
+      };
+    }
+
+    return { ok: true, message: result.campaign.status === "SCHEDULED" ? "تمت الجدولة." : "تم حفظ المسودة." };
+  } catch (error) {
+    return fail(error, "تعذر حفظ الإشعار.");
+  }
+}
+
+export async function sendPushCampaignAction(_prev: AdminState, formData: FormData): Promise<AdminState> {
+  try {
+    const staff = await guard("notifications");
+    const result = await sendCampaign(staff, Number(formData.get("id")));
+
+    revalidatePath("/admin/notifications");
+
+    return result.ok
+      ? { ok: true, message: `تم الإرسال إلى ${result.recipients} حساب (${result.accepted}/${result.devices} جهاز).` }
+      : { ok: false, message: result.error };
   } catch (error) {
     return fail(error, "تعذر إرسال الإشعار.");
+  }
+}
+
+export async function cancelPushCampaignAction(_prev: AdminState, formData: FormData): Promise<AdminState> {
+  try {
+    const staff = await guard("notifications");
+    const result = await cancelCampaign(staff, Number(formData.get("id")));
+
+    revalidatePath("/admin/notifications");
+    return result.ok ? { ok: true, message: "تم الإلغاء." } : { ok: false, message: result.error };
+  } catch (error) {
+    return fail(error, "تعذر الإلغاء.");
   }
 }
 

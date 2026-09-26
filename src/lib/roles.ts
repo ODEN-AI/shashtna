@@ -22,6 +22,8 @@ export type Permission =
   | "catalogue"
   | "support"
   | "content"
+  | "notifications"
+  | "broadcast"
   | "insights"
   | "staff"
   | "settings"
@@ -30,9 +32,9 @@ export type Permission =
 const ROLE_PERMISSIONS: Record<StaffRole, readonly Permission[] | "all"> = {
   OWNER: "all",
   ADMIN: "all",
-  OPERATOR: ["orders", "subscriptions", "customers", "support", "insights"],
-  SUPPORT: ["support", "customers"],
-  CONTENT: ["catalogue", "content"],
+  OPERATOR: ["orders", "subscriptions", "customers", "support", "insights", "notifications", "broadcast"],
+  SUPPORT: ["support", "customers", "notifications"],
+  CONTENT: ["catalogue", "content", "notifications", "broadcast"],
 };
 
 export function normalizeRole(role: unknown) {

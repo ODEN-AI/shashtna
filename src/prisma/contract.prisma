@@ -170,8 +170,73 @@ model Notification {
   dedupeKey String?  @unique
   readAt    TimestamptzString?
   createdAt TimestamptzString @default(now())
+  // Optional image (admin campaigns) and the campaign that produced it.
+  imageUrl   String?
+  campaignId Int?
 
   @@index([userId])
+}
+
+// Phones running the Shashtna mobile app. One row per push token; a customer
+// can have several devices. Tokens are deactivated on logout or when the push
+// provider reports them as no longer registered.
+model PushDevice {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  token        String   @unique
+  provider     String   @default("EXPO")
+  platform     String
+  deviceName   String?
+  appVersion   String?
+  isActive     Boolean  @default(true)
+  lastSeenAt   TimestamptzString @default(now())
+  lastError    String?
+  createdAt    TimestamptzString @default(now())
+  updatedAt    temporal.updatedAtString()
+
+  @@index([userId])
+}
+
+// Admin-authored mobile notifications ("إشعارات الهواتف"). Sending a campaign
+// writes one Notification per recipient (the same in-app records the website
+// shows) and pushes it to the recipients' active devices.
+model PushCampaign {
+  id             Int      @id @default(autoincrement())
+  title          String
+  body           String
+  type           String   @default("MESSAGE")
+  imageUrl       String?
+  link           String?
+  audience       String   @default("ALL")
+  targetUserId   Int?
+  status         String   @default("DRAFT")
+  scheduledAt    TimestamptzString?
+  sentAt         TimestamptzString?
+  recipientCount Int      @default(0)
+  deviceCount    Int      @default(0)
+  acceptedCount  Int      @default(0)
+  failedCount    Int      @default(0)
+  lastError      String?
+  createdBy      Int
+  createdAt      TimestamptzString @default(now())
+  updatedAt      temporal.updatedAtString()
+
+  @@index([status])
+}
+
+// Push tickets returned by the push provider, kept until their delivery
+// receipt has been checked (stale tokens are deactivated from receipts).
+model PushTicket {
+  id             Int      @id @default(autoincrement())
+  ticketId       String   @unique
+  deviceId       Int
+  campaignId     Int?
+  status         String   @default("PENDING")
+  error          String?
+  createdAt      TimestamptzString @default(now())
+  checkedAt      TimestamptzString?
+
+  @@index([status])
 }
 
 // Ads and announcements for the website and (later) Shashtna Player.

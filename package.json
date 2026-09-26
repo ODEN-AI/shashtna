@@ -10,7 +10,8 @@
     "lint": "eslint",
     "test": "node --test --experimental-strip-types --import ./tests/register-alias.mjs tests/*.test.ts",
     "postinstall": "prisma skills sync || exit 0",
-    "contract:emit": "prisma contract emit"
+    "contract:emit": "prisma contract emit",
+    "test:integration": "node --test --test-concurrency=1 --experimental-strip-types --import ./tests/register-alias.mjs tests/integration/*.test.ts"
   },
   "dependencies": {
     "@neon/config": "^1.4.2",

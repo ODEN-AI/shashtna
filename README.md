@@ -34,6 +34,7 @@ To run it locally, see **[LOCAL_SETUP.md](LOCAL_SETUP.md)**.
 | `npm run dev` | Development server |
 | `npm run build` / `npm start` | Production build / serve |
 | `npm test` | Unit tests |
+| `npm run test:integration` | API + service tests against the database in `DATABASE_URL` (use a test database) |
 | `npm run lint` | ESLint |
 | `npm run contract:emit` | Regenerate the Prisma contract after editing `contract.prisma` |
 
@@ -44,3 +45,23 @@ To run it locally, see **[LOCAL_SETUP.md](LOCAL_SETUP.md)**.
 - Payment is arranged manually with the Shashtna team; the site records orders
   and their status but does not take payments online.
 - Legal pages are drafts and have not been reviewed by a lawyer.
+
+## Mobile app
+
+The Shashtna mobile app ([ODEN-AI/shashtna-mobile](https://github.com/ODEN-AI/shashtna-mobile))
+uses this backend as its only source of truth, through `app/api/mobile/*`
+(Bearer token, same accounts). Announcements and offers are the same
+`Announcement` records (target `ALL` or `MOBILE`); notifications are the same
+`Notification` records.
+
+- **Push**: every notification written by `notify()` is also pushed to the
+  customer's registered phones through the Expo Push Service (FCM/APNs).
+  Devices live in `PushDevice`; delivery receipts in `PushTicket`.
+- **Admin → إشعارات الهواتف** (`/admin/notifications`): draft, send now,
+  schedule, cancel; audiences: everyone, one customer, active subscribers,
+  expiring, open orders, awaiting payment. Offers only reach customers who
+  opted in. Permissions: `notifications` (one customer) and `broadcast`.
+- **Scheduler**: `netlify/functions/push-dispatch.mts` calls `/api/cron/push`
+  every 5 minutes (scheduled campaigns, renewal reminders, push receipts).
+  Set `CRON_SECRET` on the site; `EXPO_ACCESS_TOKEN` only if enhanced push
+  security is enabled on expo.dev.

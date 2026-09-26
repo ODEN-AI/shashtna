@@ -16,14 +16,18 @@ import {
  *   EXPO_ACCESS_TOKEN  optional; required only when "Enhanced push security"
  *                      is enabled for the project on expo.dev
  *   PUSH_DISABLED=1    turns sending off (e.g. local development)
+ *   EXPO_PUSH_API_URL  test-only override of the Expo Push API base URL
  *
  * Delivery never breaks the business action that triggered it: every error
  * is caught, logged without personal data, and recorded on the device or
  * campaign.
  */
 
-const SEND_URL = "https://exp.host/--/api/v2/push/send";
-const RECEIPTS_URL = "https://exp.host/--/api/v2/push/getReceipts";
+// EXPO_PUSH_API_URL only exists so end-to-end tests can point delivery at a
+// local recorder; production uses the default.
+const PUSH_API = (process.env.EXPO_PUSH_API_URL?.trim() || "https://exp.host/--/api/v2/push").replace(/\/+$/, "");
+const SEND_URL = `${PUSH_API}/send`;
+const RECEIPTS_URL = `${PUSH_API}/getReceipts`;
 
 type Transport = (url: string, body: unknown) => Promise<unknown>;
 

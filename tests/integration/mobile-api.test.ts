@@ -271,6 +271,9 @@ describe("packages and orders", () => {
     const res = await call(subscriptions.GET, request("/api/mobile/subscriptions", { token: customer.token }));
     assert.equal(res.body.subscriptions[0].state, "EXPIRING");
     assert.equal(res.body.subscriptions[0].canRenew, true);
+    // Lists never carry login credentials.
+    assert.equal(res.body.subscriptions[0].credentials, null);
+    assert.equal(res.body.subscriptions[0].password, undefined);
   });
 });
 

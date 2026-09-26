@@ -21,7 +21,7 @@ export const GET = withMobileUser<{ id: string }>(async ({ user, params }) => {
   ]);
 
   return ok({
-    subscription: shapeSubscription(subscription),
+    subscription: shapeSubscription(subscription, { credentials: true }),
     orders: orders.filter((order) => order.subscriptionId === subscription.id),
     receipts: receipts
       .filter((receipt) => receipt.subscriptionId === subscription.id)

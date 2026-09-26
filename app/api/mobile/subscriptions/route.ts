@@ -7,5 +7,5 @@ export const dynamic = "force-dynamic";
 export const GET = withMobileUser(async ({ user }) => {
   const subscriptions = await listSubscriptionsForUser(user.id);
 
-  return ok({ subscriptions: subscriptions.map(shapeSubscription) });
+  return ok({ subscriptions: subscriptions.map((subscription) => shapeSubscription(subscription)) });
 });

@@ -190,11 +190,19 @@ export async function mobileOrderDetail(order: Order) {
 
 // ----------------------------------------------------------- subscriptions
 
-export function shapeSubscription(subscription: CustomerSubscription) {
+/**
+ * Login credentials (username / password / MAC) are only included for the
+ * subscription detail screen, which the app never caches on disk. Lists and
+ * the dashboard leave them out.
+ */
+export function shapeSubscription(subscription: CustomerSubscription, options: { credentials?: boolean } = {}) {
+  const { username, password, macAddress, deviceId, ...rest } = subscription;
+
   return {
-    ...subscription,
+    ...rest,
     stateLabel: SUBSCRIPTION_STATE_LABELS[subscription.state].ar,
     canRenew: Boolean(subscription.packageSlug),
+    credentials: options.credentials ? { username, password, macAddress, deviceId } : null,
   };
 }
 

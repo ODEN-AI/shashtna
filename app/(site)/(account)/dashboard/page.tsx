@@ -1,3 +1,4 @@
+import { orderRef } from "@/src/lib/order-status";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -7,19 +8,21 @@ import {
   Headphones,
   Megaphone,
   MessageSquarePlus,
+  PackageSearch,
   ReceiptText,
   RefreshCw,
   Sparkles,
   TrendingDown,
 } from "lucide-react";
 
-import { CurrentOrderPanel } from "@/app/components/account/CurrentOrderPanel";
 import { StatusBadge } from "@/app/ui/Badge";
 import { LinkButton } from "@/app/ui/Button";
 import { Card, CardHeader } from "@/app/ui/Card";
 import { cn } from "@/app/ui/cn";
+import { OrderPaymentFlow } from "@/app/components/account/OrderPaymentFlow";
+import { OrderJourney } from "@/app/ui/OrderJourney";
 import { monthlyEquivalent } from "@/app/ui/PackageCard";
-import { EmptyState } from "@/app/ui/States";
+import { EmptyState, Notice } from "@/app/ui/States";
 import { SubscriptionHero } from "@/app/ui/SubscriptionHero";
 import { formatDate, formatDateTime, formatPrice } from "@/src/lib/i18n";
 import { orderStage } from "@/src/lib/order-journey";
@@ -46,10 +49,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   await ensureRenewalReminders(user.id, overview.subscriptions, user.renewalReminders).catch(() => undefined);
 
   const { state, primary, openOrders, subscriptions, orders } = overview;
-  // The order just placed (from checkout) or else the newest open one. The
-  // id comes from the URL, so it only counts if it is this customer's order.
+  // The order just placed at checkout (the id comes from the URL, so it only
+  // counts if it is this customer's) or else the newest open one.
   const highlighted = orders.find((order) => String(order.id) === params.order);
-  const currentOrder = highlighted ?? openOrders[0];
+  const trackedOrder = highlighted ?? openOrders[0];
+  const justCreated = Boolean(highlighted) && params.created === "1";
 
   const [{ t, lang }, activity, tickets, unread, apps, packages, notices, settings, proofs] = await Promise.all([
     getI18n(),
@@ -60,12 +64,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     getActivePackages().catch(() => []),
     getLiveAnnouncements("WEBSITE", "DASHBOARD").catch(() => []),
     getSettings(),
-    proofUploadTimes(currentOrder ? [currentOrder.id] : []),
+    proofUploadTimes(trackedOrder ? [trackedOrder.id] : []),
   ]);
 
-  const proofUploadedAt = currentOrder ? proofs.get(currentOrder.id) ?? null : null;
   const openTickets = tickets.filter((ticket) => ticket.status !== "CLOSED");
-  const trackedOrder = openOrders[0];
+  const proofUploadedAt = trackedOrder ? proofs.get(trackedOrder.id) ?? null : null;
+  const stage = trackedOrder ? orderStage(trackedOrder.status, Boolean(proofUploadedAt)) : null;
   const recommendedApps = apps.slice(0, 2);
 
   // Suggest a same-type plan only when it is genuinely cheaper per month.
@@ -94,21 +98,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-6">
-      {currentOrder ? (
-        <CurrentOrderPanel
-          order={currentOrder}
-          stage={orderStage(currentOrder.status, Boolean(proofUploadedAt))}
-          proofUrl={proofUploadedAt ? `/api/orders/${currentOrder.id}/payment-proof?v=${encodeURIComponent(proofUploadedAt)}` : null}
-          transfer={manualTransferDetails(settings)}
-          lang={lang}
-          justCreated={Boolean(highlighted) && params.created === "1"}
-        />
+      {justCreated ? (
+        <Notice tone="success" title={t("تم إنشاء طلبك ✅", "Your order has been created ✅")}>
+          {stage === "PAYMENT_PENDING"
+            ? t("الخطوة التالية: إتمام الدفع", "Next step: complete the payment")
+            : t("تكدر تتابع طلبك من هنا.", "You can follow your order here.")}
+        </Notice>
       ) : null}
 
-      {/* With no subscription yet, the order panel above already says it all. */}
-      {state === "PENDING" && currentOrder ? null : (
-        <SubscriptionHero state={state} subscription={primary} openOrder={trackedOrder} name={user.name} lang={lang} />
-      )}
+      <SubscriptionHero state={state} subscription={primary} openOrder={trackedOrder} name={user.name} lang={lang} />
 
       {notices.length ? (
         <div className="space-y-3">
@@ -144,6 +142,35 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           ))}
         </ul>
       </nav>
+
+      {trackedOrder && stage ? (
+        <section id="current-order" data-testid="current-order" data-order-id={trackedOrder.id} className="scroll-mt-24">
+          <Card className={cn("p-6", justCreated && "ring-2 ring-glow/60")}>
+            <CardHeader
+              icon={<PackageSearch size={19} aria-hidden />}
+              title={t(`طلب قيد المتابعة ${orderRef(trackedOrder.id)}`, `Order in progress ${trackedOrder.number}`)}
+              description={`${trackedOrder.serviceName}${trackedOrder.requestType !== "DEVICE_PURCHASE" ? ` · ${trackedOrder.durationLabel}` : ""} · ${formatPrice(trackedOrder.price, lang)}`}
+              action={
+                <LinkButton href={`/orders/${trackedOrder.id}`} variant="secondary" size="sm">
+                  {t("التفاصيل", "Details")}
+                </LinkButton>
+              }
+            />
+            <div className="mt-6">
+              <OrderJourney stage={stage} lang={lang} />
+            </div>
+            <div className="mt-6">
+              <OrderPaymentFlow
+                order={trackedOrder}
+                stage={stage}
+                proofUrl={proofUploadedAt ? `/api/orders/${trackedOrder.id}/payment-proof?v=${encodeURIComponent(proofUploadedAt)}` : null}
+                transfer={manualTransferDetails(settings)}
+                lang={lang}
+              />
+            </div>
+          </Card>
+        </section>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card className="p-6">

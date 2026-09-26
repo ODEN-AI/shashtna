@@ -42,6 +42,12 @@ To run it locally, see **[LOCAL_SETUP.md](LOCAL_SETUP.md)**.
 
 - Sessions are HttpOnly signed cookies (website) or Bearer tokens (mobile);
   admin access is checked on the server against the role stored in the database.
+- Sign-in locks for 15 minutes after 5 wrong passwords (website and app).
+  Tokens carry `user.tokenVersion`: a password change or reset, or "sign out
+  on all devices" in the app, ends every other session and deactivates the
+  account's push devices.
+- The checkout confirmation is resolved by `src/server/checkout.ts`, shared by
+  the website checkout and the mobile app.
 - Payment is arranged manually with the Shashtna team; the site records orders
   and their status but does not take payments online.
 - Legal pages are drafts and have not been reviewed by a lawyer.

@@ -43,6 +43,12 @@ function cleanContext(context: SupportTicketContext): SupportTicketContext | und
     }
   }
 
+  const diagnostics = String(context.diagnostics ?? "").trim().slice(0, 400);
+
+  if (diagnostics) {
+    result.diagnostics = diagnostics;
+  }
+
   return Object.keys(result).length ? result : undefined;
 }
 

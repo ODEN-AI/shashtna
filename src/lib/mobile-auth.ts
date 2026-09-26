@@ -9,6 +9,8 @@ export const SESSION_COOKIE = "shashtna_session";
 export type MobileAuthPayload = {
   sub: number;
   role?: string;
+  /** User.tokenVersion at issue time; a newer version revokes the token. */
+  ver?: number;
   iat: number;
   exp: number;
 };
@@ -39,12 +41,13 @@ function sign(value: string) {
     .digest("base64url");
 }
 
-export function createAuthToken(userId: number, role?: string) {
+export function createAuthToken(userId: number, role?: string, version = 0) {
   const now = Math.floor(Date.now() / 1000);
 
   const payload: MobileAuthPayload = {
     sub: userId,
     role,
+    ver: version,
     iat: now,
     exp: now + TOKEN_TTL_SECONDS,
   };

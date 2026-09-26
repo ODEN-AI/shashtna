@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 
-import { createAuthToken } from "@/src/lib/mobile-auth";
+import { issueSession } from "@/src/server/sessions";
 import { db } from "@/src/prisma/db";
 import { logActivity } from "@/src/server/activity";
 import { fail, ok, readJson, serializeMobileUser, withPublic } from "@/src/server/mobile-api";
@@ -50,7 +50,7 @@ export const POST = withPublic(async ({ request }) => {
     summary: "تم إنشاء الحساب من تطبيق الهاتف",
   });
 
-  const session = createAuthToken(user.id, user.role);
+  const session = issueSession(user);
 
   return ok({ token: session.token, expiresAt: session.expiresAt, user: serializeMobileUser(user) }, { status: 201 });
 });

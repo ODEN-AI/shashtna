@@ -124,6 +124,12 @@ export default async function AdminTicketPage({ params }: { params: Promise<{ id
                 <dd className="text-end font-semibold text-ink">{ticket.context?.device ?? "—"}</dd>
               </div>
             </dl>
+            {ticket.context?.diagnostics ? (
+              <p className="mt-4 rounded-xl bg-surface-3 p-3 text-xs leading-6 text-ink-2">
+                <span className="font-bold text-ink">{t("تشخيص التطبيق: ", "App diagnostics: ")}</span>
+                {ticket.context.diagnostics}
+              </p>
+            ) : null}
             {subscriptions.length && !linked ? (
               <p className="mt-4 text-xs text-ink-3">
                 {t(`عند العميل ${subscriptions.length} اشتراك.`, `The customer has ${subscriptions.length} subscription(s).`)}

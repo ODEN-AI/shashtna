@@ -40,6 +40,9 @@ export type SupportTicketContext = {
   app?: string;
   device?: string;
   topic?: string;
+  /** Non-sensitive facts from the mobile app (network type, last app
+   * error), to help staff reproduce a problem. */
+  diagnostics?: string;
 };
 
 const STORE_NAME = "shashtna-support";

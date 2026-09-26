@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/src/prisma/db";
 import { logActivity } from "@/src/server/activity";
 import { fail, ok, readJson, withMobileUser } from "@/src/server/mobile-api";
+import { issueSession, revokeSessions } from "@/src/server/sessions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,10 @@ export const POST = withMobileUser(async ({ request, user }) => {
     return fail(400, "INVALID_PASSWORD", "كلمة المرور الحالية غير صحيحة.");
   }
 
+  // Changing the password signs out every other device; this one gets a
+  // fresh token.
   await db.orm.public.User.where({ id: user.id }).update({ passwordHash: await bcrypt.hash(next, 12) });
+  const updated = await revokeSessions(user.id);
   await logActivity({
     actor: { id: user.id, role: user.role },
     userId: user.id,
@@ -32,5 +36,7 @@ export const POST = withMobileUser(async ({ request, user }) => {
     customerVisible: true,
   });
 
-  return ok({ message: "تم تغيير كلمة المرور." });
+  const session = issueSession(updated ?? { ...row, tokenVersion: row.tokenVersion + 1 });
+
+  return ok({ message: "تم تغيير كلمة المرور. تم تسجيل الخروج من الأجهزة الأخرى.", token: session.token, expiresAt: session.expiresAt });
 });

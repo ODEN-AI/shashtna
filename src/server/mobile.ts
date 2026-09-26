@@ -7,7 +7,7 @@ import { listCustomerActivity, listEntityActivity } from "@/src/server/activity"
 import { getActivePackages } from "@/src/server/catalog";
 import { getActiveIncidents, getLiveAnnouncements } from "@/src/server/content";
 import { countUnreadNotifications, ensureRenewalReminders } from "@/src/server/notifications";
-import { listOrdersForUser, type Order } from "@/src/server/orders";
+import { getOrderForUser, listOrdersForUser, type Order } from "@/src/server/orders";
 import { proofUploadTimes } from "@/src/server/payment-proofs";
 import { getSettings, manualTransferDetails, safeExternalUrl, whatsappLink } from "@/src/server/settings";
 import { listSubscriptionsForUser, type CustomerSubscription } from "@/src/server/subscriptions";
@@ -213,7 +213,7 @@ export function shapeSubscription(subscription: CustomerSubscription, options: {
  * featured subscription, the order that needs attention and its next
  * action, unread notifications, live offers/announcements and incidents.
  */
-export async function mobileDashboard(request: Request, user: MobileUser) {
+export async function mobileDashboard(request: Request, user: MobileUser, highlightOrderId?: number | null) {
   const subscriptions = await listSubscriptionsForUser(user.id);
 
   await ensureRenewalReminders(user.id, subscriptions, user.renewalReminders).catch(() => undefined);
@@ -230,7 +230,12 @@ export async function mobileDashboard(request: Request, user: MobileUser) {
   const primary = pickPrimarySubscription(subscriptions);
   const openOrders = orders.filter((order) => order.isOpen);
   const state = deriveAccountState(primary, openOrders.length > 0);
-  const currentOrder = openOrders[0] ?? null;
+  // Same rule as the website dashboard: the order just placed at checkout
+  // (only if it is this customer's), else the newest open one.
+  const highlighted = highlightOrderId ? orders.find((order) => order.id === highlightOrderId) : undefined;
+  const currentOrder = highlighted ?? openOrders[0] ?? null;
+  const rawOrder = currentOrder ? await getOrderForUser(user.id, currentOrder.id) : null;
+  const trackedOrder = rawOrder ? await mobileOrderDetail(rawOrder) : null;
 
   let nextAction: { kind: string; title: string; body: string; orderId?: number; subscriptionId?: number } | null = null;
 
@@ -278,7 +283,9 @@ export async function mobileDashboard(request: Request, user: MobileUser) {
     accountState: state,
     primarySubscription: primary ? shapeSubscription(primary) : null,
     subscriptionsCount: subscriptions.length,
-    currentOrder,
+    // Full journey + payment details: the dashboard's order card is where the
+    // customer pays and uploads the proof (as on the website).
+    currentOrder: trackedOrder,
     openOrdersCount: openOrders.length,
     nextAction,
     unreadNotifications: unread,

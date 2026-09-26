@@ -5,6 +5,7 @@ import {
   ensureDatabaseConnection,
 } from "@/src/prisma/db";
 import { requireUser } from "@/src/lib/session";
+import { revokeSessions } from "@/src/server/sessions";
 
 export const dynamic = "force-dynamic";
 
@@ -113,6 +114,11 @@ export async function PUT(request: Request) {
           name,
           passwordHash,
         });
+
+    // A new password ends the account's sessions.
+    if (newPassword) {
+      await revokeSessions(userId);
+    }
 
     if (!updatedUser) {
       return NextResponse.json(

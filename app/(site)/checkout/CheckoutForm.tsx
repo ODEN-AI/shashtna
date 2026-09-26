@@ -33,9 +33,9 @@ export type CheckoutDevice = {
   description: string;
 };
 
-export type CheckoutMode = "NEW" | "RENEW" | "UPGRADE" | "DEVICE_PURCHASE";
+export type { CheckoutMode, ContactOption } from "@/src/server/checkout";
+import type { CheckoutMode, ContactOption } from "@/src/server/checkout";
 
-export type ContactOption = "TELEGRAM" | "WHATSAPP" | "FACEBOOK" | "PHONE";
 
 /**
  * Order review before the order is created: customer, the one package they

@@ -12,6 +12,12 @@ model User {
   preferredContact String?
   renewalReminders Boolean  @default(true)
   marketingOptIn   Boolean  @default(false)
+  // Session revocation: tokens carry this version; bumping it (password
+  // change/reset, "sign out everywhere") invalidates every existing session.
+  tokenVersion     Int      @default(0)
+  // Login throttling.
+  failedLogins     Int      @default(0)
+  lockedUntil      TimestamptzString?
 
   subscriptions        Subscription[]
   subscriptionRequests SubscriptionRequest[]

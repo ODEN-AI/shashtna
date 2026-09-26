@@ -1,46 +1,20 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 
-import { createAuthToken } from "@/src/lib/mobile-auth";
 import { setSessionCookie } from "@/src/lib/session";
-import { db } from "@/src/prisma/db";
+import { attemptLogin } from "@/src/server/login-guard";
+import { issueSession } from "@/src/server/sessions";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const result = await attemptLogin(body.phone, body.password);
 
-    const phone = String(body.phone ?? "").trim();
-    const password = String(body.password ?? "");
-
-    if (!phone || !password) {
-      return NextResponse.json(
-        { message: "يرجى إدخال رقم الهاتف وكلمة المرور" },
-        { status: 400 },
-      );
+    if (!result.ok) {
+      return NextResponse.json({ message: result.message, code: result.code }, { status: result.status });
     }
 
-    const user = await db.orm.public.User.first({ phone });
-
-    if (!user) {
-      return NextResponse.json(
-        { message: "رقم الهاتف أو كلمة المرور غير صحيحة" },
-        { status: 401 },
-      );
-    }
-
-    const passwordValid = await bcrypt.compare(
-      password,
-      user.passwordHash,
-    );
-
-    if (!passwordValid) {
-      return NextResponse.json(
-        { message: "رقم الهاتف أو كلمة المرور غير صحيحة" },
-        { status: 401 },
-      );
-    }
-
-    const session = createAuthToken(user.id, user.role);
+    const { user } = result;
+    const session = issueSession(user);
 
     const response = NextResponse.json(
       {

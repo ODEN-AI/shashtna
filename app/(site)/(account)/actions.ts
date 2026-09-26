@@ -2,9 +2,12 @@
 
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { SESSION_COOKIE } from "@/src/lib/mobile-auth";
 import { db } from "@/src/prisma/db";
+import { issueSession, revokeSessions } from "@/src/server/sessions";
 import { assertCustomer } from "@/src/server/auth";
 import { logActivity } from "@/src/server/activity";
 import { markNotificationsRead } from "@/src/server/notifications";
@@ -140,8 +143,18 @@ export async function changePasswordAction(_prev: ActionState, formData: FormDat
       return { ok: false, message: "كلمة المرور الحالية غير صحيحة." };
     }
 
-    await db.orm.public.User.where({ id: user.id }).update({
-      passwordHash: await bcrypt.hash(next, 12),
+    // Every other session (other browsers, the mobile app) ends; this
+    // browser keeps a fresh session.
+    await db.orm.public.User.where({ id: user.id }).update({ passwordHash: await bcrypt.hash(next, 12) });
+    const updated = await revokeSessions(user.id);
+    const session = issueSession(updated ?? { ...row, tokenVersion: row.tokenVersion + 1 });
+
+    (await cookies()).set(SESSION_COOKIE, session.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      expires: new Date(session.expiresAt),
     });
 
     await logActivity({
@@ -154,7 +167,7 @@ export async function changePasswordAction(_prev: ActionState, formData: FormDat
       customerVisible: true,
     });
 
-    return { ok: true, message: "تم تغيير كلمة المرور." };
+    return { ok: true, message: "تم تغيير كلمة المرور وتسجيل الخروج من الأجهزة الأخرى." };
   } catch (error) {
     return failure(error, "تعذر تغيير كلمة المرور.");
   }

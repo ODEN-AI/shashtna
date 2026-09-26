@@ -2449,10 +2449,24 @@
                   "kind": "scalar"
                 }
               },
+              "failedLogins": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
                   "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "lockedUntil": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
                   "kind": "scalar"
                 }
               },
@@ -2505,6 +2519,13 @@
                   "kind": "scalar"
                 }
               },
+              "tokenVersion": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "updatedAt": {
                 "nullable": false,
                 "type": {
@@ -2553,8 +2574,14 @@
                 "email": {
                   "column": "email"
                 },
+                "failedLogins": {
+                  "column": "failedLogins"
+                },
                 "id": {
                   "column": "id"
+                },
+                "lockedUntil": {
+                  "column": "lockedUntil"
                 },
                 "marketingOptIn": {
                   "column": "marketingOptIn"
@@ -2576,6 +2603,9 @@
                 },
                 "role": {
                   "column": "role"
+                },
+                "tokenVersion": {
+                  "column": "tokenVersion"
                 },
                 "updatedAt": {
                   "column": "updatedAt"
@@ -4392,6 +4422,15 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "failedLogins": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
                 "id": {
                   "codecId": "pg/int4@1",
                   "default": {
@@ -4400,6 +4439,11 @@
                   },
                   "nativeType": "int4",
                   "nullable": false
+                },
+                "lockedUntil": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
                 },
                 "marketingOptIn": {
                   "codecId": "pg/bool@1",
@@ -4448,6 +4492,15 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "tokenVersion": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
                 "updatedAt": {
                   "codecId": "pg/timestamptz-string@1",
                   "nativeType": "timestamptz",
@@ -4480,7 +4533,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "f4669d3363071f50d9cd7599bf94b8eed83af688790424d958af4038792968ae"
+    "storageHash": "015a5832697de1be26de4c7d49e81af3fa770ab6ebb1479f7d7081bb1b439d22"
   },
   "execution": {
     "executionHash": "18855ca79e5a0925186692f494433125bb57c6fbd823ed5cd0df4789417a9355",

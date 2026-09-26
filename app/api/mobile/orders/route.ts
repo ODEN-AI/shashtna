@@ -1,6 +1,7 @@
 import { createOrder, getOrderForUser } from "@/src/server/orders";
 import { listMobileOrders, mobileOrderDetail } from "@/src/server/mobile";
 import { fail, ok, readJson, withMobileUser } from "@/src/server/mobile-api";
+import { MANUAL_TRANSFER_METHOD } from "@/src/server/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,10 @@ export const POST = withMobileUser(async ({ request, user }) => {
     planSlug: body.planSlug,
     deviceId: body.deviceId,
     subscriptionId: body.subscriptionId,
+    // Same as the website checkout: the contact method chosen for this order
+    // (else the saved preference) and manual transfer as the payment method.
+    contactMethod: body.contactMethod || user.preferredContact || "PENDING",
+    paymentMethod: MANUAL_TRANSFER_METHOD,
     customerNote: body.customerNote,
   });
 

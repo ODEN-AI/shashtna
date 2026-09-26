@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/src/prisma/db";
 import { toDate } from "@/src/lib/i18n";
 import { logActivity } from "@/src/server/activity";
+import { revokeSessions } from "@/src/server/sessions";
 
 /**
  * Staff-assisted password reset.
@@ -135,9 +136,13 @@ export async function completePasswordReset(
     return generic;
   }
 
+  // A reset ends every existing session (and clears any login lock).
   await db.orm.public.User.where({ id: user.id }).update({
     passwordHash: await bcrypt.hash(newPassword, 12),
+    failedLogins: 0,
+    lockedUntil: null,
   });
+  await revokeSessions(user.id);
 
   await db.orm.public.PasswordReset.where({ id: reset.id }).update({
     status: "USED",

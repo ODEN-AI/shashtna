@@ -487,3 +487,166 @@ describe("service status", () => {
     assert.ok(res.body.resolved.some((item: Json) => item.id === row.id && item.status === "RESOLVED"));
   });
 });
+
+// ---------------------------------------------------------------- round 2
+
+const checkout = await import("@/app/api/mobile/checkout/route");
+const logoutAll = await import("@/app/api/mobile/auth/logout-all/route");
+const mePassword = await import("@/app/api/mobile/me/password/route");
+const { attemptLogin, MAX_FAILURES } = await import("@/src/server/login-guard");
+
+describe("checkout parity with the website", () => {
+  test("resolves ONE package with the site's contact options and the saved preference", async () => {
+    const res = await call(checkout.GET, request(`/api/mobile/checkout?plan=${plan.slug}`, { token: customer.token }));
+    assert.equal(res.status, 200);
+    assert.equal(res.body.mode, "NEW");
+    assert.equal(res.body.plan.slug, plan.slug);
+    assert.ok(res.body.contactOptions.includes("PHONE"));
+    // The customer saved WHATSAPP earlier; it's offered only if the site has a WhatsApp number.
+    assert.ok(res.body.contactOptions.includes(res.body.initialContact));
+    assert.equal(res.body.customer.phone, customer.phone);
+  });
+
+  test("an unknown or disabled package cannot be confirmed", async () => {
+    const res = await call(checkout.GET, request("/api/mobile/checkout?plan=does-not-exist", { token: customer.token }));
+    assert.equal(res.status, 404);
+    assert.equal(res.body.code, "UNAVAILABLE");
+  });
+
+  test("the order stores the chosen contact method and manual transfer, and the dashboard highlights it with payment details", async () => {
+    const created = await call(orders.POST, request("/api/mobile/orders", { token: customer.token, body: { requestType: "UPGRADE", planSlug: plan.slug, subscriptionId: 999999, contactMethod: "PHONE" } }));
+    // Upgrading a subscription that isn't yours is refused by the order service.
+    assert.equal(created.status, 404);
+
+    const sub = (await call(subscriptions.GET, request("/api/mobile/subscriptions", { token: customer.token }))).body.subscriptions[0];
+    const ok = await call(orders.POST, request("/api/mobile/orders", { token: customer.token, body: { requestType: "RENEW", planSlug: plan.slug, subscriptionId: sub.id, contactMethod: "PHONE", customerNote: "بعد العصر" } }));
+    assert.ok(ok.status === 201 || ok.status === 200);
+    const row = await db.orm.public.SubscriptionRequest.first({ id: ok.body.order.id });
+    assert.equal(row?.contactMethod, "PHONE");
+    assert.equal(row?.paymentMethod, "تحويل يدوي");
+    assert.equal(row?.customerNote, "بعد العصر");
+
+    const dash = await call(dashboard.GET, request(`/api/mobile/dashboard?order=${ok.body.order.id}`, { token: customer.token }));
+    assert.equal(dash.body.currentOrder.id, ok.body.order.id);
+    assert.deepEqual(dash.body.currentOrder.journey.map((step: Json) => step.key), ["SELECT", "PAY", "PROOF", "REVIEW"]);
+    assert.ok(dash.body.currentOrder.payment.transfer.transferNumber);
+
+    // Someone else's order id is ignored.
+    const other = await call(register.POST, request("/api/mobile/auth/register", { body: { name: "Third", phone: `0772${DIGITS}`, password: "secret123", terms: true } }));
+    const foreign = await call(dashboard.GET, request(`/api/mobile/dashboard?order=${ok.body.order.id}`, { token: other.body.token }));
+    assert.equal(foreign.body.currentOrder, null);
+  });
+});
+
+describe("TEST C / D at the API boundary — order update and payment", () => {
+  test("customer order → proof stored privately → still unpaid → staff marks paid → activation", async () => {
+    const created = await call(orders.POST, request("/api/mobile/orders", { token: customer.token, body: { requestType: "NEW", planSlug: plan.slug, contactMethod: "PHONE" } }));
+    const id = created.body.order.id;
+
+    const form = new FormData();
+    form.append("paymentProof", new File([PNG], "p.png", { type: "image/png" }));
+    form.append("paymentReference", "REF-D-1");
+    const proof = await call(orderProof.POST, request(`/api/mobile/orders/${id}/proof`, { token: customer.token, form }), { id: String(id) });
+    assert.equal(proof.body.order.stage, "UNDER_REVIEW");
+    // Uploading never marks the order paid.
+    assert.equal(proof.body.order.status, "SUBMITTED");
+    // Stored outside public/.
+    const { readPaymentProof } = await import("@/src/server/payment-proofs");
+    assert.ok(await readPaymentProof(id));
+
+    assert.ok((await updateOrderStatus(staff, id, "PAID")).ok);
+    let detail = await call(orderDetail.GET, request(`/api/mobile/orders/${id}`, { token: customer.token }), { id: String(id) });
+    assert.equal(detail.body.order.stage, "PAID");
+
+    const { completeOrderWithSubscription } = await import("@/src/server/orders");
+    const sub = await db.orm.public.Subscription.create({
+      userId: customer.id,
+      packageName: `IT Plan ${RUN}`,
+      packageId: plan.id,
+      startDate: new Date().toISOString(),
+      expiryDate: new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+      status: "ACTIVE",
+      username: `u${RUN}`,
+      password: "p",
+    });
+    await completeOrderWithSubscription(staff, id, sub.id, { price: 27000, durationMonths: 12, durationLabel: "1 Year", bonusYears: 0 });
+    detail = await call(orderDetail.GET, request(`/api/mobile/orders/${id}`, { token: customer.token }), { id: String(id) });
+    assert.equal(detail.body.order.stage, "ACTIVATED");
+    assert.equal(detail.body.order.subscriptionId, sub.id);
+  });
+});
+
+describe("security", () => {
+  test(`login locks after ${MAX_FAILURES} wrong passwords, for known and unknown phones alike`, async () => {
+    const phone = `0773${DIGITS}`;
+    await call(register.POST, request("/api/mobile/auth/register", { body: { name: "Lock Test", phone, password: "secret123", terms: true } }));
+
+    for (let attempt = 0; attempt < MAX_FAILURES; attempt += 1) {
+      assert.equal((await call(login.POST, request("/api/mobile/auth/login", { body: { phone, password: "wrong" } }))).body.code, "INVALID_CREDENTIALS");
+    }
+
+    const locked = await call(login.POST, request("/api/mobile/auth/login", { body: { phone, password: "secret123" } }));
+    assert.equal(locked.status, 429);
+    assert.equal(locked.body.code, "LOCKED");
+
+    // After the lock window the right password works again.
+    assert.equal((await attemptLogin(phone, "secret123", Date.now() + 16 * 60_000)).ok, true);
+
+    const ghost = `0774${DIGITS}`;
+    for (let attempt = 0; attempt < MAX_FAILURES; attempt += 1) await attemptLogin(ghost, "x");
+    const ghostResult = await attemptLogin(ghost, "x");
+    assert.equal(ghostResult.ok, false);
+    assert.equal(!ghostResult.ok && ghostResult.code, "LOCKED");
+  });
+
+  test("changing the password revokes other sessions and stops pushes to other phones; this device gets a new token", async () => {
+    const phone = `0775${DIGITS}`;
+    const reg = await call(register.POST, request("/api/mobile/auth/register", { body: { name: "Revoke", phone, password: "secret123", terms: true } }));
+    const other = await call(login.POST, request("/api/mobile/auth/login", { body: { phone, password: "secret123" } }));
+    const tokenB = `ExponentPushToken[revokeB${DIGITS}abcd]`;
+    await call(devices.POST, request("/api/mobile/devices", { token: other.body.token, body: { token: tokenB, platform: "ANDROID" } }));
+
+    const changed = await call(mePassword.POST, request("/api/mobile/me/password", { token: reg.body.token, body: { currentPassword: "secret123", newPassword: "secret456" } }));
+    assert.equal(changed.status, 200);
+    assert.ok(changed.body.token);
+
+    assert.equal((await call(me.GET, request("/api/mobile/me", { token: other.body.token }))).status, 401);
+    assert.equal((await call(me.GET, request("/api/mobile/me", { token: reg.body.token }))).status, 401);
+    assert.equal((await call(me.GET, request("/api/mobile/me", { token: changed.body.token }))).status, 200);
+    assert.equal((await db.orm.public.PushDevice.first({ token: tokenB }))?.isActive, false);
+  });
+
+  test("sign out on all devices", async () => {
+    const phone = `0776${DIGITS}`;
+    const reg = await call(register.POST, request("/api/mobile/auth/register", { body: { name: "All", phone, password: "secret123", terms: true } }));
+    assert.equal((await call(logoutAll.POST, request("/api/mobile/auth/logout-all", { token: reg.body.token, body: {} }))).status, 200);
+    assert.equal((await call(me.GET, request("/api/mobile/me", { token: reg.body.token }))).status, 401);
+  });
+});
+
+describe("multiple phones on one account", () => {
+  test("phone A and phone B both stay registered and both receive the push", async () => {
+    setPushTransport(async (url, body) => {
+      if (url.endsWith("/send")) {
+        const messages = body as typeof sent;
+        sent.push(...messages);
+        return { data: messages.map((_, index) => ({ status: "ok", id: `multi-${RUN}-${sent.length}-${index}` })) };
+      }
+      return { data: {} };
+    });
+
+    const phone = `0777${DIGITS}`;
+    const a = await call(register.POST, request("/api/mobile/auth/register", { body: { name: "Two Phones", phone, password: "secret123", terms: true } }));
+    const b = await call(login.POST, request("/api/mobile/auth/login", { body: { phone, password: "secret123" } }));
+    const tokenA = `ExponentPushToken[phoneA${DIGITS}abcd]`;
+    const tokenB = `ExponentPushToken[phoneB${DIGITS}abcd]`;
+    await call(devices.POST, request("/api/mobile/devices", { token: a.body.token, body: { token: tokenA, platform: "ANDROID", deviceName: "A" } }));
+    await call(devices.POST, request("/api/mobile/devices", { token: b.body.token, body: { token: tokenB, platform: "IOS", deviceName: "B" } }));
+
+    const before = sent.length;
+    const result = await createCampaign(staff, { title: "للجهازين", body: "b", type: "MESSAGE", audience: "CUSTOMER", customerPhone: phone, mode: "now" });
+    assert.ok(result.ok);
+    const targets = sent.slice(before).map((message) => message.to).sort();
+    assert.deepEqual(targets, [tokenA, tokenB].sort());
+  });
+});

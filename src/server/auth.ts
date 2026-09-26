@@ -10,6 +10,7 @@ import {
   type Permission,
 } from "@/src/lib/roles";
 import { db } from "@/src/prisma/db";
+import { sessionIsCurrent } from "@/src/server/sessions";
 
 export type SessionUser = {
   id: number;
@@ -39,7 +40,9 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 
   const user = await db.orm.public.User.first({ id: payload.sub });
 
-  if (!user) {
+  // Deleted accounts and revoked sessions (password changed elsewhere,
+  // "sign out everywhere") end here.
+  if (!user || !sessionIsCurrent(payload, user)) {
     return null;
   }
 

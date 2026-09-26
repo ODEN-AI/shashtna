@@ -33,6 +33,12 @@ export const POST = withMobileUser(async ({ request, user }) => {
       subscriptionId: positiveInt(body.subscriptionId) ?? undefined,
       app: app ? `Shashtna Mobile ${app}`.slice(0, 80) : "Shashtna Mobile",
       device: typeof diagnostics.device === "string" ? diagnostics.device.slice(0, 80) : undefined,
+      diagnostics: [
+        typeof diagnostics.network === "string" && diagnostics.network ? `الشبكة: ${diagnostics.network.slice(0, 40)}` : "",
+        typeof diagnostics.lastError === "string" && diagnostics.lastError ? `آخر خطأ بالتطبيق: ${diagnostics.lastError.slice(0, 300)}` : "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
     },
   });
 

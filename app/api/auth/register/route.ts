@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
-import { createAuthToken } from "@/src/lib/mobile-auth";
+import { issueSession } from "@/src/server/sessions";
 import { setSessionCookie } from "@/src/lib/session";
 import { db } from "@/src/prisma/db";
 
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
         role: "CUSTOMER",
       });
 
-    const session = createAuthToken(user.id, user.role);
+    const session = issueSession(user);
 
     const response = NextResponse.json(
       {

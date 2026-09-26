@@ -122,7 +122,7 @@ export async function requireAdmin(request: Request, permission: Permission) {
 
   const user = await db.orm.public.User.first({ id: payload.sub });
 
-  if (!user || !hasPermission(user.role, permission)) {
+  if (!user || (payload.ver ?? 0) !== user.tokenVersion || !hasPermission(user.role, permission)) {
     return {
       ok: false as const,
       response: authError(403, "ليس لديك صلاحية لتنفيذ هذا الإجراء."),

@@ -38,13 +38,14 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
     notFound();
   }
 
-  const [{ t, lang }, subscriptions, orders, receipts, tickets, activity] = await Promise.all([
+  const [{ t, lang }, subscriptions, orders, receipts, tickets, activity, phones] = await Promise.all([
     getI18n(),
     listSubscriptionsForUser(customer.id),
     listOrdersForUser(customer.id),
     listReceiptsForUser(customer.id),
     listTicketsForUser(customer.id).catch(() => []),
     db.orm.public.ActivityEvent.where({ userId: customer.id }).orderBy((event) => event.createdAt.desc()).limit(20).all(),
+    db.orm.public.PushDevice.where({ userId: customer.id }).orderBy((device) => device.lastSeenAt.desc()).limit(10).all(),
   ]);
 
   const paid = receipts.reduce((sum, receipt) => sum + receipt.price, 0);
@@ -172,6 +173,30 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
             </ul>
           ) : (
             <p className="mt-4 text-sm text-ink-3">{t("ماكو تذاكر.", "No tickets.")}</p>
+          )}
+        </Card>
+
+        <Card className="p-6">
+          <CardHeader
+            title={t("هواتف التطبيق", "App phones")}
+            description={t("الأجهزة المسجلة لاستلام إشعارات الهاتف لهذا الحساب.", "Devices registered to receive push notifications for this account.")}
+          />
+          {phones.length ? (
+            <ul className="mt-4 divide-y divide-line text-sm">
+              {phones.map((phone) => (
+                <li key={phone.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                  <span className="font-semibold text-ink">
+                    {phone.deviceName ?? phone.platform} <span className="text-xs font-normal text-ink-3">· {phone.platform} · {phone.appVersion ?? "—"}</span>
+                  </span>
+                  <span className="flex items-center gap-2 text-xs">
+                    <Badge tone={phone.isActive ? "success" : "neutral"}>{phone.isActive ? t("فعّال", "Active") : t("متوقف", "Inactive")}</Badge>
+                    <span className="nums text-ink-3">{formatDateTime(phone.lastSeenAt, lang)}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 text-sm text-ink-3">{t("ما سجّل هذا العميل أي هاتف بعد.", "No phone registered yet.")}</p>
           )}
         </Card>
 

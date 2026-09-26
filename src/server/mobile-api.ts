@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getRequestAuth } from "@/src/lib/session";
 import { normalizeRole, isStaffRole } from "@/src/lib/roles";
 import { db } from "@/src/prisma/db";
+import { sessionIsCurrent } from "@/src/server/sessions";
 
 /**
  * Shared plumbing for /api/mobile/* routes.
@@ -81,7 +82,7 @@ export function withMobileUser<C = Record<string, never>>(handler: Handler<C>) {
     try {
       const row = await db.orm.public.User.first({ id: payload.sub });
 
-      if (!row) {
+      if (!row || !sessionIsCurrent(payload, row)) {
         return fail(401, "UNAUTHORIZED", UNAUTHORIZED_MESSAGE);
       }
 

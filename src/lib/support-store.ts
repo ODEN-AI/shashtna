@@ -2,6 +2,7 @@ import { getStore } from "@netlify/blobs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { BLOB_STORES, blobStoreName } from "@/src/lib/blob-stores";
 import { shouldUseBlobStorage as isBlobStorage } from "@/src/lib/runtime";
 
 export type SupportTicketStatus =
@@ -45,7 +46,9 @@ export type SupportTicketContext = {
   diagnostics?: string;
 };
 
-const STORE_NAME = "shashtna-support";
+// Namespaced per deploy (SHASHTNA_BLOB_NAMESPACE); no fallback to the
+// shared store, so a test deploy never lists or edits production tickets.
+const STORE_NAME = BLOB_STORES.support;
 const LOCAL_DIR = path.join(process.cwd(), ".data");
 const LOCAL_FILE = path.join(LOCAL_DIR, "support-tickets.json");
 
@@ -89,7 +92,7 @@ export async function getAllSupportTickets(): Promise<SupportTicket[]> {
   }
 
   const store = getStore({
-    name: STORE_NAME,
+    name: blobStoreName(STORE_NAME),
     consistency: "strong",
   });
 
@@ -126,7 +129,7 @@ export async function getSupportTicket(
   }
 
   const store = getStore({
-    name: STORE_NAME,
+    name: blobStoreName(STORE_NAME),
     consistency: "strong",
   });
 
@@ -154,7 +157,7 @@ export async function saveSupportTicket(ticket: SupportTicket) {
   }
 
   const store = getStore({
-    name: STORE_NAME,
+    name: blobStoreName(STORE_NAME),
     consistency: "strong",
   });
 

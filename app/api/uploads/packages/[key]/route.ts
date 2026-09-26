@@ -1,7 +1,9 @@
 import { getStore } from "@netlify/blobs";
 import { NextResponse } from "next/server";
 
-const BLOB_STORE_NAME = "shashtna-package-images";
+import { BLOB_STORES, imageReadStoreNames } from "@/src/lib/blob-stores";
+
+const BLOB_STORE_NAME = BLOB_STORES.packageImages;
 
 type RouteContext = {
   params: Promise<{
@@ -22,11 +24,19 @@ export async function GET(
       });
     }
 
-    const store = getStore(BLOB_STORE_NAME);
+    // This deploy's store first; a namespaced test deploy may also read
+    // (never write) images uploaded in production. Keys are random.
+    let entry: { data: ArrayBuffer; metadata: Record<string, unknown> } | null = null;
 
-    const entry = await store.getWithMetadata(key, {
-      type: "arrayBuffer",
-    });
+    for (const name of imageReadStoreNames(BLOB_STORE_NAME)) {
+      entry = await getStore(name).getWithMetadata(key, {
+        type: "arrayBuffer",
+      });
+
+      if (entry && entry.data !== null) {
+        break;
+      }
+    }
 
     if (!entry || entry.data === null) {
       return new NextResponse("Not Found", {

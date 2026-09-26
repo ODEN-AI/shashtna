@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { BLOB_STORES, blobStoreName } from "@/src/lib/blob-stores";
 import { shouldUseBlobStorage as isBlobStorage } from "@/src/lib/runtime";
 import { requireAdmin } from "@/src/lib/session";
 import { getStore } from "@netlify/blobs";
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
     const isProduction = isBlobStorage();
 
     if (isProduction) {
-      const store = getStore("shashtna-media");
+      const store = getStore(blobStoreName(BLOB_STORES.media));
 
       await store.set(key, fileBlob, {
         metadata: {

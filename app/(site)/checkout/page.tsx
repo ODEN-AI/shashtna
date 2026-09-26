@@ -8,9 +8,10 @@ import { EmptyState } from "@/app/ui/States";
 import { requireCustomer } from "@/src/server/auth";
 import { getActiveDevices, getActivePackages } from "@/src/server/catalog";
 import { getI18n } from "@/src/server/i18n";
+import { getSettings, safeExternalUrl, whatsappLink } from "@/src/server/settings";
 import { getSubscriptionForUser } from "@/src/server/subscriptions";
 
-import { CheckoutForm, type CheckoutMode } from "./CheckoutForm";
+import { CheckoutForm, type CheckoutMode, type ContactOption } from "./CheckoutForm";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   // Visitors without a session sign in (or register) and come straight back
   // here with the same selection.
   const user = await requireCustomer(`/checkout${query ? `?${query}` : ""}`);
-  const [{ t }, packages, devices] = await Promise.all([getI18n(), getActivePackages(), getActiveDevices()]);
+  const [{ t }, packages, devices, settings] = await Promise.all([getI18n(), getActivePackages(), getActiveDevices(), getSettings()]);
 
   const renewId = positive(params.renew);
   const upgradeId = positive(params.upgrade);
@@ -115,6 +116,16 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       ? devices.filter((item) => item.packageIds.includes(plan.id))
       : [];
 
+  // The contact channels the site actually offers (same rules as before the
+  // payment change); the customer's saved preference is the default.
+  const contactOptions = [
+    safeExternalUrl(settings["contact.telegram"]) ? ("TELEGRAM" as const) : null,
+    whatsappLink(settings["contact.whatsapp"]) ? ("WHATSAPP" as const) : null,
+    safeExternalUrl(settings["contact.facebook"]) ? ("FACEBOOK" as const) : null,
+    "PHONE" as const,
+  ].filter((option): option is ContactOption => option !== null);
+  const initialContact = contactOptions.find((option) => option === user.preferredContact) ?? contactOptions[0];
+
   const titles: Record<CheckoutMode, [string, string]> = {
     NEW: [t("تأكيد الطلب", "Confirm your order"), t("راجع باقتك وأكّد الطلب.", "Review your plan and confirm the order.")],
     RENEW: [
@@ -128,7 +139,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   };
 
   return (
-    <Container className="max-w-3xl pb-32 pt-8 sm:pt-12 lg:pb-16">
+    <Container className="pb-32 pt-8 sm:pt-12 lg:pb-16">
       <LinkButton href={choosePath} variant="ghost" size="sm" className="-ms-3">
         <ArrowRight size={16} className="ltr:rotate-180" aria-hidden />
         {mode === "DEVICE_PURCHASE" ? t("الأجهزة", "Devices") : t("الباقات", "Plans")}
@@ -145,6 +156,8 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
                   serviceType: plan.serviceType,
                   price: plan.price,
                   durationLabel: plan.durationLabel,
+                  description: plan.description,
+                  features: plan.features.slice(0, 4),
                   imageUrl: plan.imageUrl,
                 }
               : null
@@ -154,7 +167,9 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
           initialDevice={compatibleDevices.some((item) => item.id === deviceParam) ? deviceParam : compatibleDevices.length === 1 ? compatibleDevices[0].id : null}
           subscriptionId={subscription?.id ?? null}
           changeHref={choosePath}
-          user={{ name: user.name, phone: user.phone }}
+          user={{ name: user.name, phone: user.phone, email: user.email }}
+          contactOptions={contactOptions}
+          initialContact={initialContact}
         />
       </div>
     </Container>

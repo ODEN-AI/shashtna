@@ -9,8 +9,9 @@ import { MANUAL_TRANSFER_METHOD } from "@/src/server/settings";
 export type CheckoutState = { error: string } | null;
 
 /**
- * Creates the order for the confirmed selection and sends the customer to
- * their dashboard, where they pay and upload the proof. createOrder
+ * Creates the order for the confirmed selection (with the contact method
+ * chosen for it) and sends the customer to their dashboard, where they pay
+ * and upload the proof. createOrder
  * re-reads the package, device and price from the catalogue, so nothing
  * the browser sends about pricing is trusted.
  */
@@ -25,7 +26,8 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
       planSlug: formData.get("planSlug"),
       deviceId: formData.get("deviceId"),
       subscriptionId: formData.get("subscriptionId"),
-      contactMethod: user.preferredContact ?? "PENDING",
+      // Chosen on the review page; createOrder only accepts supported methods.
+      contactMethod: formData.get("contactMethod") || user.preferredContact || "PENDING",
       paymentMethod: MANUAL_TRANSFER_METHOD,
       customerNote: formData.get("customerNote"),
     });

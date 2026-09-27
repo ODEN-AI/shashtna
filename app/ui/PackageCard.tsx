@@ -1,17 +1,22 @@
-import { Check, Crown, Flame } from "lucide-react";
+import { Crown, Flame } from "lucide-react";
 
 import { formatPrice, type Lang } from "@/src/lib/i18n";
 import type { CatalogPackage } from "@/src/server/catalog";
 
 import { Badge } from "./Badge";
-import { LinkButton } from "./Button";
 import { cn } from "./cn";
-import { MARK_SRC } from "./Logo";
+import { FactTiles, FeatureList, PriceBlock, ProductCta, ProductStage, productKind } from "./product/Product";
 
 export function monthlyEquivalent(price: number, months: number) {
   return months > 0 ? Math.round(price / months / 250) * 250 : null;
 }
 
+/**
+ * A package presented as a product (Shashtna Mobile's product card): the
+ * dominant visual band first (admin artwork or the branded emblem), then
+ * name and duration, fact tiles, a short value line, benefits, price and one
+ * action. Every value comes from the catalogue record.
+ */
 export function PackageCard({
   pkg,
   lang,
@@ -31,145 +36,66 @@ export function PackageCard({
   const isVip = pkg.serviceType === "VIP";
   const monthly = monthlyEquivalent(pkg.price, pkg.durationMonths);
   const highlight = featured || pkg.isPopular;
-
-  const badges = (
-    <div className="flex items-center justify-between gap-2">
-      <Badge tone={isVip ? "glow" : "brand"}>
-        {isVip ? <Crown size={12} aria-hidden /> : null}
-        {isVip ? "VIP" : "IPTV"}
-      </Badge>
-      {pkg.isPopular ? (
-        <Badge tone="warning">
-          <Flame size={12} aria-hidden />
-          {isAr ? "الأكثر طلبًا" : "Most popular"}
-        </Badge>
-      ) : null}
-    </div>
-  );
+  // Fact tiles: the first specification lines (the duration is already on
+  // the visual; it fills in only when there are fewer than two lines). The
+  // remaining lines are listed as benefits.
+  const tileCount = pkg.features.length >= 3 ? 3 : 2;
+  const facts = pkg.features.length >= 2 ? pkg.features.slice(0, tileCount) : [pkg.durationLabel, ...pkg.features];
+  const benefits = pkg.features.slice(facts.length, facts.length + Math.max(0, maxFeatures - facts.length));
 
   return (
     <article
+      data-testid="package-card"
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-panel transition duration-300 hover:-translate-y-0.5",
-        highlight ? "surface-raised ring-1 ring-brand/50" : "surface",
+        "group relative flex h-full flex-col overflow-hidden rounded-panel border bg-surface/70 transition duration-300 hover:-translate-y-1",
+        highlight
+          ? "border-sky/50 shadow-[0_12px_36px_rgb(25_81_252/0.4)] [border-top-color:rgb(203_233_253/0.6)]"
+          : "border-line shadow-card [border-top-color:rgb(203_233_253/0.18)] hover:border-line-strong",
       )}
     >
-      {highlight ? (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-8 top-0 z-10 h-px bg-gradient-to-r from-transparent via-glow/80 to-transparent"
-        />
-      ) : null}
-
-      <PackageArtwork imageUrl={pkg.imageUrl} name={pkg.name} isVip={isVip} raised={highlight} />
-
-      <div className="relative z-10 -mt-11 px-5 sm:px-6">{badges}</div>
-
-      <div className="relative flex flex-1 flex-col px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="text-lg font-bold leading-7 text-ink">{pkg.name}</h3>
-            <p className="text-sm text-ink-3">{pkg.durationLabel}</p>
-          </div>
-          <div className="shrink-0 text-end">
-            <p className="flex items-baseline justify-end gap-1.5">
-              <span className="nums text-2xl font-bold tracking-tight text-ink sm:text-[28px]" dir="ltr">
-                {new Intl.NumberFormat("en-US").format(pkg.price)}
-              </span>
-              <span className="text-xs font-semibold text-ink-3">{isAr ? "د.ع" : "IQD"}</span>
-            </p>
-            {monthly && pkg.durationMonths > 1 ? (
-              <p className="text-xs text-ink-3">
-                {"≈ "}
-                <span className="nums">{formatPrice(monthly, lang)}</span>
-                {isAr ? " شهريًا" : " / month"}
-              </p>
+      <ProductStage
+        kind={productKind(pkg.serviceType)}
+        imageUrl={pkg.imageUrl}
+        alt={pkg.name}
+        className="aspect-[16/11]"
+        top={
+          <>
+            <Badge tone={isVip ? "warning" : "glow"}>
+              {isVip ? <Crown size={12} aria-hidden /> : null}
+              {isVip ? "VIP" : "IPTV"}
+            </Badge>
+            {pkg.isPopular ? (
+              <Badge tone="success" dot>
+                <Flame size={12} aria-hidden />
+                {isAr ? "الأكثر طلبًا" : "Most popular"}
+              </Badge>
             ) : null}
-          </div>
+          </>
+        }
+      >
+        <h3 className="text-balance text-xl font-bold leading-8 text-white drop-shadow">{pkg.name}</h3>
+        <p className="text-sm font-bold text-glow">{pkg.durationLabel}</p>
+      </ProductStage>
+
+      <div className="flex flex-1 flex-col gap-4 p-5 sm:p-6">
+        <FactTiles facts={facts} />
+        {pkg.description ? <p className="line-clamp-2 text-sm leading-6 text-ink-2">{pkg.description}</p> : null}
+        <FeatureList features={benefits} max={benefits.length} />
+
+        <div className="mt-auto flex items-end justify-between gap-3 border-t border-line pt-4">
+          <PriceBlock
+            amount={pkg.price}
+            currency={isAr ? "د.ع" : "IQD"}
+            note={monthly && pkg.durationMonths > 1 ? `≈ ${formatPrice(monthly, lang)}${isAr ? " شهريًا" : " / month"}` : null}
+          />
         </div>
-
-        {pkg.description ? (
-          <p className="mt-3 line-clamp-2 text-sm leading-6 text-ink-2">{pkg.description}</p>
-        ) : null}
-
-        {pkg.features.length ? (
-          <ul className="mt-4 space-y-2 border-t border-line pt-4">
-            {pkg.features.slice(0, maxFeatures).map((feature) => (
-              <li key={feature} className="flex items-start gap-2.5 text-sm leading-6 text-ink-2">
-                <Check size={16} className="mt-1 shrink-0 text-glow" aria-hidden />
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        <div className="mt-auto pt-5">
-          <LinkButton href={href} variant={highlight ? "primary" : "secondary"} className="w-full">
-            {ctaLabel ?? (isAr ? "اختر هذه الباقة" : "Choose this plan")}
-          </LinkButton>
-        </div>
+        <ProductCta
+          href={href}
+          label={ctaLabel ?? (isAr ? "اشترك الآن" : "Subscribe now")}
+          emphasis={highlight ? "primary" : "secondary"}
+          className="w-full"
+        />
       </div>
     </article>
-  );
-}
-
-/**
- * Package artwork uploaded from the admin package editor. Artwork is often a
- * portrait poster with text in it, so it is shown whole (object-contain) over
- * a blurred copy of itself rather than cropped. Without artwork the frame
- * keeps its size and shows the Shashtna mark.
- */
-function PackageArtwork({
-  imageUrl,
-  name,
-  isVip,
-  raised,
-}: {
-  imageUrl: string | null;
-  name: string;
-  isVip: boolean;
-  raised?: boolean;
-}) {
-  return (
-    <div className="relative aspect-[16/10] w-full overflow-hidden bg-surface-2">
-      {imageUrl ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt=""
-            aria-hidden
-            loading="lazy"
-            decoding="async"
-            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-2xl"
-          />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt={name}
-            loading="lazy"
-            decoding="async"
-            className="relative h-full w-full object-contain transition duration-500 group-hover:scale-[1.03]"
-          />
-        </>
-      ) : (
-        <div
-          className={cn(
-            "flex h-full w-full items-center justify-center bg-gradient-to-br",
-            isVip ? "from-navy via-surface to-canvas" : "from-brand-strong/70 via-navy to-canvas",
-          )}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={MARK_SRC} alt="" aria-hidden className="h-24 w-24 object-contain opacity-80" />
-        </div>
-      )}
-      <div
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t to-transparent",
-          raised ? "from-surface-2" : "from-surface",
-        )}
-      />
-    </div>
   );
 }

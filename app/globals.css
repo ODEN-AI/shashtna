@@ -36,6 +36,11 @@
   --color-brand-ink: #9ec5ff;
   --color-sky: #3781fc;
   --color-glow: #cbe9fd;
+  /* VIP product gradient (same stops as Shashtna Mobile's VIP cards). */
+  --color-brand-mid: #1542d8;
+  --color-vip-1: #12206e;
+  --color-vip-2: #2b2fa8;
+  --color-vip-3: #4b4fe0;
 
   --color-success: #34d399;
   --color-warning: #fbbf24;
@@ -65,6 +70,17 @@
   --animate-fade-up: fade-up 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   --animate-fade-in: fade-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-float: float 5.2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 @keyframes fade-in {

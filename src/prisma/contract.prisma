@@ -185,6 +185,12 @@ model Announcement {
   ctaUrl      String?
   target      String   @default("ALL")
   placement   String   @default("HOME_CAROUSEL")
+  // Website hero board / entry promotions (additive). imageUrl stays an
+  // image for every client (it is the poster when mediaType is VIDEO).
+  mediaType   String   @default("IMAGE")
+  videoUrl    String?
+  audience    String   @default("ALL")
+  highlight   String?
   style       String   @default("STANDARD")
   priority    Int      @default(0)
   isActive    Boolean  @default(true)

@@ -4,7 +4,7 @@ import { Trash2 } from "lucide-react";
 
 import { deleteAnnouncementAction, saveAnnouncementAction } from "@/app/admin/actions";
 import { Forbidden } from "@/app/components/admin/Forbidden";
-import { ImageUploadField } from "@/app/components/admin/ImageUploadField";
+import { AnnouncementMediaFields } from "@/app/components/admin/AnnouncementMediaFields";
 import { ActionForm } from "@/app/ui/ActionForm";
 import { Badge } from "@/app/ui/Badge";
 import { LinkButton } from "@/app/ui/Button";
@@ -55,7 +55,24 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
 
   const labels = {
     target: { ALL: t("الموقع + التطبيق", "Website + Player"), WEBSITE: t("الموقع فقط", "Website only"), PLAYER: t("Shashtna Player فقط", "Shashtna Player only") } as Record<string, string>,
-    placement: { HOME_CAROUSEL: t("الصفحة الرئيسية (عرض متحرك)", "Homepage carousel"), BANNER: t("شريط إعلاني", "Banner"), DASHBOARD: t("لوحة العميل", "Customer dashboard") } as Record<string, string>,
+    placement: {
+      HERO_EDITORIAL: t("الواجهة الرئيسية — لوحة العروض والأخبار", "Homepage hero — offers & news board"),
+      HOME_CAROUSEL: t("الصفحة الرئيسية (عرض متحرك)", "Homepage carousel"),
+      HOME_LATEST: t("الصفحة الرئيسية — آخر الإعلانات", "Homepage — latest announcements"),
+      ENTRY_GUEST: t("شاشة الدخول — الزوار والمنتهية اشتراكاتهم", "Entry screen — guests & expired"),
+      ENTRY_MEMBER: t("شاشة الدخول — المشتركين", "Entry screen — members"),
+      BANNER: t("شريط إعلاني", "Banner"),
+      DASHBOARD: t("لوحة العميل", "Customer dashboard"),
+    } as Record<string, string>,
+    kind: { AD: t("إعلان", "Ad"), OFFER: t("عرض", "Offer"), NEWS: t("خبر", "News"), ANNOUNCEMENT: t("تنبيه / إعلان", "Announcement") } as Record<string, string>,
+    audience: {
+      ALL: t("الجميع", "Everyone"),
+      GUEST: t("الزوار وغير المشتركين", "Guests & not subscribed"),
+      EXPIRED: t("المنتهية اشتراكاتهم", "Expired"),
+      ACTIVE: t("المشتركين النشطين", "Active members"),
+      EXPIRING: t("اشتراكاتهم تنتهي قريبًا", "Expiring soon"),
+      VIP: t("مشتركي VIP", "VIP members"),
+    } as Record<string, string>,
     style: { STANDARD: t("عادي", "Standard"), HIGHLIGHT: t("مميز", "Highlight"), INFO: t("معلومة", "Info"), WARNING: t("تنبيه", "Warning") } as Record<string, string>,
   };
 
@@ -64,8 +81,8 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
       <PageHeader
         title={t("الإعلانات والتنبيهات", "Ads & announcements")}
         description={t(
-          "تظهر على الموقع حسب المكان المختار. الإعلانات الموجهة لـ Shashtna Player متاحة للتطبيق عبر /api/announcements?surface=PLAYER.",
-          "Shown on the website by placement. Items targeted at Shashtna Player are served to the app at /api/announcements?surface=PLAYER.",
+          "تظهر على الموقع حسب المكان المختار: لوحة العروض والأخبار بالواجهة، شاشة الدخول (للزوار أو للمشتركين)، وآخر الإعلانات. الإعلانات الموجهة لـ Shashtna Player متاحة للتطبيق عبر /api/announcements?surface=PLAYER.",
+          "Shown on the website by placement: the hero offers & news board, the entry screen (guests or members) and the latest list. Items targeted at Shashtna Player are served to the app at /api/announcements?surface=PLAYER.",
         )}
       />
 
@@ -88,7 +105,10 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
                       <p className="truncate font-bold text-ink">{item.title}</p>
                       <p className="mt-1 flex flex-wrap gap-2 text-xs text-ink-3">
                         <Badge tone={itemStatus.tone}>{itemStatus.label}</Badge>
-                        <span>{labels.placement[item.placement] ?? item.placement}</span>
+                        <span>{labels.kind[item.kind] ?? item.kind}</span>
+                        <span>· {labels.placement[item.placement] ?? item.placement}</span>
+                        {item.audience && item.audience !== "ALL" ? <span>· {labels.audience[item.audience] ?? item.audience}</span> : null}
+                        {item.mediaType === "VIDEO" ? <span>· {t("فيديو", "Video")}</span> : null}
                         <span>· {labels.target[item.target] ?? item.target}</span>
                         <span className="nums">· {t("أولوية", "priority")} {item.priority}</span>
                       </p>
@@ -132,10 +152,21 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
             <Field label={t("العنوان", "Title")} htmlFor="title" required>
               <Input id="title" name="title" required maxLength={140} defaultValue={editing?.title ?? ""} />
             </Field>
-            <Field label={t("الوصف", "Description")} htmlFor="description">
+            <Field
+              label={t("الوصف", "Description")}
+              htmlFor="description"
+              hint={t("وصف قصير — سطر أو سطرين. لوحة العروض تعرض أول ~140 حرف.", "Keep it short — one or two lines. The hero board shows about 140 characters.")}
+            >
               <Textarea id="description" name="description" rows={3} maxLength={400} defaultValue={editing?.description ?? ""} />
             </Field>
-            <ImageUploadField name="imageUrl" defaultValue={editing?.imageUrl} label={t("الصورة (اختياري)", "Image (optional)")} />
+            <Field
+              label={t("سطر مميز (اختياري)", "Highlight line (optional)")}
+              htmlFor="highlight"
+              hint={t("سعر أو معلومة قصيرة حقيقية، مثل «35,000 د.ع» أو «متوفر الآن».", "A real price or short fact, e.g. “35,000 IQD” or “Available now”.")}
+            >
+              <Input id="highlight" name="highlight" maxLength={60} defaultValue={editing?.highlight ?? ""} />
+            </Field>
+            <AnnouncementMediaFields mediaType={editing?.mediaType} imageUrl={editing?.imageUrl} videoUrl={editing?.videoUrl} />
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={t("نص الزر", "Button label")} htmlFor="ctaLabel">
                 <Input id="ctaLabel" name="ctaLabel" maxLength={40} defaultValue={editing?.ctaLabel ?? ""} />
@@ -147,11 +178,12 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={t("النوع", "Kind")} htmlFor="kind">
                 <Select id="kind" name="kind" defaultValue={editing?.kind ?? "AD"}>
-                  <option value="AD">{t("إعلان", "Ad")}</option>
-                  <option value="ANNOUNCEMENT">{t("تنبيه / خبر", "Announcement")}</option>
+                  {Object.entries(labels.kind).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
                 </Select>
               </Field>
-              <Field label={t("الجمهور", "Target")} htmlFor="target">
+              <Field label={t("الواجهة", "Surface")} htmlFor="target" hint={t("أماكن الموقع الجديدة (اللوحة، شاشة الدخول، آخر الإعلانات) للموقع فقط دائمًا.", "The new website placements (board, entry screen, latest) are always website-only.")}>
                 <Select id="target" name="target" defaultValue={editing?.target ?? "ALL"}>
                   {Object.entries(labels.target).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
@@ -161,6 +193,13 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
               <Field label={t("المكان", "Placement")} htmlFor="placement">
                 <Select id="placement" name="placement" defaultValue={editing?.placement ?? "HOME_CAROUSEL"}>
                   {Object.entries(labels.placement).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label={t("الجمهور", "Audience")} htmlFor="audience">
+                <Select id="audience" name="audience" defaultValue={editing?.audience ?? "ALL"}>
+                  {Object.entries(labels.audience).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </Select>

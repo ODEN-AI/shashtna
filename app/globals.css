@@ -235,9 +235,9 @@ a {
  * no floating blobs. */
 @utility bg-cinema {
   background:
-    radial-gradient(80% 60% at 75% -10%, rgb(25 81 252 / 0.4), transparent 62%),
-    radial-gradient(45% 35% at 5% 0%, rgb(55 129 252 / 0.14), transparent 70%),
-    linear-gradient(180deg, var(--color-navy) 0%, var(--color-canvas) 78%);
+    radial-gradient(75% 55% at 75% 12%, rgb(25 81 252 / 0.36), transparent 64%),
+    radial-gradient(45% 35% at 8% 18%, rgb(55 129 252 / 0.12), transparent 70%),
+    linear-gradient(180deg, var(--color-canvas) 0%, var(--color-navy) 24%, var(--color-canvas) 90%);
 }
 
 /* A deep brand band for CTAs and the Spotlight card. */

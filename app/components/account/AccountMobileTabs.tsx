@@ -12,12 +12,12 @@ export function AccountMobileTabs({ unread }: { unread: number }) {
   const { t } = useLanguage();
 
   const items = [
-    { href: "/dashboard", label: t("نظرة عامة", "Overview") },
-    { href: "/subscriptions", label: t("اشتراكاتي", "Subscriptions") },
+    { href: "/dashboard", label: t("الرئيسية", "Home") },
+    { href: "/subscriptions", label: t("اشتراكي", "Subscription") },
     { href: "/orders", label: t("الطلبات", "Orders"), also: "/receipts" },
-    { href: "/account/devices", label: t("الأجهزة", "Devices") },
-    { href: "/support", label: t("الدعم", "Support") },
     { href: "/notifications", label: t("الإشعارات", "Notifications"), badge: unread },
+    { href: "/account/devices", label: t("الأجهزة والتطبيقات", "Devices & apps") },
+    { href: "/support", label: t("الدعم", "Support") },
     { href: "/account", label: t("الحساب", "Account"), exact: true },
   ];
 
@@ -40,7 +40,7 @@ export function AccountMobileTabs({ unread }: { unread: number }) {
                 )}
               >
                 {item.label}
-                {item.badge ? <span className="nums rounded-full bg-glow/20 px-1.5 text-glow">{item.badge}</span> : null}
+                {item.badge ? <span className="nums rounded-full bg-brand px-1.5 text-white">{item.badge}</span> : null}
               </Link>
             </li>
           );

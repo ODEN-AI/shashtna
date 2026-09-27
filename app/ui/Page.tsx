@@ -8,7 +8,7 @@ export function Container({ children, className }: { children: ReactNode; classN
 
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <p className={cn("text-xs font-bold uppercase tracking-[0.18em] text-glow/90", className)}>
+    <p className={cn("text-xs font-bold uppercase tracking-[0.18em] text-brand-ink", className)}>
       {children}
     </p>
   );
@@ -39,11 +39,11 @@ export function SectionHeading({
     >
       <div className={cn(align === "center" ? "max-w-2xl" : "max-w-2xl")}>
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-        <h2 className="mt-3 text-balance text-2xl font-bold leading-tight text-ink sm:text-[2rem]">
+        <h2 className="mt-3 text-balance text-h2 font-bold text-ink">
           {title}
         </h2>
         {description ? (
-          <p className="mt-3 text-pretty text-[15px] leading-7 text-ink-2">{description}</p>
+          <p className="mt-3 text-pretty text-[15px] leading-8 text-ink-2">{description}</p>
         ) : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
@@ -68,7 +68,7 @@ export function PageHeader({
     <header className={cn("flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between", className)}>
       <div className="min-w-0">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-        <h1 className="mt-2 text-balance text-2xl font-bold leading-tight text-ink sm:text-3xl">
+        <h1 className="mt-2 text-balance text-h1 font-bold text-ink">
           {title}
         </h1>
         {description ? (

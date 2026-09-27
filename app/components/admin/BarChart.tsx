@@ -23,7 +23,7 @@ export function BarChart({
               {formatValue(item.value)}
             </span>
             <div
-              className="mx-auto w-full max-w-10 rounded-t-[4px] bg-[#4d82ff] transition-opacity group-hover:opacity-80"
+              className="mx-auto w-full max-w-10 rounded-t-[4px] bg-sky transition-opacity group-hover:opacity-80"
               style={{ height: `${Math.max(item.value ? 2 : 0, (item.value / max) * 100)}%` }}
             />
           </div>

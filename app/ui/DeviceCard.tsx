@@ -21,7 +21,7 @@ export function DeviceCard({
 
   return (
     <article className="surface flex h-full flex-col overflow-hidden rounded-panel">
-      <div className="relative flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-[#12275f] via-[#0b1733] to-[#070d1c]">
+      <div className="relative flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-navy via-surface to-canvas">
         {device.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={device.imageUrl} alt={device.name} loading="lazy" className="h-full w-full object-contain p-6" />

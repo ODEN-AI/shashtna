@@ -73,7 +73,7 @@ export function OrdersTable({ orders, allowBulk = true }: { orders: OrderRowData
                     checked={allSelected}
                     onChange={() => setSelected(allSelected ? [] : orders.map((order) => order.id))}
                     aria-label={t("تحديد الكل", "Select all")}
-                    className="h-4 w-4 accent-[#2f6bff]"
+                    className="h-4 w-4 accent-brand"
                   />
                 </th>
               ) : null}
@@ -97,7 +97,7 @@ export function OrdersTable({ orders, allowBulk = true }: { orders: OrderRowData
                       checked={selected.includes(order.id)}
                       onChange={() => toggle(order.id)}
                       aria-label={`${t("تحديد", "Select")} ${order.number}`}
-                      className="h-4 w-4 accent-[#2f6bff]"
+                      className="h-4 w-4 accent-brand"
                     />
                   </td>
                 ) : null}

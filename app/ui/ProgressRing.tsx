@@ -16,18 +16,18 @@ export function ProgressRing({
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.min(1, Math.max(0, value));
-  const color = tone === "warning" ? "#fbbf24" : tone === "danger" ? "#f87171" : "#22d3ee";
+  const color = tone === "warning" ? "stroke-warning" : tone === "danger" ? "stroke-danger" : "stroke-glow";
 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90" aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#1b2740" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" className="stroke-line" strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={color}
+          className={color}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circumference}

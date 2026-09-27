@@ -50,7 +50,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           {ENTITY_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
         </select>
         <label className="flex h-10 items-center gap-2 rounded-xl border border-line-strong bg-surface-2 px-3 text-sm text-ink-2">
-          <input type="checkbox" name="staff" value="1" defaultChecked={params.staff === "1"} className="accent-[#2f6bff]" />
+          <input type="checkbox" name="staff" value="1" defaultChecked={params.staff === "1"} className="accent-brand" />
           {t("إجراءات الفريق فقط", "Staff actions only")}
         </label>
         <button type="submit" className="h-10 rounded-xl bg-brand px-4 text-sm font-semibold text-white">{t("تصفية", "Filter")}</button>

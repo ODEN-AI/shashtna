@@ -3,7 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 
 import { cn } from "./cn";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger" | "glow";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "glow" | "glass";
 type Size = "sm" | "md" | "lg";
 
 const base =
@@ -18,7 +18,10 @@ const variants: Record<Variant, string> = {
   danger:
     "border border-danger/30 bg-danger/10 text-danger hover:bg-danger/20",
   glow:
-    "bg-white text-canvas hover:bg-brand-ink shadow-glow",
+    "bg-white text-navy hover:bg-glow shadow-glow",
+  // Translucent, for controls that sit on the hero/video. No blur (cheap).
+  glass:
+    "glass-soft text-ink hover:bg-white/10",
 };
 
 const sizes: Record<Size, string> = {

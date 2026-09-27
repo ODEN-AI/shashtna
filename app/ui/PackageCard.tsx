@@ -156,7 +156,7 @@ function PackageArtwork({
         <div
           className={cn(
             "flex h-full w-full items-center justify-center bg-gradient-to-br",
-            isVip ? "from-[#0b2a3a] via-[#0a1830] to-[#07101f]" : "from-[#10265e] via-[#0b1733] to-[#07101f]",
+            isVip ? "from-navy via-surface to-canvas" : "from-brand-strong/70 via-navy to-canvas",
           )}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}

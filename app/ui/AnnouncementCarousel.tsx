@@ -17,10 +17,10 @@ export type Slide = {
 };
 
 const STYLE_BG: Record<string, string> = {
-  STANDARD: "from-[#0f2a6b] via-[#0b1733] to-[#070d1c]",
-  HIGHLIGHT: "from-[#1d4fd8] via-[#10256a] to-[#070d1c]",
-  INFO: "from-[#0c3a52] via-[#0b1d33] to-[#070d1c]",
-  WARNING: "from-[#4a3208] via-[#1f1a10] to-[#070d1c]",
+  STANDARD: "from-navy via-surface to-canvas",
+  HIGHLIGHT: "from-brand-strong via-navy to-canvas",
+  INFO: "from-sky/40 via-navy to-canvas",
+  WARNING: "from-warning/25 via-surface to-canvas",
 };
 
 function isExternal(url: string) {
@@ -100,7 +100,7 @@ export function AnnouncementCarousel({
                   className="absolute inset-0 h-full w-full object-cover opacity-55"
                 />
               ) : null}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050a14] via-[#050a14]/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-canvas via-canvas/40 to-transparent" />
               <div className="relative p-6 sm:p-9">
                 <h3 className="max-w-xl text-balance text-xl font-bold text-white sm:text-2xl">{slide.title}</h3>
                 {slide.description ? (

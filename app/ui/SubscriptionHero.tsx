@@ -92,7 +92,7 @@ export function SubscriptionHero({
     <section className="surface-raised relative overflow-hidden rounded-panel p-6 sm:p-8">
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-24 end-0 h-64 w-2/3 bg-[radial-gradient(closest-side,rgba(47,107,255,0.25),transparent)]"
+        className="pointer-events-none absolute -top-24 end-0 h-64 w-2/3 bg-[radial-gradient(closest-side,rgba(25,81,252,0.3),transparent)]"
       />
       <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">

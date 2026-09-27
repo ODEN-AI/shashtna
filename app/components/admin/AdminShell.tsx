@@ -157,12 +157,12 @@ export function AdminShell({
 
   return (
     <div className="min-h-dvh bg-canvas">
-      <aside className="fixed inset-y-0 start-0 z-30 hidden w-68 border-e border-line bg-[#060c18] p-4 lg:block">{sidebar}</aside>
+      <aside className="fixed inset-y-0 start-0 z-30 hidden w-68 border-e border-line bg-canvas-deep p-4 lg:block">{sidebar}</aside>
 
       {open ? (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label={t("القائمة", "Menu")}>
           <button type="button" className="absolute inset-0 bg-black/70" onClick={() => setOpen(false)} aria-label={t("إغلاق", "Close")} />
-          <div className="absolute inset-y-0 start-0 w-[85%] max-w-xs border-e border-line bg-[#060c18] p-4">{sidebar}</div>
+          <div className="absolute inset-y-0 start-0 w-[85%] max-w-xs border-e border-line bg-canvas-deep p-4">{sidebar}</div>
         </div>
       ) : null}
 

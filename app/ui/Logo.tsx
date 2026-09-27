@@ -7,13 +7,13 @@ import { cn } from "./cn";
  * supplied: `shashtna-logo.webp` is the original file, `shashtna-logo.png` the
  * same image with its transparent margin trimmed, and `shashtna-mark.png` the
  * TV mark taken from it for square spots. The UI loads downscaled copies.
- * The halo only lifts the navy lettering off the dark canvas.
+ * The halo only lifts the navy lettering off the navy canvas.
  */
 export const LOGO_SRC = "/brand/shashtna-logo-640.webp";
 export const MARK_SRC = "/brand/shashtna-mark-256.webp";
 
 const halo =
-  "[filter:drop-shadow(0_0_1px_rgba(255,255,255,0.7))_drop-shadow(0_0_10px_rgba(96,165,250,0.28))]";
+  "[filter:drop-shadow(0_0_1px_rgba(255,255,255,0.85))_drop-shadow(0_0_10px_rgba(203,233,253,0.32))]";
 
 export function LogoMark({ className }: { className?: string }) {
   return (

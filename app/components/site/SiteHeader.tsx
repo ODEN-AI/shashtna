@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import {
+  Bell,
   ChevronDown,
   CircleUserRound,
   Headphones,
@@ -39,33 +40,42 @@ export async function signOut() {
   window.location.assign("/");
 }
 
+/**
+ * Consumer navigation, shared with Shashtna Mobile's information
+ * architecture. Digital Services is a separate business surface and lives
+ * in the footer, not here. Paths are contracts (mobile deep links, Player
+ * config) — labels may change, hrefs may not.
+ */
 function useNav(): NavGroup[] {
   const { t } = useLanguage();
 
   return [
+    { label: t("الرئيسية", "Home"), href: "/" },
     { label: t("الباقات", "Plans"), href: "/plans" },
     {
       label: t("شاهد على", "Watch on"),
       href: "/watch",
       items: [
         { href: "/watch/player", label: "Shashtna Player", description: t("المشغل الرسمي لشاشتنا", "The official Shashtna player") },
-        { href: "/watch", label: t("الأجهزة المدعومة", "Supported devices"), description: t("اختار جهازك وشوف شنو تحتاج", "Pick your device and see what you need") },
         { href: "/apps", label: t("التطبيقات", "Apps"), description: t("روابط التحميل وطريقة الإعداد", "Downloads and setup guides") },
+        { href: "/watch", label: t("الأجهزة المدعومة", "Supported devices"), description: t("اختار جهازك وشوف شنو تحتاج", "Pick your device and see what you need") },
         { href: "/devices", label: t("أجهزة VIP", "VIP devices"), description: t("أجهزة جاهزة لتجربة VIP", "Ready-made devices for VIP") },
       ],
     },
-    { label: t("خدماتنا", "Our services"), href: "/services" },
-    { label: t("من نحن", "About us"), href: "/about" },
+    { label: t("المشغّل", "Player"), href: "/watch/player" },
+    { label: t("الأجهزة", "Devices"), href: "/devices" },
     {
       label: t("المساعدة", "Help"),
       href: "/help",
       items: [
         { href: "/help#faq", label: t("الأسئلة الشائعة", "FAQ"), description: t("أجوبة سريعة عن الاشتراك والدفع", "Quick answers on plans and payment") },
         { href: "/help/troubleshooting", label: t("حل المشاكل", "Troubleshooting"), description: t("خطوات لحل مشاكل التشغيل", "Fix playback and app issues") },
-        { href: "/help/contact", label: t("تواصل ويانا", "Contact"), description: t("قنوات التواصل وساعات الدعم", "Channels and support hours") },
+        { href: "/help/payment", label: t("الدفع", "Payment"), description: t("طريقة الدفع وإرسال الإثبات", "How to pay and send the proof") },
         { href: "/status", label: t("حالة الخدمة", "Service status"), description: t("أي أعطال أو صيانة معلنة", "Announced incidents and maintenance") },
+        { href: "/help/contact", label: t("تواصل ويانا", "Contact"), description: t("قنوات التواصل وساعات الدعم", "Channels and support hours") },
       ],
     },
+    { label: t("من نحن", "About"), href: "/about" },
   ];
 }
 
@@ -75,11 +85,15 @@ function isActive(pathname: string, href: string) {
   return path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
 }
 
-function DesktopMenu({ group, pathname }: { group: NavGroup; pathname: string }) {
+function DesktopMenu({ group, pathname, topLevel }: { group: NavGroup; pathname: string; topLevel: string[] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLLIElement>(null);
   const menuId = useId();
-  const active = isActive(pathname, group.href) || group.items?.some((item) => isActive(pathname, item.href));
+  // A dropdown lights up for its own pages, but not for pages that also have
+  // their own top-level item (Player, Devices), so one item is active at a time.
+  const active = group.items
+    ? group.items.some((item) => !topLevel.includes(item.href) && isActive(pathname, item.href))
+    : isActive(pathname, group.href);
 
   useEffect(() => {
     if (!open) {
@@ -113,8 +127,8 @@ function DesktopMenu({ group, pathname }: { group: NavGroup; pathname: string })
           href={group.href}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "inline-flex h-10 items-center rounded-xl px-3.5 text-sm font-semibold transition",
-            active ? "text-ink" : "text-ink-2 hover:text-ink",
+            "relative inline-flex h-10 items-center whitespace-nowrap rounded-xl px-2.5 text-sm font-semibold transition xl:px-3",
+            active ? "text-ink after:absolute after:inset-x-2.5 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-glow" : "text-ink-2 hover:bg-white/5 hover:text-ink",
           )}
         >
           {group.label}
@@ -131,8 +145,8 @@ function DesktopMenu({ group, pathname }: { group: NavGroup; pathname: string })
         aria-controls={menuId}
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "inline-flex h-10 items-center gap-1 rounded-xl px-3.5 text-sm font-semibold transition",
-          active || open ? "text-ink" : "text-ink-2 hover:text-ink",
+          "inline-flex h-10 items-center gap-1 whitespace-nowrap rounded-xl px-2.5 text-sm font-semibold transition xl:px-3",
+          active || open ? "text-ink" : "text-ink-2 hover:bg-white/5 hover:text-ink",
         )}
       >
         {group.label}
@@ -141,7 +155,7 @@ function DesktopMenu({ group, pathname }: { group: NavGroup; pathname: string })
       {open ? (
         <div
           id={menuId}
-          className="surface-raised animate-fade-up absolute start-0 top-12 z-50 w-80 rounded-2xl p-2"
+          className="glass-strong animate-fade-up absolute start-0 top-12 z-50 w-80 rounded-2xl p-2"
         >
           <ul>
             {group.items.map((item) => (
@@ -149,7 +163,7 @@ function DesktopMenu({ group, pathname }: { group: NavGroup; pathname: string })
                 <Link
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="block rounded-xl px-3 py-2.5 transition hover:bg-surface-3"
+                  className="block rounded-xl px-3 py-2.5 transition hover:bg-white/8"
                 >
                   <span className="block text-sm font-bold text-ink">{item.label}</span>
                   <span className="mt-0.5 block text-xs text-ink-3">{item.description}</span>
@@ -181,7 +195,31 @@ function LanguageToggle({ className }: { className?: string }) {
   );
 }
 
-export function SiteHeader({ user }: { user: HeaderUser }) {
+function NotificationsBell({ unread }: { unread: number }) {
+  const { t } = useLanguage();
+  const pathname = usePathname();
+  const label = unread
+    ? t(`الإشعارات (${unread} غير مقروءة)`, `Notifications (${unread} unread)`)
+    : t("الإشعارات", "Notifications");
+
+  return (
+    <Link
+      href="/notifications"
+      aria-label={label}
+      aria-current={pathname === "/notifications" ? "page" : undefined}
+      className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line text-ink-2 transition hover:border-line-strong hover:text-ink"
+    >
+      <Bell size={18} aria-hidden />
+      {unread ? (
+        <span className="nums absolute -end-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white ring-2 ring-canvas">
+          {unread > 9 ? "9+" : unread}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
+export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: number }) {
   const pathname = usePathname();
   const nav = useNav();
   const { t } = useLanguage();
@@ -206,18 +244,20 @@ export function SiteHeader({ user }: { user: HeaderUser }) {
   }, [mobileOpen]);
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-40 border-b transition-colors duration-300",
-        // No backdrop-filter while the mobile menu is open: it would become the
-        // containing block of the fixed menu panel and collapse it.
-        mobileOpen
-          ? "border-line bg-canvas"
-          : scrolled
-            ? "border-line bg-canvas/85 backdrop-blur-xl"
-            : "border-transparent bg-transparent",
-      )}
-    >
+    <header className="sticky top-0 z-40">
+      {/*
+        Background layer. The glass (backdrop-filter) lives on this sibling,
+        never on <header> itself: an element with backdrop-filter becomes the
+        containing block of its position:fixed descendants, which would
+        collapse the fixed mobile menu below.
+      */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0 -z-10 transition-[background-color,opacity] duration-300",
+          mobileOpen ? "border-b border-line bg-canvas" : scrolled ? "glass-bar" : "bg-transparent",
+        )}
+      />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-brand focus:px-3 focus:py-2 focus:text-sm focus:text-white"
@@ -225,12 +265,17 @@ export function SiteHeader({ user }: { user: HeaderUser }) {
         {t("تخطَّ إلى المحتوى", "Skip to content")}
       </a>
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 xl:gap-6">
           <Logo />
           <nav aria-label={t("القائمة الرئيسية", "Main navigation")} className="hidden lg:block">
-            <ul className="flex items-center gap-1">
+            <ul className="flex items-center gap-0.5 xl:gap-1">
               {nav.map((group) => (
-                <DesktopMenu key={group.href} group={group} pathname={pathname} />
+                <DesktopMenu
+                  key={group.href}
+                  group={group}
+                  pathname={pathname}
+                  topLevel={nav.filter((item) => !item.items).map((item) => item.href)}
+                />
               ))}
             </ul>
           </nav>
@@ -240,6 +285,7 @@ export function SiteHeader({ user }: { user: HeaderUser }) {
           <LanguageToggle className="max-sm:hidden" />
           {user ? (
             <>
+              <NotificationsBell unread={unread} />
               {user.isStaff ? (
                 <Link href="/admin" className={buttonClass("ghost", "sm", "max-lg:hidden")}>
                   <ShieldCheck size={16} aria-hidden />
@@ -262,7 +308,7 @@ export function SiteHeader({ user }: { user: HeaderUser }) {
           ) : (
             <>
               <Link href="/login" className={buttonClass("ghost", "sm", "max-sm:hidden")}>
-                {t("تسجيل الدخول", "Sign in")}
+                {t("تسجيل الدخول", "Log in")}
               </Link>
               <Link href="/plans" className={buttonClass("primary", "sm")}>
                 {t("ابدأ الآن", "Get started")}
@@ -271,7 +317,7 @@ export function SiteHeader({ user }: { user: HeaderUser }) {
           )}
           <button
             type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line text-ink-2 lg:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line text-ink-2 transition hover:text-ink lg:hidden"
             aria-expanded={mobileOpen}
             aria-controls="mobile-menu"
             aria-label={mobileOpen ? t("إغلاق القائمة", "Close menu") : t("فتح القائمة", "Open menu")}
@@ -289,21 +335,16 @@ export function SiteHeader({ user }: { user: HeaderUser }) {
         >
           <nav aria-label={t("القائمة الرئيسية", "Main navigation")}>
             <ul className="space-y-1">
-              <li>
-                <Link
-                  href="/"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex h-12 items-center rounded-xl px-3 text-base font-bold text-ink hover:bg-surface-2"
-                >
-                  {t("الرئيسية", "Home")}
-                </Link>
-              </li>
               {nav.map((group) => (
                 <li key={group.href}>
                   <Link
                     href={group.href}
                     onClick={() => setMobileOpen(false)}
-                    className="flex h-12 items-center rounded-xl px-3 text-base font-bold text-ink hover:bg-surface-2"
+                    aria-current={isActive(pathname, group.href) ? "page" : undefined}
+                    className={cn(
+                      "flex h-12 items-center rounded-xl px-3 text-base font-bold hover:bg-surface-2",
+                      isActive(pathname, group.href) ? "bg-brand/15 text-ink" : "text-ink",
+                    )}
                   >
                     {group.label}
                   </Link>

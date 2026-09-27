@@ -22,12 +22,13 @@ export function AccountNav({ unread, name }: { unread: number; name: string }) {
   const { t } = useLanguage();
 
   const items = [
-    { href: "/dashboard", label: t("نظرة عامة", "Overview"), icon: House },
-    { href: "/subscriptions", label: t("اشتراكاتي", "Subscriptions"), icon: Tv },
-    { href: "/orders", label: t("الطلبات والإيصالات", "Orders & receipts"), icon: ReceiptText, also: ["/receipts"] },
+    // Same order as Shashtna Mobile's "My Shashtna".
+    { href: "/dashboard", label: t("الرئيسية", "Home"), icon: House },
+    { href: "/subscriptions", label: t("اشتراكي", "Subscription"), icon: Tv },
+    { href: "/orders", label: t("الطلبات", "Orders"), icon: ReceiptText, also: ["/receipts"] },
+    { href: "/notifications", label: t("الإشعارات", "Notifications"), icon: Bell, badge: unread },
     { href: "/account/devices", label: t("الأجهزة والتطبيقات", "Devices & apps"), icon: AppWindow },
     { href: "/support", label: t("الدعم الفني", "Support"), icon: Headphones },
-    { href: "/notifications", label: t("الإشعارات", "Notifications"), icon: Bell, badge: unread },
     { href: "/account", label: t("الحساب", "Account"), icon: CircleUserRound, exact: true },
   ];
 
@@ -37,9 +38,9 @@ export function AccountNav({ unread, name }: { unread: number; name: string }) {
       : [item.href, ...(item.also ?? [])].some((href) => pathname === href || pathname.startsWith(`${href}/`));
 
   return (
-    <nav aria-label={t("قائمة الحساب", "Account menu")} className="surface sticky top-24 rounded-panel p-3">
+    <nav aria-label={t("قائمة الحساب", "Account menu")} className="surface edge-light sticky top-24 rounded-panel p-3">
       <div className="border-b border-line px-3 pb-4 pt-2">
-        <p className="text-xs text-ink-3">{t("حسابي", "My Shashtna")}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-ink">{t("حسابي", "My Shashtna")}</p>
         <p className="mt-1 truncate font-bold text-ink">{name}</p>
       </div>
       <ul className="mt-2 space-y-0.5">
@@ -53,14 +54,16 @@ export function AccountNav({ unread, name }: { unread: number; name: string }) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition",
-                  active ? "bg-brand/15 text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink",
+                  "relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition",
+                  active
+                    ? "bg-brand/15 text-ink before:absolute before:inset-y-2.5 before:start-0 before:w-0.5 before:rounded-full before:bg-glow"
+                    : "text-ink-2 hover:bg-surface-2 hover:text-ink",
                 )}
               >
                 <Icon size={18} className={active ? "text-brand-ink" : "text-ink-3"} aria-hidden />
                 <span className="flex-1">{item.label}</span>
                 {item.badge ? (
-                  <span className="nums rounded-full bg-glow/15 px-2 py-0.5 text-xs font-bold text-glow">{item.badge}</span>
+                  <span className="nums rounded-full bg-brand px-2 py-0.5 text-xs font-bold text-white">{item.badge}</span>
                 ) : null}
               </Link>
             </li>

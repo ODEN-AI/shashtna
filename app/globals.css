@@ -214,6 +214,15 @@ a {
   backdrop-filter: blur(24px) saturate(160%);
 }
 
+/* Full-width navigation bar glass: only a bottom hairline. */
+@utility glass-bar {
+  background: linear-gradient(180deg, rgb(3 25 91 / 0.72), rgb(2 11 43 / 0.62));
+  border-bottom: 1px solid rgb(203 233 253 / 0.1);
+  box-shadow: 0 12px 40px -28px rgb(1 5 22 / 0.9);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+}
+
 /* The glass look without the blur cost — for surfaces over a known,
  * already-dark backdrop (chips and panels inside the hero). */
 @utility glass-soft {
@@ -292,11 +301,15 @@ a {
   .glass-strong {
     background: var(--color-surface-2);
   }
+  .glass-bar {
+    background: var(--color-canvas);
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {
   .glass,
-  .glass-strong {
+  .glass-strong,
+  .glass-bar {
     background: var(--color-surface-2);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;

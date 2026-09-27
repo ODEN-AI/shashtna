@@ -67,7 +67,7 @@ export function OrderJourney({ stage, lang, className }: { stage: OrderStage; la
               className={cn(
                 "nums relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold",
                 step.state === "done" && "bg-brand text-white",
-                step.state === "current" && "bg-canvas text-glow ring-2 ring-glow shadow-[0_0_0_6px_rgba(34,211,238,0.12)]",
+                step.state === "current" && "bg-canvas text-glow ring-2 ring-glow shadow-[0_0_0_6px_rgba(203,233,253,0.12)]",
                 step.state === "upcoming" && "border border-line-strong bg-surface-2 text-ink-3",
               )}
             >

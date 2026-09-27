@@ -56,7 +56,7 @@ export async function SiteFooter() {
   ].filter(Boolean) as { href: string; label: string; icon: React.ReactNode }[];
 
   return (
-    <footer className="border-t border-line bg-[#040810] pb-safe lg:pb-0">
+    <footer className="border-t border-line bg-canvas-deep pb-safe lg:pb-0">
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_repeat(3,1fr)] lg:px-8">
         <div>
           <Logo className="h-16" />

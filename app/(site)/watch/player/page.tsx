@@ -84,7 +84,7 @@ export default async function PlayerPage() {
             ) : null}
           </div>
           <div className="surface-raised flex aspect-[4/3] items-center justify-center rounded-panel">
-            <span className="flex h-24 w-24 items-center justify-center rounded-[1.75rem] bg-gradient-to-b from-[#3a78ff] to-[#1639a3] text-white shadow-brand">
+            <span className="flex h-24 w-24 items-center justify-center rounded-[1.75rem] bg-gradient-to-b from-sky to-brand-strong text-white shadow-brand">
               <MonitorPlay size={44} aria-hidden />
             </span>
           </div>

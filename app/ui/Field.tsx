@@ -67,7 +67,7 @@ export function Checkbox({
     <label className={cn("flex cursor-pointer items-start gap-3 text-sm leading-6 text-ink-2", className)}>
       <input
         type="checkbox"
-        className="mt-1 h-4 w-4 shrink-0 rounded border-line-strong bg-surface-2 accent-[#2f6bff]"
+        className="mt-1 h-4 w-4 shrink-0 rounded border-line-strong bg-surface-2 accent-brand"
         {...props}
       />
       <span>{label}</span>

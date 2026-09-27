@@ -82,7 +82,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={item.imageUrl} alt="" className="h-14 w-24 rounded-xl border border-line object-cover" />
                     ) : (
-                      <div className="h-14 w-24 rounded-xl bg-gradient-to-br from-[#12275f] to-[#070d1c]" aria-hidden />
+                      <div className="h-14 w-24 rounded-xl bg-gradient-to-br from-navy to-canvas" aria-hidden />
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-bold text-ink">{item.title}</p>

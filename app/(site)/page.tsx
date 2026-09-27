@@ -10,7 +10,6 @@ import { HomeHowItWorks } from "@/app/components/home/HomeHowItWorks";
 import { HomePlans } from "@/app/components/home/HomePlans";
 import { HomePlayer } from "@/app/components/home/HomePlayer";
 import { HomeWatchEverywhere } from "@/app/components/home/HomeWatchEverywhere";
-import { toDate } from "@/src/lib/i18n";
 import { getSessionUser } from "@/src/server/auth";
 import {
   getActiveApps,
@@ -22,6 +21,7 @@ import {
 } from "@/src/server/catalog";
 import { getLiveAnnouncements } from "@/src/server/content";
 import { getI18n } from "@/src/server/i18n";
+import { buildShowcaseScenes, editorialItems, getViewer, latestItems } from "@/src/server/promotions";
 import { getSettings } from "@/src/server/settings";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
 
 /**
  * Homepage — the web counterpart of Shashtna Mobile's home:
- * customer strip → Spotlight hero → popular plans → Player → watch
+ * customer strip → hero (animated product showcase + editorial board) → popular plans → Player → watch
  * everywhere → VIP devices → how it works → latest announcements → FAQ →
  * final CTA. Every section renders real data (or nothing).
  */
@@ -58,34 +58,14 @@ export default async function HomePage() {
   const cheapest = packages.length ? Math.min(...packages.map((pkg) => pkg.price)) : null;
   const hours = isAr ? settings["support.hours"] : settings["support.hoursEn"];
 
-  // Spotlight: the homepage carousel ads/announcements, highest priority first.
-  const spotlight = announcements
-    .filter((item) => item.placement === "HOME_CAROUSEL")
-    .slice(0, 5)
-    .map((item) => ({ id: item.id, title: item.title, description: item.description, ctaLabel: item.ctaLabel, ctaUrl: item.ctaUrl }));
-
-  // Latest announcements: published announcements (not ads) that aren't
-  // already in the spotlight or reserved for the dashboard, newest first.
-  const spotlightIds = new Set(spotlight.map((item) => item.id));
-  const latest: HomeAnnouncement[] = announcements
-    .filter((item) => item.kind === "ANNOUNCEMENT" && item.placement !== "DASHBOARD" && !spotlightIds.has(item.id))
-    .map((item) => ({ ...item, date: item.startsAt ?? item.createdAt }))
-    .sort((a, b) => (toDate(b.date)?.getTime() ?? 0) - (toDate(a.date)?.getTime() ?? 0))
-    .slice(0, 3)
-    .map((item) => ({
-      id: item.id,
-      title: item.title,
-      description: item.description,
-      imageUrl: item.imageUrl,
-      ctaLabel: item.ctaLabel,
-      ctaUrl: item.ctaUrl,
-      style: item.style,
-      date: item.date,
-    }));
+  const viewer = await getViewer(user);
+  const scenes = buildShowcaseScenes({ packages, devices, apps, lang });
+  const editorial = editorialItems(announcements, viewer);
+  const latest: HomeAnnouncement[] = latestItems(announcements, viewer, new Set(editorial.map((item) => item.id)));
 
   return (
     <>
-      <HomeHero lang={lang} cheapest={cheapest} hours={hours} slides={spotlight}>
+      <HomeHero lang={lang} cheapest={cheapest} hours={hours} scenes={scenes} editorial={editorial}>
         {user ? <HomeCustomerStrip user={user} /> : null}
       </HomeHero>
       <HomePlans lang={lang} packages={packages} />

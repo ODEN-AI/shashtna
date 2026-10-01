@@ -289,3 +289,15 @@ model BusinessReport {
 
   @@index([createdAt])
 }
+
+// Staff session revocation ("sign out of all devices"). A staff token issued
+// at or before `revokedAt` is no longer accepted by the admin. One row per
+// user, overwritten on each revocation. Separate table (not a User column)
+// so the customer-facing User queries are unaffected.
+model StaffSessionRevocation {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  revokedAt   TimestamptzString
+  revokedBy   Int?
+  updatedAt   temporal.updatedAtString()
+}

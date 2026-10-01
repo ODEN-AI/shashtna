@@ -1,0 +1,83 @@
+[
+  {
+    "id": "table.staffSessionRevocation",
+    "label": "Create table \"staffSessionRevocation\"",
+    "summary": "Creates table \"staffSessionRevocation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "staffSessionRevocation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"staffSessionRevocation\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"staffSessionRevocation\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"staffSessionRevocation\"",
+        "sql": "CREATE TABLE \"public\".\"staffSessionRevocation\" (\n  \"id\" SERIAL NOT NULL,\n  \"revokedAt\" timestamptz NOT NULL,\n  \"revokedBy\" int4,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"staffSessionRevocation\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"staffSessionRevocation\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.staffSessionRevocation.staffSessionRevocation_userId_key",
+    "label": "Add unique constraint on \"staffSessionRevocation\" (userId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "staffSessionRevocation_userId_key",
+        "table": "staffSessionRevocation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"staffSessionRevocation_userId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "staffSessionRevocation_userId_key",
+          "public",
+          "\"public\".\"staffSessionRevocation\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"staffSessionRevocation_userId_key\"",
+        "sql": "ALTER TABLE \"public\".\"staffSessionRevocation\" ADD CONSTRAINT \"staffSessionRevocation_userId_key\" UNIQUE (\"userId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"staffSessionRevocation_userId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "staffSessionRevocation_userId_key",
+          "public",
+          "\"public\".\"staffSessionRevocation\""
+        ]
+      }
+    ]
+  }
+]

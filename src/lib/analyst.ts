@@ -38,7 +38,7 @@ export type FactPack = {
 const round = (value: number | null, digits = 1) => (value === null || !Number.isFinite(value) ? null : Number(value.toFixed(digits)));
 
 /** Every number that appears in the fact pack, in the forms a report may cite it. */
-export function factNumbers(facts: FactPack) {
+export function factNumbers(facts: object) {
   const values = new Set<number>();
   const visit = (value: unknown) => {
     if (typeof value === "number" && Number.isFinite(value)) {
@@ -58,37 +58,97 @@ export function factNumbers(facts: FactPack) {
   return values;
 }
 
-/** Western and Arabic-Indic digits, thousands separators and decimals. */
-export function extractNumbers(text: string) {
-  const normalized = text
+/** Arabic-Indic (and Persian) digits → Western; Arabic separators → , and . */
+export function normalizeDigits(text: string) {
+  return text
     .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
     .replace(/[٬،]/g, ",")
     .replace(/٫/g, ".");
-  const matches = normalized.match(/\d[\d,]*(?:\.\d+)?/g) ?? [];
+}
+
+/** Western and Arabic-Indic digits, thousands separators and decimals. */
+export function extractNumbers(text: string) {
+  const matches = normalizeDigits(text).match(/\d[\d,]*(?:\.\d+)?/g) ?? [];
 
   return matches.map((match) => Number(match.replace(/,/g, ""))).filter((value) => Number.isFinite(value));
 }
 
+/** Keys whose string values are entity names / labels the pack itself states. */
+const NAME_KEYS = new Set(["name", "label", "comparison"]);
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+const DATE_TOKEN = /(?<!\d)\d{4}-\d{2}-\d{2}(?!\d)/g;
+
+/**
+ * What a statement may legitimately quote from the pack besides numbers:
+ * entity names (product / package names, the period label and comparison
+ * wording) and complete YYYY-MM-DD dates. Names without a single letter are
+ * ignored, so a "name" can never be used to whitelist a bare number.
+ */
+export type FactContext = { names: string[]; dates: Set<string> };
+
+export function factContext(facts: object): FactContext {
+  const names = new Set<string>();
+  const dates = new Set<string>();
+  const visit = (value: unknown, key?: string) => {
+    if (typeof value === "string") {
+      const text = normalizeDigits(value.trim());
+      if (DATE_ONLY.test(text)) dates.add(text);
+      else if (key && NAME_KEYS.has(key) && text.length >= 2 && /\p{L}/u.test(text)) names.add(text);
+    } else if (Array.isArray(value)) {
+      value.forEach((item) => visit(item, key));
+    } else if (value && typeof value === "object") {
+      for (const [childKey, child] of Object.entries(value)) visit(child, childKey);
+    }
+  };
+
+  visit(facts);
+
+  // Longest first, so "VIP 3 أشهر + جهاز" is masked before "VIP 3 أشهر".
+  return { names: [...names].sort((a, b) => b.length - a.length), dates };
+}
+
+/**
+ * The numeric claims of a text: exact pack names are masked first (so the
+ * "3" of «VIP 3 أشهر» is part of a name, not a claim), then complete dates
+ * are checked as whole tokens, then every remaining number is returned.
+ */
+export function claimsOf(text: string, context: FactContext) {
+  let rest = normalizeDigits(text);
+
+  for (const name of context.names) rest = rest.split(name).join(" \u2063 ");
+
+  const unknownDates: string[] = [];
+  rest = rest.replace(DATE_TOKEN, (token) => {
+    if (!context.dates.has(token)) unknownDates.push(token);
+    return " \u2063 ";
+  });
+
+  return { numbers: extractNumbers(rest), unknownDates };
+}
+
 /**
  * A FACT is verified when every number in it exists in the fact pack
- * (rounded to 0 or 1 decimal). Years and small counters like "2" in "2
- * products" must also come from the facts — nothing is exempt.
+ * (rounded to 0 or 1 decimal) and every date is one of the pack's dates.
+ * Years and small counters like "2" in "2 products" must also come from
+ * the facts — nothing is exempt except exact names the pack itself states.
  */
-export function verifyStatement(statement: Statement, numbers: Set<number>): Statement {
+export function verifyStatement(statement: Statement, numbers: Set<number>, context: FactContext = { names: [], dates: new Set() }): Statement {
   if (statement.kind !== "FACT") return { ...statement, verified: undefined };
 
-  const cited = extractNumbers(statement.text);
-  const verified = cited.every((value) => numbers.has(Math.round(value * 10) / 10) || numbers.has(Math.round(value)));
+  const { numbers: cited, unknownDates } = claimsOf(statement.text, context);
+  const verified = !unknownDates.length && cited.every((value) => numbers.has(Math.round(value * 10) / 10) || numbers.has(Math.round(value)));
 
   return { ...statement, verified };
 }
 
-export function verifyReport(report: AnalystReport, facts: FactPack): AnalystReport {
+export function verifyReport(report: AnalystReport, facts: object): AnalystReport;
+export function verifyReport<R extends { headline: string; sections: { key: string; title: string; statements: Statement[] }[] }>(report: R, facts: object): R;
+export function verifyReport<R extends { sections: { statements: Statement[] }[] }>(report: R, facts: object): R {
   const numbers = factNumbers(facts);
-  // Period boundaries are legitimate numbers to cite.
-  for (const part of `${facts.period.from} ${facts.period.to}`.split(/[^0-9]+/)) if (part) numbers.add(Number(part));
+  const context = factContext(facts);
 
-  return { ...report, sections: report.sections.map((section) => ({ ...section, statements: section.statements.map((statement) => verifyStatement(statement, numbers)) })) };
+  return { ...report, sections: report.sections.map((section) => ({ ...section, statements: section.statements.map((statement) => verifyStatement(statement, numbers, context)) })) };
 }
 
 function money(value: number, ar: boolean) {

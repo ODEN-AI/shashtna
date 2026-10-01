@@ -7,10 +7,13 @@ export function BarChart({
   data,
   formatValue,
   label,
+  tickEvery = 1,
 }: {
   data: { key: string; label: string; value: number }[];
   formatValue: (value: number) => string;
   label: string;
+  /** Show every Nth axis label (long series on small screens); bars keep their own labels. */
+  tickEvery?: number;
 }) {
   const max = Math.max(1, ...data.map((item) => item.value));
 
@@ -30,9 +33,9 @@ export function BarChart({
         ))}
       </div>
       <div className="mt-2 flex gap-[2px]" dir="ltr">
-        {data.map((item) => (
-          <span key={item.key} className="nums flex-1 text-center text-[10px] text-ink-3">
-            {item.label}
+        {data.map((item, index) => (
+          <span key={item.key} className={`nums flex-1 text-center text-[10px] text-ink-3${tickEvery > 1 ? " overflow-visible whitespace-nowrap" : ""}`}>
+            {index % tickEvery === 0 ? item.label : ""}
           </span>
         ))}
       </div>

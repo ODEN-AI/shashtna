@@ -95,7 +95,7 @@ type Sources = Awaited<ReturnType<typeof loadFinanceSources>>;
 export type PeriodSelection = { period: PeriodKey; from?: string | null; to?: string | null; view: Granularity };
 
 export function parseSelection(params: { period?: string; from?: string; to?: string; view?: string }): PeriodSelection {
-  const period = (["today", "week", "month", "year", "custom"] as const).find((value) => value === params.period) ?? "month";
+  const period = (["today", "week", "month", "year", "last7", "last30", "last90", "prevMonth", "custom"] as const).find((value) => value === params.period) ?? "month";
   const view = (["day", "week", "month", "year"] as const).find((value) => value === params.view) ?? "day";
 
   return { period, from: params.from ?? null, to: params.to ?? null, view };
@@ -270,3 +270,35 @@ export async function listExpenses(filter: { range?: Range; category?: string })
     .filter((expense) => (!filter.range || inRange(parseInstant(expense.spentOn), filter.range)) && (!filter.category || expense.category === filter.category))
     .sort((a, b) => (parseInstant(b.spentOn)?.getTime() ?? 0) - (parseInstant(a.spentOn)?.getTime() ?? 0));
 }
+
+/**
+ * Sales VOLUME for a selection — counts only, no amounts. Uses the same
+ * recognition rules as getFinanceSnapshot (one engine), but the result
+ * carries no money, so roles without "finance" (catalogue, customers,
+ * insights) can see how much sold without seeing revenue.
+ */
+export async function getSalesVolume(selection: PeriodSelection, now = new Date()) {
+  const sources = await loadFinanceSources();
+  const { current, previous } = resolveRange(selection.period, now, { from: selection.from, to: selection.to });
+  const units = (rows: ReturnType<typeof productPerformance>) =>
+    [...rows].sort((a, b) => b.units - a.units || a.name.localeCompare(b.name)).map(({ product, name, kind, serviceType, units: count }) => ({ product, name, kind, serviceType, units: count }));
+  const salesIn = (range: Range) => sources.sales.filter((sale) => inRange(sale.at, range));
+  const inPeriod = salesIn(current);
+  const before = salesIn(previous);
+  const payers = new Set(inPeriod.map((sale) => sale.userId));
+  const earlier = new Set(sources.sales.filter((sale) => sale.at.getTime() < current.start.getTime()).map((sale) => sale.userId));
+  const returning = [...payers].filter((id) => earlier.has(id)).length;
+  const rowsNow = productPerformance(sources.sales, current);
+  const leader = mostSold(rowsNow);
+
+  return {
+    completedSales: { current: inPeriod.length, previous: before.length },
+    renewals: { current: inPeriod.filter((sale) => sale.requestType === "RENEW").length, previous: before.filter((sale) => sale.requestType === "RENEW").length },
+    products: units(rowsNow),
+    productsPrevious: units(productPerformance(sources.sales, previous)),
+    mostSold: leader ? { name: leader.name, units: leader.units } : null,
+    customers: { paying: payers.size, previousPaying: new Set(before.map((sale) => sale.userId)).size, returning, firstTime: payers.size - returning },
+  };
+}
+
+export type SalesVolume = Awaited<ReturnType<typeof getSalesVolume>>;

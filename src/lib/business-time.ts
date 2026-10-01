@@ -14,7 +14,10 @@ export const BUSINESS_TIME_ZONE = "Asia/Baghdad";
 const OFFSET_MS = 3 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export type PeriodKey = "today" | "week" | "month" | "year" | "custom";
+export type PeriodKey = "today" | "week" | "month" | "year" | "last7" | "last30" | "last90" | "prevMonth" | "custom";
+
+/** Rolling presets: the last N Baghdad days including today. */
+const ROLLING_DAYS: Partial<Record<PeriodKey, number>> = { last7: 7, last30: 30, last90: 90 };
 export type Granularity = "day" | "week" | "month" | "year";
 
 export type Range = { start: Date; end: Date };
@@ -95,6 +98,34 @@ export function parseBusinessDay(value: string | null | undefined) {
 export function resolveRange(period: PeriodKey, now = new Date(), custom?: { from?: string | null; to?: string | null }) {
   let start: Date;
   let previousStart: Date;
+
+  const rolling = ROLLING_DAYS[period];
+
+  if (rolling) {
+    // The last N days up to now, compared with the N days right before it
+    // (same length, end exclusive).
+    const startRolling = addDays(startOfDay(now), -(rolling - 1));
+    const end = new Date(now.getTime() + 1);
+    const length = end.getTime() - startRolling.getTime();
+
+    return {
+      current: { start: startRolling, end },
+      previous: { start: new Date(startRolling.getTime() - length), end: startRolling },
+      granularity: granularityFor(length),
+    };
+  }
+
+  if (period === "prevMonth") {
+    // The whole previous calendar month vs the whole month before it.
+    const end = startOfMonth(now);
+    const startPrev = addMonths(end, -1);
+
+    return {
+      current: { start: startPrev, end },
+      previous: { start: addMonths(startPrev, -1), end: startPrev },
+      granularity: "day" as Granularity,
+    };
+  }
 
   switch (period) {
     case "today":

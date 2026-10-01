@@ -8,7 +8,7 @@ import { PERMISSIONS, STAFF_ROLES, hasPermission, normalizeRole, type Permission
  */
 
 /** Audit entity types written by logActivity() (src/server/activity.ts). */
-export const AUDIT_ENTITIES = ["ORDER", "SUBSCRIPTION", "TICKET", "PACKAGE", "DEVICE", "APP", "ANNOUNCEMENT", "INCIDENT", "SETTING", "STAFF", "USER", "LEAD", "PASSWORD_RESET", "NOTIFICATION", "FINANCE"] as const;
+export const AUDIT_ENTITIES = ["ORDER", "SUBSCRIPTION", "TICKET", "PACKAGE", "DEVICE", "APP", "ANNOUNCEMENT", "INCIDENT", "SETTING", "STAFF", "USER", "LEAD", "PASSWORD_RESET", "NOTIFICATION", "FINANCE", "INTELLIGENCE"] as const;
 
 /** Actions that matter for security reviews. */
 export const SECURITY_ACTIONS = ["ROLE_CHANGED", "STAFF_SESSIONS_REVOKED", "SUBSCRIPTION_CREDENTIALS_REVEALED", "SETTINGS_UPDATED", "PASSWORD_RESET_CODE_ISSUED", "PASSWORD_CHANGED"] as const;

@@ -28,7 +28,7 @@ const FIELDS = ["id", "kind", "title", "description", "highlight", "imageUrl", "
 
 const time = (value: unknown) => (value ? (toDate(String(value))?.getTime() ?? null) : null);
 
-async function loadContent() {
+export async function loadContent() {
   const rows = await db.orm.public.Announcement.select(...FIELDS)
     .orderBy([(item) => item.priority.desc(), (item) => item.id.desc()])
     .all();

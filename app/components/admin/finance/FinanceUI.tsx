@@ -80,9 +80,20 @@ const PERIODS: { key: PeriodKey; ar: string; en: string }[] = [
   { key: "year", ar: "هذه السنة", en: "This year" },
 ];
 
+/** Extra presets used by Intelligence (Finance keeps its four). */
+export const EXTENDED_PERIODS: { key: PeriodKey; ar: string; en: string }[] = [
+  { key: "today", ar: "اليوم", en: "Today" },
+  { key: "last7", ar: "آخر 7 أيام", en: "Last 7 days" },
+  { key: "last30", ar: "آخر 30 يوم", en: "Last 30 days" },
+  { key: "last90", ar: "آخر 90 يوم", en: "Last 90 days" },
+  { key: "month", ar: "هذا الشهر", en: "This month" },
+  { key: "prevMonth", ar: "الشهر السابق", en: "Previous month" },
+  { key: "year", ar: "هذه السنة", en: "This year" },
+];
+
 export function periodLabel(period: PeriodKey, lang: Lang) {
   const t = translator(lang);
-  const found = PERIODS.find((item) => item.key === period);
+  const found = EXTENDED_PERIODS.find((item) => item.key === period) ?? PERIODS.find((item) => item.key === period);
 
   return found ? t(found.ar, found.en) : t("فترة مخصصة", "Custom range");
 }
@@ -98,7 +109,12 @@ export function comparisonLabel(period: PeriodKey, lang: Lang) {
     case "year":
       return t("مقارنة بنفس النقطة من السنة الماضية", "vs the same point last year");
     case "custom":
+    case "last7":
+    case "last30":
+    case "last90":
       return t("مقارنة بفترة سابقة بنفس الطول", "vs the previous period of the same length");
+    case "prevMonth":
+      return t("مقارنة بالشهر الذي قبله كاملًا", "vs the full month before it");
     case "month":
     default:
       return t("مقارنة بنفس النقطة من الشهر الماضي", "vs the same point last month");
@@ -114,6 +130,7 @@ export function PeriodControl({
   to,
   lang,
   keep = {},
+  periods = PERIODS,
 }: {
   basePath: string;
   period: PeriodKey;
@@ -123,6 +140,8 @@ export function PeriodControl({
   lang: Lang;
   /** Other query params to carry across period changes (e.g. a category filter). */
   keep?: Record<string, string>;
+  /** Preset list (defaults to Finance's four calendar periods). */
+  periods?: { key: PeriodKey; ar: string; en: string }[];
 }) {
   const t = translator(lang);
   const query = (extra: Record<string, string>) => `${basePath}?${new URLSearchParams({ ...keep, ...(view ? { view } : {}), ...extra }).toString()}`;
@@ -130,7 +149,7 @@ export function PeriodControl({
   return (
     <div className="flex flex-wrap items-center gap-3" data-testid="period-control">
       <nav aria-label={t("فترة التقرير", "Reporting period")} className="glass-soft flex flex-wrap gap-1 rounded-2xl p-1">
-        {PERIODS.map((item) => (
+        {periods.map((item) => (
           <Link
             key={item.key}
             href={query({ period: item.key })}

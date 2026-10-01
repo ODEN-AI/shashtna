@@ -172,6 +172,7 @@ export async function logRenewalContactAction(_prev: AdminState, formData: FormD
 
     revalidatePath("/admin/renewals");
     revalidatePath("/admin/operations");
+    revalidatePath("/admin/customers/[id]", "page");
     return { ok: true, message: "تم تسجيل التواصل." };
   } catch (error) {
     return fail(error, "تعذر تسجيل التواصل.");

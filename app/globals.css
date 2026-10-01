@@ -269,6 +269,17 @@ a {
     linear-gradient(135deg, var(--color-brand-strong) 0%, var(--color-navy) 60%, var(--color-canvas) 100%);
 }
 
+/* Finance "balance" surface: royal-blue band with a luminous wave glow. */
+@utility bg-finance-hero {
+  background:
+    radial-gradient(55% 75% at 92% 85%, rgb(55 129 252 / 0.6), transparent 70%),
+    radial-gradient(45% 55% at 8% 0%, rgb(203 233 253 / 0.16), transparent 70%),
+    linear-gradient(140deg, var(--color-brand) 0%, var(--color-brand-strong) 42%, var(--color-navy) 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    0 30px 80px -30px rgb(25 81 252 / 0.55);
+}
+
 @utility text-gradient {
   background: linear-gradient(90deg, #ffffff 0%, var(--color-glow) 50%, var(--color-brand-ink) 100%);
   -webkit-background-clip: text;

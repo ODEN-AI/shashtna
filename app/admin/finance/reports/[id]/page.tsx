@@ -38,7 +38,8 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   const unverified = report.sections.reduce((sum, section) => sum + section.statements.filter((item) => item.kind === "FACT" && item.verified === false).length, 0);
 
   return (
-    <div className="space-y-6" data-testid="report-detail">
+    <div className="relative isolate space-y-6" data-testid="report-detail">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-24 -z-10 h-[420px] bg-[radial-gradient(55%_60%_at_75%_0%,rgb(25_81_252/0.18),transparent_70%)]" />
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Link href="/admin/finance/reports" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-ink hover:text-ink print:hidden">

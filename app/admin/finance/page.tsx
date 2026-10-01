@@ -92,7 +92,8 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const compare = comparisonLabel(selection.period, lang);
 
   return (
-    <div className="space-y-6" data-testid="finance-dashboard">
+    <div className="relative isolate space-y-6" data-testid="finance-dashboard">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-24 -z-10 h-[560px] bg-[radial-gradient(55%_60%_at_75%_0%,rgb(25_81_252/0.22),transparent_70%),radial-gradient(40%_45%_at_10%_20%,rgb(55_129_252/0.1),transparent_70%)]" />
       {/* Header */}
       <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
@@ -120,9 +121,10 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
       <div className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
         <section
           data-testid="revenue-hero"
-          className="bg-brand-band relative isolate overflow-hidden rounded-[2rem] border border-white/10 p-6 shadow-float sm:p-8"
+          className="bg-finance-hero relative isolate overflow-hidden rounded-[2.25rem] border border-white/12 p-6 sm:p-8"
         >
           <div aria-hidden className="absolute -end-24 -top-24 -z-10 h-72 w-72 rounded-full bg-[radial-gradient(closest-side,rgb(203_233_253/0.28),transparent)]" />
+          <div aria-hidden className="absolute -bottom-24 end-[-15%] -z-10 h-64 w-[75%] -rotate-12 rounded-[50%] bg-sky/35 blur-3xl" />
           <div aria-hidden className="absolute -bottom-32 -start-10 -z-10 h-72 w-72 rounded-full border border-white/10" />
           <div className="flex items-start justify-between gap-4">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/75">{t("إجمالي الإيرادات", "Total revenue")}</p>
@@ -221,26 +223,28 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
 
       {/* Insights + analyst */}
       <div className="grid gap-5 xl:grid-cols-[1fr_1.1fr]">
-        <section aria-label={t("ملاحظات من البيانات", "Data insights")} className="space-y-3" data-testid="insight-cards">
+        <section aria-label={t("ملاحظات من البيانات", "Data insights")} className="flex flex-col gap-3" data-testid="insight-cards">
           <TileLabel icon={<Sparkles size={14} aria-hidden />}>{t("ملاحظات مستخرجة من البيانات", "Findings from the data")}</TileLabel>
           {snapshot.insights.length ? (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className={cn("grid flex-1 auto-rows-fr gap-3", snapshot.insights.length > 1 && "sm:grid-cols-2")}>
               {snapshot.insights.map((insight) => {
                 const copy = insightCopy(insight, lang, compare);
                 const Icon = insight.tone === "up" ? TrendingUp : insight.tone === "down" ? TrendingDown : insight.tone === "attention" ? AlertTriangle : Crown;
 
                 return (
-                  <GlassTile key={insight.key} className="p-4 sm:p-5">
+                  <GlassTile key={insight.key} className="flex flex-col justify-between gap-4 p-4 sm:p-5">
                     <p className={cn("flex items-center gap-2 text-xs font-bold", insight.tone === "attention" ? "text-warning" : insight.tone === "down" ? "text-danger" : insight.tone === "up" ? "text-success" : "text-brand-ink")}>
-                      <Icon size={15} aria-hidden /> {copy.title}
+                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/6"><Icon size={17} aria-hidden /></span>
+                      {copy.title}
                     </p>
-                    <p className="nums mt-2 text-sm leading-6 text-ink">{copy.body}</p>
+                    <p className={cn("nums leading-8 text-ink", snapshot.insights.length === 1 ? "text-xl font-bold" : "text-sm leading-6")}>{copy.body}</p>
+                    <p className="text-[11px] text-ink-3">{compare}</p>
                   </GlassTile>
                 );
               })}
             </div>
           ) : (
-            <GlassTile className="p-4 sm:p-5">
+            <GlassTile className="flex-1 p-4 sm:p-5">
               <p className="text-sm leading-6 text-ink-3">{t("ماكو تغيّر لافت تدعمه البيانات بهذه الفترة.", "No notable change in this period is supported by the data.")}</p>
             </GlassTile>
           )}
@@ -306,7 +310,7 @@ function ProductSection({ snapshot, lang }: { snapshot: FinanceSnapshot; lang: L
 
   return (
     <section aria-labelledby="products-heading" className="grid gap-5 xl:grid-cols-[0.9fr_1.6fr]" data-testid="product-performance">
-      <div className="bg-brand-band relative overflow-hidden rounded-[2rem] border border-white/10 p-6 shadow-float sm:p-7" data-testid="most-sold">
+      <div className="bg-finance-hero relative overflow-hidden rounded-[2.25rem] border border-white/12 p-6 sm:p-7" data-testid="most-sold">
         <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white/75"><Crown size={14} aria-hidden />{t("الأكثر مبيعًا", "Most sold")}</p>
         {leader ? (
           <>

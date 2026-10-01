@@ -43,7 +43,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const ai = aiConfigured();
 
   return (
-    <div className="space-y-6" data-testid="reports-page">
+    <div className="relative isolate space-y-6" data-testid="reports-page">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-24 -z-10 h-[420px] bg-[radial-gradient(55%_60%_at_75%_0%,rgb(25_81_252/0.18),transparent_70%)]" />
       <header>
         <Link href="/admin/finance" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-ink hover:text-ink">
           <ArrowRight size={14} className="ltr:rotate-180" aria-hidden /> {t("المالية والأداء", "Finance & performance")}

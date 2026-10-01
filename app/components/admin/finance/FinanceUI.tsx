@@ -192,7 +192,7 @@ export function Sparkline({ values, className }: { values: number[]; className?:
 
 export function GlassTile({ children, className, testId }: { children: ReactNode; className?: string; testId?: string }) {
   return (
-    <div data-testid={testId} className={cn("relative overflow-hidden rounded-[1.6rem] border border-white/8 bg-surface/70 p-5 shadow-card [border-top-color:rgb(203_233_253/0.16)] sm:p-6", className)}>
+    <div data-testid={testId} className={cn("relative overflow-hidden rounded-[1.75rem] border border-white/8 bg-[linear-gradient(180deg,rgb(203_233_253/0.07),rgb(203_233_253/0.015)_45%),rgb(6_21_61/0.72)] p-5 shadow-card backdrop-blur-xl [border-top-color:rgb(203_233_253/0.18)] sm:p-6", className)}>
       {children}
     </div>
   );

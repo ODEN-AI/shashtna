@@ -17,6 +17,7 @@ import {
   Inbox,
   KeyRound,
   LayoutGrid,
+  LockKeyhole,
   LogOut,
   Megaphone,
   MessagesSquare,
@@ -168,6 +169,10 @@ export function AdminShell({
           {t("تثبيت التطبيق", "Install app")}
         </button>
       ) : null}
+      <Link href="/admin/security" onClick={() => setOpen(false)} className="flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-ink-2 hover:bg-surface-2 hover:text-ink" data-testid="console-security-link">
+        <LockKeyhole size={17} aria-hidden />
+        {t("الأمان والجلسات", "Security & sessions")}
+      </Link>
       <a href="/" target="_blank" rel="noopener" className="flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-ink-2 hover:bg-surface-2 hover:text-ink">
         <ExternalLink size={17} aria-hidden />
         {t("فتح الموقع", "Open website")}

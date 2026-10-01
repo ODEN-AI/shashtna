@@ -10,6 +10,7 @@ import {
   type Permission,
 } from "@/src/lib/roles";
 import { db } from "@/src/prisma/db";
+import { staffSessionState } from "@/src/server/staff-sessions";
 
 export type SessionUser = {
   id: number;
@@ -44,6 +45,12 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   }
 
   const role = normalizeRole(user.role) || "CUSTOMER";
+
+  // Staff sessions also end after the staff maximum age or a "sign out of
+  // all devices" (see src/server/staff-sessions.ts). Customers unaffected.
+  if (isStaffRole(role) && (await staffSessionState(user.id, role, payload.iat)) !== "ok") {
+    return null;
+  }
 
   return {
     id: user.id,

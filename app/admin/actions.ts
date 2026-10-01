@@ -22,6 +22,7 @@ import { notify } from "@/src/server/notifications";
 import { updateOrderStatus } from "@/src/server/orders";
 import { dismissReset, issueResetCode } from "@/src/server/password-reset";
 import { SETTING_KEYS, saveSetting, type SettingKey } from "@/src/server/settings";
+import { revokeStaffSessions } from "@/src/server/staff-sessions";
 
 export type AdminState = { ok: boolean; message: string; code?: string } | null;
 
@@ -512,6 +513,31 @@ export async function setUserRoleAction(_prev: AdminState, formData: FormData): 
     return { ok: true, message: "تم تحديث الدور. يسري فورًا على صلاحيات لوحة الإدارة." };
   } catch (error) {
     return fail(error, "تعذر تحديث الدور.");
+  }
+}
+
+/** End every session of another staff member (lost device, offboarding). */
+export async function revokeStaffSessionsAction(_prev: AdminState, formData: FormData): Promise<AdminState> {
+  try {
+    const staff = await guard("staff");
+    const userId = Number(formData.get("userId"));
+
+    if (!Number.isInteger(userId) || userId <= 0 || userId === staff.id) {
+      return { ok: false, message: "لإنهاء جلساتك أنت استخدم صفحة «الأمان والجلسات»." };
+    }
+
+    const target = await db.orm.public.User.first({ id: userId });
+
+    if (!target) {
+      return { ok: false, message: "المستخدم غير موجود." };
+    }
+
+    await revokeStaffSessions(userId, staff, "ADMIN");
+    revalidatePath("/admin/admins");
+
+    return { ok: true, message: `تم إنهاء كل جلسات ${target.name}. لازم يسجّل الدخول من جديد.` };
+  } catch (error) {
+    return fail(error, "تعذر إنهاء الجلسات.");
   }
 }
 

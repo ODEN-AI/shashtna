@@ -7,6 +7,7 @@ import {
 } from "@/src/lib/mobile-auth";
 import { hasPermission, type Permission } from "@/src/lib/roles";
 import { db } from "@/src/prisma/db";
+import { staffSessionState } from "@/src/server/staff-sessions";
 
 /*
  * The website session cookie carries the same signed token the mobile app
@@ -122,7 +123,19 @@ export async function requireAdmin(request: Request, permission: Permission) {
 
   const user = await db.orm.public.User.first({ id: payload.sub });
 
-  if (!user || !hasPermission(user.role, permission)) {
+  // 401: no valid session (account gone, staff session expired or revoked).
+  if (!user || (await staffSessionState(user.id, user.role, payload.iat)) !== "ok") {
+    return {
+      ok: false as const,
+      response: authError(
+        401,
+        "انتهت جلسة تسجيل الدخول. يرجى تسجيل الدخول مرة أخرى.",
+      ),
+    };
+  }
+
+  // 403: signed in, but the role lacks this permission.
+  if (!hasPermission(user.role, permission)) {
     return {
       ok: false as const,
       response: authError(403, "ليس لديك صلاحية لتنفيذ هذا الإجراء."),

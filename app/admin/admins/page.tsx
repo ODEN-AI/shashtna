@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { setUserRoleAction } from "@/app/admin/actions";
+import { revokeStaffSessionsAction, setUserRoleAction } from "@/app/admin/actions";
 import { Forbidden } from "@/app/components/admin/Forbidden";
 import { ActionForm } from "@/app/ui/ActionForm";
 import { Badge } from "@/app/ui/Badge";
@@ -64,7 +64,17 @@ export default async function AdminsPage({ searchParams }: { searchParams: Promi
                 </p>
                 <p className="nums text-xs text-ink-3" dir="ltr">{user.phone}</p>
               </div>
-              {user.id === me.id ? <Badge tone="brand">{ROLE_LABELS[user.role]?.[lang] ?? user.role}</Badge> : <RoleForm userId={user.id} role={user.role} lang={lang} />}
+              {user.id === me.id ? (
+                <Badge tone="brand">{ROLE_LABELS[user.role]?.[lang] ?? user.role}</Badge>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <RoleForm userId={user.id} role={user.role} lang={lang} />
+                  <ActionForm action={revokeStaffSessionsAction} className="flex items-center">
+                    <input type="hidden" name="userId" value={user.id} />
+                    <SubmitButton size="sm" variant="ghost">{t("إنهاء كل جلساته", "End all sessions")}</SubmitButton>
+                  </ActionForm>
+                </div>
+              )}
             </li>
           ))}
         </ul>

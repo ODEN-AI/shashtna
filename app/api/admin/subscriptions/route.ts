@@ -324,7 +324,7 @@ export async function GET(request: Request) {
               username:
                 subscription.username,
 
-                ...maskedPassword(subscription.password),
+              ...maskedPassword(subscription.password),
 
               macAddress:
                 subscription.macAddress,
@@ -763,7 +763,7 @@ export async function PATCH(
           username:
             updated.username,
 
-            ...maskedPassword(updated.password),
+          ...maskedPassword(updated.password),
 
           macAddress:
             updated.macAddress,
@@ -1356,7 +1356,7 @@ export async function POST(
             username:
               updatedSubscription.username,
 
-              ...maskedPassword(updatedSubscription.password),
+            ...maskedPassword(updatedSubscription.password),
 
             macAddress:
               updatedSubscription.macAddress,

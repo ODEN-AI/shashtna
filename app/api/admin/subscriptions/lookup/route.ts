@@ -90,7 +90,7 @@ export async function POST(
             username:
               subscription.username,
 
-              ...maskedPassword(subscription.password),
+            ...maskedPassword(subscription.password),
 
             macAddress:
               subscription.macAddress,
@@ -199,7 +199,7 @@ export async function POST(
           username:
             subscription.username,
 
-            ...maskedPassword(subscription.password),
+          ...maskedPassword(subscription.password),
 
           macAddress:
             subscription.macAddress,

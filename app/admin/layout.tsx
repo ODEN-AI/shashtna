@@ -10,6 +10,15 @@ import { getLang } from "@/src/server/i18n";
 export const metadata: Metadata = {
   title: { default: "لوحة الإدارة", template: "%s | إدارة شاشتنا" },
   robots: { index: false, follow: false },
+  // Installable as "Shashtna Console" (PWA). Linked only from /admin.
+  manifest: "/admin/manifest.webmanifest",
+  applicationName: "إدارة شاشتنا",
+  appleWebApp: { capable: true, title: "إدارة شاشتنا", statusBarStyle: "black-translucent" },
+  icons: {
+    icon: [{ url: "/console/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/console/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  formatDetection: { telephone: false },
 };
 
 // Server-side gate for every /admin page: staff only. Each admin API also

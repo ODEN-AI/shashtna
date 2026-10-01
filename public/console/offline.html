@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#020b2b">
+<meta name="robots" content="noindex">
+<title>غير متصل | إدارة شاشتنا</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid; place-items: center; padding: 24px;
+    background: radial-gradient(60% 50% at 75% 0%, rgb(25 81 252 / 0.25), transparent 70%), #020b2b;
+    color: #f3f7ff;
+    font-family: "Thmanyah Sans", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  }
+  .card {
+    width: 100%; max-width: 420px; text-align: center; padding: 32px 24px;
+    border-radius: 28px; border: 1px solid rgb(203 233 253 / 0.12);
+    background: linear-gradient(180deg, rgb(203 233 253 / 0.07), rgb(203 233 253 / 0.015)), rgb(6 21 61 / 0.8);
+    box-shadow: 0 30px 80px -30px rgb(0 0 0 / 0.6);
+  }
+  img { width: 72px; height: 72px; border-radius: 18px; }
+  h1 { font-size: 22px; margin: 20px 0 8px; }
+  p { margin: 0; color: #c3d2f0; line-height: 1.8; font-size: 15px; }
+  .en { margin-top: 14px; color: #8fa3cf; font-size: 13px; direction: ltr; }
+  button {
+    margin-top: 24px; height: 44px; padding: 0 22px; border: 0; border-radius: 14px;
+    background: #1951fc; color: #fff; font: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
+  }
+  button:focus-visible { outline: 3px solid #cbe9fd; outline-offset: 2px; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <img src="/console/icon-192.png" alt="شاشتنا">
+    <h1>تعذر الاتصال بالخادم</h1>
+    <p>تحقق من اتصال الإنترنت وحاول مرة أخرى. لوحة الإدارة تعمل عبر الإنترنت فقط، ولا تُحفظ أي بيانات على هذا الجهاز.</p>
+    <p class="en">You're offline. Check your connection and try again — no business data is stored on this device.</p>
+    <button type="button" onclick="location.reload()">إعادة المحاولة</button>
+  </main>
+  <script>
+    window.addEventListener("online", function () { location.reload(); });
+  </script>
+</body>
+</html>

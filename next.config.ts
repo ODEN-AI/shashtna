@@ -21,6 +21,11 @@ const nextConfig: NextConfig = {
       { source: "/admin/subscription-requests", destination: "/admin/orders", permanent: false },
       { source: "/admin/activity-logs", destination: "/admin/audit", permanent: false },
       { source: "/admin/live-connections", destination: "/admin", permanent: false },
+      // Phase 9: Insights and Revenue moved into Intelligence. The old pages
+      // showed receipt revenue to every "insights" role; the new revenue
+      // page requires "finance".
+      { source: "/admin/insights", destination: "/admin/intelligence", permanent: false },
+      { source: "/admin/revenue", destination: "/admin/intelligence/revenue", permanent: false },
     ];
   },
 

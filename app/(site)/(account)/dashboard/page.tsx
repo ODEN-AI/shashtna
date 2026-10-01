@@ -32,8 +32,10 @@ import { requireCustomer } from "@/src/server/auth";
 import { getActiveApps, getActivePackages } from "@/src/server/catalog";
 import { getLiveAnnouncements } from "@/src/server/content";
 import { getI18n } from "@/src/server/i18n";
+import { audienceMatches } from "@/src/lib/promotions";
 import { countUnreadNotifications, ensureRenewalReminders } from "@/src/server/notifications";
 import { getCustomerOverview } from "@/src/server/overview";
+import { viewerFromOverview } from "@/src/server/promotions";
 import { proofUploadTimes } from "@/src/server/payment-proofs";
 import { getSettings, manualTransferDetails } from "@/src/server/settings";
 import { TICKET_STATUS_LABELS, listTicketsForUser } from "@/src/server/tickets";
@@ -55,7 +57,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const trackedOrder = highlighted ?? openOrders[0];
   const justCreated = Boolean(highlighted) && params.created === "1";
 
-  const [{ t, lang }, activity, tickets, unread, apps, packages, notices, settings, proofs] = await Promise.all([
+  const [{ t, lang }, activity, tickets, unread, apps, packages, dashboardNotices, settings, proofs] = await Promise.all([
     getI18n(),
     listCustomerActivity(user.id, 6).catch(() => []),
     listTicketsForUser(user.id).catch(() => []),
@@ -67,6 +69,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     proofUploadTimes(trackedOrder ? [trackedOrder.id] : []),
   ]);
 
+  // Dashboard notices honour their audience like every other placement.
+  const viewer = viewerFromOverview(overview);
+  const notices = dashboardNotices.filter((notice) => audienceMatches(notice.audience, viewer));
   const openTickets = tickets.filter((ticket) => ticket.status !== "CLOSED");
   const proofUploadedAt = trackedOrder ? proofs.get(trackedOrder.id) ?? null : null;
   const stage = trackedOrder ? orderStage(trackedOrder.status, Boolean(proofUploadedAt)) : null;

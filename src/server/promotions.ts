@@ -42,8 +42,11 @@ export async function getViewer(user: SessionUser | null): Promise<Viewer> {
     return { state: "GUEST", vip: false };
   }
 
-  const overview = await getCustomerOverview(user.id).catch(() => null);
+  return viewerFromOverview(await getCustomerOverview(user.id).catch(() => null));
+}
 
+/** The audience viewer for a signed-in customer whose overview is already loaded. */
+export function viewerFromOverview(overview: { state: Viewer["state"]; primary?: { serviceType?: string | null } | null } | null): Viewer {
   if (!overview) {
     return { state: "NONE", vip: false };
   }

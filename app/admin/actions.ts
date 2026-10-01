@@ -17,6 +17,7 @@ import {
   INCIDENT_COMPONENTS,
   INCIDENT_STATUSES,
 } from "@/src/server/content";
+import { isInternalPath, strictChoice, strictPriority } from "@/src/lib/content-console";
 import { AUDIENCES, EDITORIAL_KINDS, MEDIA_TYPES, WEBSITE_PLACEMENTS } from "@/src/lib/promotions";
 import { notify } from "@/src/server/notifications";
 import { updateOrderStatus } from "@/src/server/orders";
@@ -24,7 +25,7 @@ import { dismissReset, issueResetCode } from "@/src/server/password-reset";
 import { SETTING_KEYS, saveSetting, type SettingKey } from "@/src/server/settings";
 import { revokeStaffSessions } from "@/src/server/staff-sessions";
 
-export type AdminState = { ok: boolean; message: string; code?: string } | null;
+export type AdminState = { ok: boolean; message: string; code?: string; id?: number } | null;
 
 async function guard(permission: Permission) {
   try {
@@ -278,10 +279,26 @@ export async function saveAnnouncementAction(_prev: AdminState, formData: FormDa
       return { ok: false, message: "العنوان مطلوب." };
     }
 
-    const pick = <T extends string>(value: FormDataEntryValue | null, allowed: readonly T[], fallback: T) => {
-      const candidate = text(value, 30).toUpperCase() as T;
-      return allowed.includes(candidate) ? candidate : fallback;
+    // Empty → the default; an unknown value is rejected, never silently replaced.
+    const choices = {
+      kind: strictChoice(formData.get("kind"), [...ANNOUNCEMENT_KINDS, ...EDITORIAL_KINDS], "AD"),
+      placement: strictChoice(formData.get("placement"), [...ANNOUNCEMENT_PLACEMENTS, ...WEBSITE_PLACEMENTS], "HOME_CAROUSEL"),
+      target: strictChoice(formData.get("target"), ANNOUNCEMENT_TARGETS, "ALL"),
+      audience: strictChoice(formData.get("audience"), AUDIENCES, "ALL"),
+      style: strictChoice(formData.get("style"), ANNOUNCEMENT_STYLES, "STANDARD"),
+      mediaType: strictChoice(formData.get("mediaType"), MEDIA_TYPES, "IMAGE"),
     };
+    const invalid = Object.entries(choices).find(([, value]) => value === null);
+
+    if (invalid) {
+      return { ok: false, message: `قيمة غير صالحة في حقل ${invalid[0]}.` };
+    }
+
+    const priority = strictPriority(formData.get("priority"));
+
+    if (priority === null) {
+      return { ok: false, message: "الأولوية يجب أن تكون رقمًا صحيحًا بين ‎-100 و 100." };
+    }
 
     let ctaUrl: string | null;
 
@@ -297,7 +314,7 @@ export async function saveAnnouncementAction(_prev: AdminState, formData: FormDa
       return { ok: false, message: "رابط الصورة غير صالح." };
     }
 
-    const mediaType = pick(formData.get("mediaType"), MEDIA_TYPES, "IMAGE");
+    const mediaType = choices.mediaType!;
     const videoUrl = mediaType === "VIDEO" ? optionalText(formData.get("videoUrl"), 500) : null;
 
     if (videoUrl && !/^https:\/\//.test(videoUrl) && !(videoUrl.startsWith("/") && !videoUrl.startsWith("//"))) {
@@ -311,59 +328,59 @@ export async function saveAnnouncementAction(_prev: AdminState, formData: FormDa
     const startsAt = isoOrNull(formData.get("startsAt"));
     const endsAt = isoOrNull(formData.get("endsAt"));
 
+    if ((text(formData.get("startsAt"), 40) && !startsAt) || (text(formData.get("endsAt"), 40) && !endsAt)) {
+      return { ok: false, message: "تاريخ البداية أو النهاية غير صالح." };
+    }
+
     if (startsAt && endsAt && startsAt > endsAt) {
       return { ok: false, message: "تاريخ النهاية قبل تاريخ البداية." };
     }
 
-    const placement = pick(formData.get("placement"), [...ANNOUNCEMENT_PLACEMENTS, ...WEBSITE_PLACEMENTS], "HOME_CAROUSEL");
+    const placement = choices.placement!;
     // Hero board, latest list and entry experiences are website surfaces:
     // keep them out of the Shashtna Player / app feeds.
     const websiteOnly = (WEBSITE_PLACEMENTS as readonly string[]).includes(placement);
 
     const data = {
-      kind: pick(formData.get("kind"), [...ANNOUNCEMENT_KINDS, ...EDITORIAL_KINDS], "AD"),
+      kind: choices.kind!,
       title,
       description: optionalText(formData.get("description"), 400),
       imageUrl,
       ctaLabel: optionalText(formData.get("ctaLabel"), 40),
       ctaUrl,
-      target: websiteOnly ? "WEBSITE" : pick(formData.get("target"), ANNOUNCEMENT_TARGETS, "ALL"),
+      target: websiteOnly ? "WEBSITE" : choices.target!,
       placement,
       mediaType: videoUrl ? "VIDEO" : "IMAGE",
       videoUrl,
-      audience: pick(formData.get("audience"), AUDIENCES, "ALL"),
+      audience: choices.audience!,
       highlight: optionalText(formData.get("highlight"), 60),
-      style: pick(formData.get("style"), ANNOUNCEMENT_STYLES, "STANDARD"),
-      priority: Math.max(-100, Math.min(100, Math.trunc(Number(formData.get("priority")) || 0))),
+      style: choices.style!,
+      priority,
       isActive: formData.get("isActive") === "on",
       startsAt,
       endsAt,
     };
 
-    const saved =
-      Number.isInteger(id) && id > 0
-        ? await db.orm.public.Announcement.where({ id }).update(data)
-        : await db.orm.public.Announcement.create(data);
+    const editing = Number.isInteger(id) && id > 0;
+    const before = editing ? await db.orm.public.Announcement.first({ id }) : null;
 
-    await logActivity({
-      actor: staff,
-      entityType: "ANNOUNCEMENT",
-      entityId: saved?.id ?? id,
-      action: id ? "ANNOUNCEMENT_UPDATED" : "ANNOUNCEMENT_CREATED",
-      summary: `${id ? "تعديل" : "إضافة"} إعلان «${title}»`,
-    });
+    if (editing && !before) {
+      return { ok: false, message: "الإعلان غير موجود." };
+    }
 
-    revalidatePath("/admin/announcements");
-    revalidatePath("/");
-    return { ok: true, message: "تم حفظ الإعلان." };
+    const saved = editing
+      ? await db.orm.public.Announcement.where({ id }).update(data)
+      : await db.orm.public.Announcement.create(data);
+
+    await auditAnnouncementSave(staff, saved?.id ?? id, title, before, data);
+    revalidateContent(saved?.id ?? id);
+    return { ok: true, message: "تم حفظ الإعلان.", id: saved?.id ?? id };
   } catch (error) {
     return fail(error, "تعذر حفظ الإعلان.");
   }
 }
 
-export async function deleteAnnouncementAction(formData: FormData) {
-  const staff = await guard("content");
-  const id = Number(formData.get("id"));
+async function removeAnnouncement(staff: { id: number; role?: string | null }, id: number) {
   const existing = await db.orm.public.Announcement.first({ id });
 
   if (existing) {
@@ -377,8 +394,96 @@ export async function deleteAnnouncementAction(formData: FormData) {
     });
   }
 
+  revalidateContent(id);
+  return Boolean(existing);
+}
+
+export async function deleteAnnouncementAction(formData: FormData) {
+  const staff = await guard("content");
+  await removeAnnouncement(staff, Number(formData.get("id")));
+}
+
+/** Same delete as above, for the Promotions console (reports the outcome). */
+export async function removeAnnouncementAction(_prev: AdminState, formData: FormData): Promise<AdminState> {
+  try {
+    const staff = await guard("content");
+    const removed = await removeAnnouncement(staff, Number(formData.get("id")));
+
+    return removed ? { ok: true, message: "تم حذف الإعلان." } : { ok: false, message: "الإعلان غير موجود." };
+  } catch (error) {
+    return fail(error, "تعذر حذف الإعلان.");
+  }
+}
+
+/** Publish / unpublish without touching any other field. */
+export async function setAnnouncementActiveAction(_prev: AdminState, formData: FormData): Promise<AdminState> {
+  try {
+    const staff = await guard("content");
+    const id = Number(formData.get("id"));
+    const isActive = formData.get("isActive") === "true";
+    const existing = Number.isInteger(id) && id > 0 ? await db.orm.public.Announcement.first({ id }) : null;
+
+    if (!existing) {
+      return { ok: false, message: "الإعلان غير موجود." };
+    }
+
+    if (existing.isActive !== isActive) {
+      await db.orm.public.Announcement.where({ id }).update({ isActive });
+      await logActivity({
+        actor: staff,
+        entityType: "ANNOUNCEMENT",
+        entityId: id,
+        action: isActive ? "ANNOUNCEMENT_ACTIVATED" : "ANNOUNCEMENT_DEACTIVATED",
+        summary: `${isActive ? "تفعيل" : "إيقاف"} إعلان «${existing.title}»`,
+      });
+    }
+
+    revalidateContent(id);
+    return { ok: true, message: isActive ? "تم تفعيل الإعلان." : "تم إيقاف الإعلان." };
+  } catch (error) {
+    return fail(error, "تعذر تغيير حالة الإعلان.");
+  }
+}
+
+/** Every page that shows announcements: the editors and the public surfaces. */
+function revalidateContent(id?: number) {
   revalidatePath("/admin/announcements");
+  revalidatePath("/admin/promotions", "layout");
+  if (id) revalidatePath(`/admin/promotions/items/${id}`);
   revalidatePath("/");
+  revalidatePath("/dashboard");
+}
+
+/**
+ * One audit event per kind of change: created, activated / deactivated,
+ * schedule changed, edited — so publishing decisions are findable.
+ */
+async function auditAnnouncementSave(
+  staff: { id: number; role?: string | null },
+  id: number,
+  title: string,
+  before: Record<string, unknown> | null,
+  after: Record<string, unknown>,
+) {
+  const log = (action: string, summary: string, details?: string) =>
+    logActivity({ actor: staff, entityType: "ANNOUNCEMENT", entityId: id, action, summary, details: details ?? null });
+
+  if (!before) {
+    await log("ANNOUNCEMENT_CREATED", `إضافة إعلان «${title}»`, `${after.kind} · ${after.placement} · ${after.audience} · ${after.isActive ? "active" : "inactive"}`);
+    return;
+  }
+
+  const changed = (field: string) => String(before[field] ?? "") !== String(after[field] ?? "");
+  const time = (value: unknown) => (value ? toDate(String(value))?.toISOString() ?? null : null);
+
+  if (changed("isActive")) await log(after.isActive ? "ANNOUNCEMENT_ACTIVATED" : "ANNOUNCEMENT_DEACTIVATED", `${after.isActive ? "تفعيل" : "إيقاف"} إعلان «${title}»`);
+  if (time(before.startsAt) !== time(after.startsAt) || time(before.endsAt) !== time(after.endsAt)) {
+    await log("ANNOUNCEMENT_SCHEDULED", `تعديل جدولة إعلان «${title}»`, `${time(before.startsAt) ?? "—"} → ${time(after.startsAt) ?? "—"} / ${time(before.endsAt) ?? "—"} → ${time(after.endsAt) ?? "—"}`);
+  }
+
+  const fields = ["title", "description", "kind", "placement", "target", "audience", "style", "priority", "imageUrl", "videoUrl", "mediaType", "ctaLabel", "ctaUrl", "highlight"].filter(changed);
+
+  if (fields.length) await log("ANNOUNCEMENT_UPDATED", `تعديل إعلان «${title}»`, `changed: ${fields.join(", ")}`);
 }
 
 // --------------------------------------------------------------- incidents
@@ -551,14 +656,15 @@ export async function sendNotificationAction(_prev: AdminState, formData: FormDa
     const title = text(formData.get("title"), 120);
     const body = text(formData.get("body"), 600);
     const phone = text(formData.get("phone"), 40);
-    let link = optionalText(formData.get("link"), 300);
+    const link = optionalText(formData.get("link"), 300);
 
     if (!title || !body) {
       return { ok: false, message: "العنوان والنص مطلوبين." };
     }
 
-    if (link && (!link.startsWith("/") || link.startsWith("//"))) {
-      link = null;
+    // Internal paths only; an invalid link is reported, not silently dropped.
+    if (link && !isInternalPath(link)) {
+      return { ok: false, message: "الرابط يجب أن يكون مسارًا داخل الموقع يبدأ بـ / ." };
     }
 
     const user = await db.orm.public.User.first({ phone });
@@ -577,6 +683,7 @@ export async function sendNotificationAction(_prev: AdminState, formData: FormDa
     });
 
     revalidatePath("/admin/notifications");
+    revalidatePath("/admin/promotions", "layout");
     return { ok: true, message: `تم إرسال الإشعار إلى ${user.name}.` };
   } catch (error) {
     return fail(error, "تعذر إرسال الإشعار.");

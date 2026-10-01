@@ -57,6 +57,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     en: "Insights",
     items: [
       { href: "/admin/insights", ar: "لوحة المؤشرات", en: "Dashboard", icon: "insights", permission: "insights" },
+      { href: "/admin/finance", ar: "المالية والأداء", en: "Finance & BI", icon: "finance", permission: "finance" },
       { href: "/admin/revenue", ar: "الإيرادات", en: "Revenue", icon: "revenue", permission: "insights" },
       { href: "/admin/reports", ar: "التقارير", en: "Reports", icon: "reports", permission: "insights" },
     ],

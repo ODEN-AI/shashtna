@@ -38,6 +38,12 @@
   --color-glow: #cbe9fd;
   /* VIP product gradient (same stops as Shashtna Mobile's VIP cards). */
   --color-brand-mid: #1542d8;
+  /* Finance chart series — validated categorical set on the dark card
+     surface (dataviz validator: lightness band, chroma, CVD ΔE ≥ 15,
+     contrast ≥ 3:1). Fixed order: revenue, expenses, net profit. */
+  --color-viz-revenue: #3781fc;
+  --color-viz-expenses: #c8742e;
+  --color-viz-profit: #9c6be6;
   --color-vip-1: #12206e;
   --color-vip-2: #2b2fa8;
   --color-vip-3: #4b4fe0;

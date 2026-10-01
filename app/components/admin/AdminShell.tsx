@@ -29,6 +29,7 @@ import {
   ShoppingBag,
   Tv,
   UsersRound,
+  WalletCards,
 } from "lucide-react";
 
 import { useLanguage } from "@/app/components/LanguageProvider";
@@ -57,6 +58,7 @@ const ICONS: Record<string, typeof Inbox> = {
   leads: Briefcase,
   insights: BarChart3,
   revenue: CircleDollarSign,
+  finance: WalletCards,
   reports: FileSpreadsheet,
   admins: ShieldCheck,
   audit: ScrollText,

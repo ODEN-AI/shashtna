@@ -16,7 +16,7 @@ import { getI18n } from "@/src/server/i18n";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "سجل التدقيق" };
 
-const ENTITY_TYPES = ["ORDER", "SUBSCRIPTION", "TICKET", "ANNOUNCEMENT", "INCIDENT", "SETTING", "STAFF", "USER", "LEAD", "PASSWORD_RESET", "NOTIFICATION"];
+const ENTITY_TYPES = ["ORDER", "SUBSCRIPTION", "TICKET", "ANNOUNCEMENT", "INCIDENT", "SETTING", "STAFF", "USER", "LEAD", "PASSWORD_RESET", "NOTIFICATION", "FINANCE"];
 
 export default async function AuditPage({ searchParams }: { searchParams: Promise<{ type?: string; staff?: string; page?: string }> }) {
   const params = await searchParams;

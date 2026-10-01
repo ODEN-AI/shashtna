@@ -10,7 +10,6 @@ import {
 } from "@/src/lib/promotions";
 import type { SessionUser } from "@/src/server/auth";
 import {
-  getActiveApps,
   getActiveDevices,
   getActivePackages,
   rankPopular,

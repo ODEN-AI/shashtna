@@ -128,13 +128,13 @@ function EntryOverlay({ plan, onClose }: { plan: Plan; onClose: () => void }) {
   const { t, language } = useLanguage();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const [reduced, setReduced] = useState(false);
+  // The overlay only mounts in the browser (after the entry fetch), so the
+  // media query can be read once on first render.
+  const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const item = plan.primary;
   const member = plan.mode === "member";
 
   useEffect(() => {
-    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";

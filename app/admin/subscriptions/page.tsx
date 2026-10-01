@@ -6,8 +6,6 @@ import {
   CircleCheck,
   CircleX,
   Edit3,
-  Eye,
-  EyeOff,
   Loader2,
   RefreshCw,
   Search,
@@ -21,6 +19,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { adminFetch } from "@/app/components/admin/adminFetch";
+import { RevealPassword } from "@/app/components/admin/CredentialReveal";
 
 type Subscription = {
   id: number;
@@ -30,7 +29,9 @@ type Subscription = {
   customerPhone: string;
   serviceType: string;
   username: string;
-  password: string;
+  // Never sent by the API (masked); revealed on demand via an audited request.
+  password: null;
+  hasPassword: boolean;
   macAddress: string | null;
   deviceId: string | null;
   status: string;
@@ -224,9 +225,8 @@ function getInitialEditForm(
       subscription.username ??
       "",
 
-    password:
-      subscription.password ??
-      "",
+    // Blank = keep the current password (it's never sent to the browser).
+    password: "",
 
     macAddress:
       subscription.macAddress ??
@@ -487,7 +487,8 @@ export default function AdminSubscriptionsPage() {
     if (
       serviceType === "IPTV" &&
       (!editForm.username.trim() ||
-        !editForm.password.trim())
+        (!editForm.password.trim() &&
+          !editingSubscription.hasPassword))
     ) {
       setEditError(
         "اشتراك IPTV يحتاج Username و Password."
@@ -1049,6 +1050,11 @@ export default function AdminSubscriptionsPage() {
 
                 <EditInput
                   label="Password"
+                  placeholder={
+                    editingSubscription?.hasPassword
+                      ? "اتركه فارغًا للإبقاء على كلمة المرور الحالية"
+                      : undefined
+                  }
                   value={
                     editForm.password
                   }
@@ -1286,8 +1292,10 @@ function EditInput({
   type = "text",
   min,
   max,
+  placeholder,
 }: {
   label: string;
+  placeholder?: string;
   value: string;
   onChange: (
     value: string
@@ -1306,6 +1314,7 @@ function EditInput({
         type={type}
         min={min}
         max={max}
+        placeholder={placeholder}
         value={value}
         onChange={(event) =>
           onChange(
@@ -1355,11 +1364,6 @@ function SubscriptionRow({
   subscription: Subscription;
   onEdit: () => void;
 }) {
-  const [
-    showPassword,
-    setShowPassword,
-  ] = useState(false);
-
   const expiry =
     normalizeDateOnly(
       subscription.expiryDate
@@ -1432,37 +1436,10 @@ function SubscriptionRow({
               Password:
             </span>
 
-            <span className="font-black">
-              {showPassword
-                ? subscription.password
-                : "••••••••"}
-            </span>
-
-            <button
-              type="button"
-              onClick={() =>
-                setShowPassword(
-                  (value) =>
-                    !value
-                )
-              }
-              className="text-slate-400 transition hover:text-blue-600"
-              title={
-                showPassword
-                  ? "إخفاء كلمة المرور"
-                  : "إظهار كلمة المرور"
-              }
-            >
-              {showPassword ? (
-                <EyeOff
-                  size={15}
-                />
-              ) : (
-                <Eye
-                  size={15}
-                />
-              )}
-            </button>
+            <RevealPassword
+              subscriptionId={subscription.id}
+              hasPassword={subscription.hasPassword}
+            />
           </div>
 
           <div>

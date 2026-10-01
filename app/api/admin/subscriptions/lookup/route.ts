@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/src/lib/session";
+import { maskedPassword } from "@/src/server/credentials";
 import {
   db,
   ensureDatabaseConnection,
@@ -89,8 +90,7 @@ export async function POST(
             username:
               subscription.username,
 
-            password:
-              subscription.password,
+              ...maskedPassword(subscription.password),
 
             macAddress:
               subscription.macAddress,
@@ -199,8 +199,7 @@ export async function POST(
           username:
             subscription.username,
 
-          password:
-            subscription.password,
+            ...maskedPassword(subscription.password),
 
           macAddress:
             subscription.macAddress,

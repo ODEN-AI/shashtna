@@ -42,7 +42,9 @@ type ExistingSubscription = {
   userId: number;
   serviceType: string;
   username: string | null;
+  // Masked by the API (never sent); renewals keep the stored password.
   password: string | null;
+  hasPassword?: boolean;
   macAddress: string | null;
   deviceId: string | null;
   packageName: string;
@@ -1011,7 +1013,12 @@ export default function AddSubscriptionPage({
                         .value
                     )
                   }
-                  placeholder="كلمة مرور الاشتراك"
+                  placeholder={
+                    isRenewal &&
+                    existingSubscription?.hasPassword
+                      ? "محفوظة — التجديد يحتفظ بكلمة المرور الحالية"
+                      : "كلمة مرور الاشتراك"
+                  }
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-12 py-3.5 text-sm font-semibold outline-none transition focus:border-blue-400 focus:bg-white dark:border-slate-700 dark:bg-slate-950 dark:focus:bg-slate-900"
                 />
               </div>

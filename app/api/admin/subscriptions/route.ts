@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/src/lib/session";
+import { maskedPassword } from "@/src/server/credentials";
 import { isOpen } from "@/src/lib/order-status";
 import { logActivity } from "@/src/server/activity";
 import { completeOrderWithSubscription } from "@/src/server/orders";
@@ -323,8 +324,7 @@ export async function GET(request: Request) {
               username:
                 subscription.username,
 
-              password:
-                subscription.password,
+                ...maskedPassword(subscription.password),
 
               macAddress:
                 subscription.macAddress,
@@ -469,8 +469,11 @@ export async function PATCH(
       body.username?.trim() ||
       null;
 
+    // The admin UI never receives the stored password, so an empty value
+    // means "keep the current password".
     const password =
       body.password?.trim() ||
+      existingSubscription.password ||
       null;
 
     const macAddress =
@@ -760,8 +763,7 @@ export async function PATCH(
           username:
             updated.username,
 
-          password:
-            updated.password,
+            ...maskedPassword(updated.password),
 
           macAddress:
             updated.macAddress,
@@ -1354,8 +1356,7 @@ export async function POST(
             username:
               updatedSubscription.username,
 
-            password:
-              updatedSubscription.password,
+              ...maskedPassword(updatedSubscription.password),
 
             macAddress:
               updatedSubscription.macAddress,
@@ -1786,8 +1787,7 @@ export async function POST(
           username:
             created.username,
 
-          password:
-            created.password,
+          ...maskedPassword(created.password),
 
           macAddress:
             created.macAddress,

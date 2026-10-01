@@ -12,12 +12,15 @@ import {
 } from "lucide-react";
 
 import { adminFetch } from "@/app/components/admin/adminFetch";
+import { RevealPassword } from "@/app/components/admin/CredentialReveal";
 
 type SubscriptionResult = {
   subscription: {
     id: number;
     username: string;
-    password: string;
+    // Masked by the API; revealed on demand via an audited request.
+    password: null;
+    hasPassword: boolean;
     macAddress: string | null;
     status: string;
     packageName: string;
@@ -353,7 +356,12 @@ export default function AdminLookupPage() {
               <InfoCard
                 icon={<KeyRound size={19} />}
                 title="Password"
-                value={result.subscription.password}
+                value={
+                  <RevealPassword
+                    subscriptionId={result.subscription.id}
+                    hasPassword={result.subscription.hasPassword}
+                  />
+                }
                 direction="ltr"
               />
 
@@ -425,7 +433,7 @@ function InfoCard({
 }: {
   icon: React.ReactNode;
   title: string;
-  value: string;
+  value: React.ReactNode;
   direction?: "rtl" | "ltr";
 }) {
   return (

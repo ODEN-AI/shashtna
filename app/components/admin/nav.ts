@@ -7,6 +7,8 @@ export type AdminNavItem = {
   icon: string;
   /** Omitted = every staff role (e.g. the Console Home). */
   permission?: Permission;
+  /** Visible when the role holds ANY of these (e.g. the Operations Center). */
+  anyOf?: Permission[];
   badgeKey?: "orders" | "activations" | "renewals" | "tickets" | "resets" | "leads";
 };
 
@@ -18,6 +20,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     en: "Operations",
     items: [
       { href: "/admin", ar: "الرئيسية", en: "Home", icon: "home" },
+      { href: "/admin/operations", ar: "مركز العمليات", en: "Operations Center", icon: "operations", anyOf: ["orders", "subscriptions", "support"] },
       { href: "/admin/orders", ar: "الطلبات", en: "Orders", icon: "orders", permission: "orders", badgeKey: "orders" },
       { href: "/admin/activations", ar: "التفعيل", en: "Activations", icon: "activations", permission: "orders", badgeKey: "activations" },
       { href: "/admin/renewals", ar: "التجديدات المستحقة", en: "Renewals due", icon: "renewals", permission: "subscriptions", badgeKey: "renewals" },
@@ -81,6 +84,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
  */
 export const PRIMARY_DESTINATIONS: { href: string; ar: string; en: string }[] = [
   { href: "/admin", ar: "الرئيسية", en: "Home" },
+  { href: "/admin/operations", ar: "العمليات", en: "Operations" },
   { href: "/admin/orders", ar: "الطلبات", en: "Orders" },
   { href: "/admin/customers", ar: "العملاء", en: "Customers" },
   { href: "/admin/finance", ar: "المالية", en: "Finance" },

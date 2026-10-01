@@ -33,6 +33,7 @@ import {
   Tv,
   UsersRound,
   WalletCards,
+  Workflow,
   X,
 } from "lucide-react";
 
@@ -46,6 +47,7 @@ import { primaryItems, type AdminNavGroup } from "./nav";
 const ICONS: Record<string, typeof Inbox> = {
   inbox: Inbox,
   home: LayoutDashboard,
+  operations: Workflow,
   orders: ShoppingBag,
   activations: PackageCheck,
   renewals: RefreshCw,

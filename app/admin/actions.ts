@@ -171,6 +171,7 @@ export async function logRenewalContactAction(_prev: AdminState, formData: FormD
     });
 
     revalidatePath("/admin/renewals");
+    revalidatePath("/admin/operations");
     return { ok: true, message: "تم تسجيل التواصل." };
   } catch (error) {
     return fail(error, "تعذر تسجيل التواصل.");
@@ -600,6 +601,7 @@ export async function updateLeadAction(_prev: AdminState, formData: FormData): P
     await logActivity({ actor: staff, entityType: "LEAD", entityId: id, action: "LEAD_UPDATED", summary: `تحديث طلب مشروع إلى ${status}` });
 
     revalidatePath("/admin/leads");
+    revalidatePath("/admin/operations");
     return { ok: true, message: "تم الحفظ." };
   } catch (error) {
     return fail(error, "تعذر الحفظ.");

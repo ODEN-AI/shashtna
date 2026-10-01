@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
+
+import { normalizeOrderStatus, UNPAID_STORED_STATUSES } from "@/src/lib/order-status";
+import { hasPermission, isStaffRole, normalizeRole } from "@/src/lib/roles";
 import { requireAdmin } from "@/src/lib/session";
+import { deriveSubscriptionState } from "@/src/lib/subscription-state";
 import { db } from "@/src/prisma/db";
+import { getFinanceSnapshot } from "@/src/server/finance";
 
-function isSameDay(value: string) {
-  const date = new Date(value);
-  const now = new Date();
-
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-  );
-}
-
+/**
+ * GET /api/admin/stats — summary counts for staff with "insights".
+ *
+ * The response's shape depends on permission: operational counts for every
+ * "insights" role, plus a `finance` block ONLY for roles holding "finance".
+ * Money is never computed for anyone else (not computed-then-hidden), and it
+ * comes from the Finance engine (getFinanceSnapshot), the single source of
+ * revenue/profit — not a second calculation from receipts. Values the system
+ * doesn't record (live connections, debts) are not returned at all.
+ */
 export async function GET(request: Request) {
   try {
     const admin = await requireAdmin(request, "insights");
@@ -21,202 +25,54 @@ export async function GET(request: Request) {
       return admin.response;
     }
 
-    const [
-      users,
-      subscriptions,
-      packages,
-      apps,
-      requests,
-      receipts,
-    ] = await Promise.all([
-      db.orm.public.User.all(),
-      db.orm.public.Subscription.all(),
-      db.orm.public.Package.all(),
-      db.orm.public.App.all(),
-      db.orm.public.SubscriptionRequest.all(),
-      db.orm.public.Receipt.all(),
+    const [roles, subscriptions, packages, apps, orders] = await Promise.all([
+      db.orm.public.User.groupBy("role").aggregate((a) => ({ n: a.count() })),
+      db.orm.public.Subscription.select("status", "expiryDate").all(),
+      db.orm.public.Package.groupBy("isActive").aggregate((a) => ({ n: a.count() })),
+      db.orm.public.App.groupBy("isActive").aggregate((a) => ({ n: a.count() })),
+      db.orm.public.SubscriptionRequest.groupBy("status").aggregate((a) => ({ n: a.count() })),
     ]);
 
-    const now = new Date();
-
-    const activeSubscriptions = subscriptions.filter(
-      (item) =>
-        item.status.toUpperCase() === "ACTIVE" &&
-        !Number.isNaN(new Date(item.expiryDate).getTime()) &&
-        new Date(item.expiryDate) >= now
-    );
-
-    const expiredSubscriptions = subscriptions.filter((item) => {
-      const expiry = new Date(item.expiryDate);
-
-      return (
-        item.status.toUpperCase() === "EXPIRED" ||
-        (!Number.isNaN(expiry.getTime()) && expiry < now)
-      );
-    });
-
-    const pendingRequests = requests.filter(
-      (item) => item.status.toUpperCase() === "PENDING"
-    );
-
-    const acceptedRequests = requests.filter(
-      (item) => item.status.toUpperCase() === "ACCEPTED"
-    );
-
-    const rejectedRequests = requests.filter(
-      (item) => item.status.toUpperCase() === "REJECTED"
-    );
-
-    const totalRevenue = receipts.reduce(
-      (sum, receipt) => sum + Number(receipt.price || 0),
-      0
-    );
-
-    const todaySales = receipts
-      .filter((receipt) => isSameDay(receipt.createdAt))
-      .reduce((sum, receipt) => sum + Number(receipt.price || 0), 0);
-
-    const monthlyRevenue = receipts
-      .filter((receipt) => {
-        const date = new Date(receipt.createdAt);
-
-        return (
-          date.getFullYear() === now.getFullYear() &&
-          date.getMonth() === now.getMonth()
-        );
-      })
-      .reduce((sum, receipt) => sum + Number(receipt.price || 0), 0);
-
-    const totalCustomers = users.filter(
-      (user) => user.role.toUpperCase() !== "ADMIN"
-    ).length;
-
-    const activePackages = packages.filter(
-      (item) => item.isActive
-    ).length;
-
-    const activeApps = apps.filter(
-      (item) => item.isActive
-    ).length;
-
-    const totalConnections = subscriptions.reduce(
-      (sum, subscription) => sum + Number(subscription.connections || 0),
-      0
-    );
-
-    const totalMaxConnections = subscriptions.reduce(
-      (sum, subscription) =>
-        sum + Number(subscription.maxConnections || 0),
-      0
-    );
+    const states = subscriptions.map((row) => deriveSubscriptionState({ status: row.status, expiryDate: String(row.expiryDate) }));
+    const ordersIn = (statuses: readonly string[]) => orders.filter((row) => statuses.includes(normalizeOrderStatus(row.status))).reduce((sum, row) => sum + Number(row.n), 0);
+    const total = (rows: { n: number }[]) => rows.reduce((sum, row) => sum + Number(row.n), 0);
+    const active = (rows: { isActive: boolean; n: number }[]) => Number(rows.find((row) => row.isActive)?.n ?? 0);
 
     const stats = {
-      totalUsers: users.length,
-      totalCustomers,
-
+      totalUsers: total(roles),
+      totalCustomers: roles.filter((row) => !isStaffRole(normalizeRole(row.role))).reduce((sum, row) => sum + Number(row.n), 0),
       totalSubscriptions: subscriptions.length,
-      activeSubscriptions: activeSubscriptions.length,
-      expiredSubscriptions: expiredSubscriptions.length,
-
-      totalPackages: packages.length,
-      activePackages,
-
-      totalApps: apps.length,
-      activeApps,
-
-      totalRequests: requests.length,
-      pendingRequests: pendingRequests.length,
-      acceptedRequests: acceptedRequests.length,
-      rejectedRequests: rejectedRequests.length,
-
-      totalReceipts: receipts.length,
-
-      totalRevenue,
-      monthlyRevenue,
-      todaySales,
-
-      totalExpenses: 0,
-      netProfit: totalRevenue,
-
-      totalDebts: 0,
-
-      totalConnections,
-      totalMaxConnections,
+      activeSubscriptions: states.filter((state) => state === "ACTIVE" || state === "EXPIRING").length,
+      expiredSubscriptions: states.filter((state) => state === "EXPIRED").length,
+      totalPackages: total(packages),
+      activePackages: active(packages),
+      totalApps: total(apps),
+      activeApps: active(apps),
+      totalRequests: total(orders),
+      pendingRequests: ordersIn(UNPAID_STORED_STATUSES.map((status) => normalizeOrderStatus(status))),
+      acceptedRequests: ordersIn(["COMPLETED"]),
+      rejectedRequests: ordersIn(["REJECTED"]),
     };
 
-    return NextResponse.json({
-      success: true,
+    const body: Record<string, unknown> = { success: true, stats, ...stats };
 
-      stats,
+    if (hasPermission(admin.user.role, "finance")) {
+      const snapshot = await getFinanceSnapshot({ period: "month", view: "day", from: null, to: null });
+      const today = snapshot.quick.find((item) => item.key === "today");
 
-      // Keep these at the top level too so older admin UI code
-      // can continue working without breaking.
-      totalUsers: stats.totalUsers,
-      totalCustomers: stats.totalCustomers,
+      body.finance = {
+        currency: "IQD",
+        month: { revenue: snapshot.revenue.amount, sales: snapshot.revenue.sales, expenses: snapshot.expenses.recorded ? snapshot.expenses.amount : null },
+        today: { revenue: today?.revenue ?? 0, sales: today?.sales ?? 0 },
+        // "incomplete" (no amount) until expenses are recorded — revenue is not profit.
+        netProfit: snapshot.profit.status === "ok" ? { status: "ok", amount: snapshot.profit.amount } : { status: "incomplete" },
+      };
+    }
 
-      totalSubscriptions: stats.totalSubscriptions,
-      activeSubscriptions: stats.activeSubscriptions,
-      expiredSubscriptions: stats.expiredSubscriptions,
-
-      totalPackages: stats.totalPackages,
-      activePackages: stats.activePackages,
-
-      totalApps: stats.totalApps,
-      activeApps: stats.activeApps,
-
-      totalRequests: stats.totalRequests,
-      pendingRequests: stats.pendingRequests,
-      acceptedRequests: stats.acceptedRequests,
-      rejectedRequests: stats.rejectedRequests,
-
-      totalReceipts: stats.totalReceipts,
-
-      totalRevenue: stats.totalRevenue,
-      monthlyRevenue: stats.monthlyRevenue,
-      todaySales: stats.todaySales,
-
-      totalExpenses: stats.totalExpenses,
-      netProfit: stats.netProfit,
-      totalDebts: stats.totalDebts,
-
-      totalConnections: stats.totalConnections,
-      totalMaxConnections: stats.totalMaxConnections,
-    });
+    return NextResponse.json(body, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    console.error("Admin stats GET error:", error);
+    console.error("ADMIN_STATS_ERROR:", error instanceof Error ? error.message : error);
 
-    return NextResponse.json(
-      {
-        success: false,
-        message: "تعذر تحميل إحصائيات لوحة الإدارة.",
-        stats: {
-          totalUsers: 0,
-          totalCustomers: 0,
-          totalSubscriptions: 0,
-          activeSubscriptions: 0,
-          expiredSubscriptions: 0,
-          totalPackages: 0,
-          activePackages: 0,
-          totalApps: 0,
-          activeApps: 0,
-          totalRequests: 0,
-          pendingRequests: 0,
-          acceptedRequests: 0,
-          rejectedRequests: 0,
-          totalReceipts: 0,
-          totalRevenue: 0,
-          monthlyRevenue: 0,
-          todaySales: 0,
-          totalExpenses: 0,
-          netProfit: 0,
-          totalDebts: 0,
-          totalConnections: 0,
-          totalMaxConnections: 0,
-        },
-      },
-      {
-        status: 500,
-      }
-    );
+    return NextResponse.json({ success: false, message: "تعذر تحميل الإحصائيات." }, { status: 500 });
   }
 }

@@ -81,9 +81,11 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ar: "النظام",
     en: "System",
     items: [
-      { href: "/admin/admins", ar: "المشرفون والصلاحيات", en: "Admins & roles", icon: "admins", permission: "staff" },
+      { href: "/admin/system", ar: "نظرة عامة", en: "Overview", icon: "system", anyOf: ["staff", "audit", "settings"] },
+      { href: "/admin/system/staff", ar: "فريق العمل والأدوار", en: "Staff & roles", icon: "admins", permission: "staff" },
       { href: "/admin/audit", ar: "سجل التدقيق", en: "Audit log", icon: "audit", permission: "audit" },
-      { href: "/admin/settings", ar: "الإعدادات", en: "Settings", icon: "settings", permission: "settings" },
+      { href: "/admin/system/security", ar: "الأمان والجلسات", en: "Security & sessions", icon: "security", permission: "staff" },
+      { href: "/admin/system/settings", ar: "الإعدادات والتهيئة", en: "Settings & configuration", icon: "settings", permission: "settings" },
     ],
   },
 ];

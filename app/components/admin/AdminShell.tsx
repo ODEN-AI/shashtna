@@ -30,6 +30,7 @@ import {
   PackageCheck,
   RefreshCw,
   ScrollText,
+  ServerCog,
   Search,
   Settings,
   ShieldCheck,
@@ -78,6 +79,8 @@ const ICONS: Record<string, typeof Inbox> = {
   finance: WalletCards,
   reports: FileSpreadsheet,
   admins: ShieldCheck,
+  system: ServerCog,
+  security: LockKeyhole,
   audit: ScrollText,
   settings: Settings,
 };

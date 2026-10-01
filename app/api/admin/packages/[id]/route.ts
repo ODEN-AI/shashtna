@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { catalogueImageUrl, describeChanges, describeLinks, isValidPrice } from "@/src/lib/catalogue";
 import { requireAdmin } from "@/src/lib/session";
+import { auditCatalogue, packageReferences } from "@/src/server/catalogue";
 import {
   db,
   ensureDatabaseConnection,
@@ -201,20 +203,29 @@ export async function PATCH(
         );
       }
 
+      // Orders reference their package by slug (planSlug): renaming it would
+      // orphan their history, so it is only allowed while nothing uses it.
+      if (
+        value !== existing.slug &&
+        (await packageReferences(existing)).orders > 0
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "لا يمكن تغيير الـ Slug لأن طلبات سابقة مرتبطة بهذه الباقة.",
+          },
+          { status: 409 }
+        );
+      }
+
       updateData.slug =
         value;
     }
 
-    if (
-      typeof body.price ===
-      "number"
-    ) {
-      if (
-        !Number.isFinite(
-          body.price
-        ) ||
-        body.price < 0
-      ) {
+    if (body.price !== undefined) {
+      // Whole dinars only: a fraction or a string is rejected, not ignored.
+      if (!isValidPrice(body.price)) {
         return NextResponse.json(
           {
             success: false,
@@ -300,16 +311,23 @@ export async function PATCH(
             null;
     }
 
-    if (
-      body.imageUrl === null ||
-      typeof body.imageUrl ===
-        "string"
-    ) {
+    if (body.imageUrl !== undefined) {
+      const imageUrl =
+        catalogueImageUrl(body.imageUrl);
+
+      if (imageUrl === false) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "رابط الصورة غير صالح. ارفع صورة أو استخدم رابط https.",
+          },
+          { status: 400 }
+        );
+      }
+
       updateData.imageUrl =
-        body.imageUrl === null
-          ? null
-          : body.imageUrl.trim() ||
-            null;
+        imageUrl;
     }
 
     if (
@@ -379,6 +397,10 @@ export async function PATCH(
       }
     }
 
+    const linksBefore = (
+      await db.orm.public.PackageDevice.where({ packageId }).select("deviceId").all()
+    ).map((link) => link.deviceId);
+
     updateData.updatedAt =
       new Date().toISOString();
 
@@ -405,11 +427,12 @@ export async function PATCH(
      * whenever deviceIds was sent.
      */
     if (hasDeviceIds) {
+      // deleteAndCount removes every link; delete() would remove only the first.
       await db.orm.public.PackageDevice
         .where({
           packageId,
         })
-        .delete();
+        .deleteAndCount();
 
       for (const deviceId of deviceIds) {
         await db.orm.public.PackageDevice.create(
@@ -420,6 +443,15 @@ export async function PATCH(
         );
       }
     }
+
+    await auditPackageUpdate({
+      actor: { id: admin.user.id, role: admin.user.role },
+      packageId,
+      name: String(updateData.name ?? existing.name),
+      before: existing,
+      after: updateData,
+      links: hasDeviceIds ? describeLinks(linksBefore, deviceIds) : null,
+    });
 
     return NextResponse.json({
       success: true,
@@ -498,14 +530,37 @@ export async function DELETE(
     }
 
     /*
+     * Deleting a package that orders or subscriptions reference would break
+     * their history: those packages are deactivated instead.
+     */
+    const references =
+      await packageReferences(existing);
+
+    if (
+      references.orders > 0 ||
+      references.subscriptions > 0
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "لا يمكن حذف الباقة لأنها مرتبطة بطلبات أو اشتراكات. أوقفها بدل الحذف.",
+          references,
+        },
+        { status: 409 }
+      );
+    }
+
+    /*
      * Remove package/device relations
      * before deleting the package.
      */
+    // Every link, not just the first (delete() removes a single row).
     await db.orm.public.PackageDevice
       .where({
         packageId,
       })
-      .delete();
+      .deleteAndCount();
 
     const deleted =
       await db.orm.public.Package
@@ -524,6 +579,14 @@ export async function DELETE(
         { status: 500 }
       );
     }
+
+    await auditCatalogue({
+      actor: { id: admin.user.id, role: admin.user.role },
+      entityType: "PACKAGE",
+      entityId: packageId,
+      action: "PACKAGE_DELETED",
+      summary: `Package deleted: ${existing.name} (unused by orders and subscriptions)`,
+    });
 
     return NextResponse.json({
       success: true,
@@ -544,5 +607,34 @@ export async function DELETE(
       },
       { status: 500 }
     );
+  }
+}
+/**
+ * One audit event per kind of change, so price, status, media and
+ * compatibility changes are each findable in the audit log.
+ */
+async function auditPackageUpdate(input: {
+  actor: { id: number; role?: string | null };
+  packageId: number;
+  name: string;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  links: ReturnType<typeof describeLinks> | null;
+}) {
+  const { actor, packageId, name, before, after, links } = input;
+  const events: { action: string; summary: string; changes: string[] }[] = [];
+  const price = describeChanges(before, after, ["price"]);
+  const status = describeChanges(before, after, ["isActive"]);
+  const media = describeChanges(before, after, ["imageUrl"]);
+  const details = describeChanges(before, after, ["name", "slug", "serviceType", "durationMonths", "durationLabel", "description", "specifications", "notes"]);
+
+  if (price.length) events.push({ action: "PACKAGE_PRICE_CHANGED", summary: `Price changed for ${name}: ${before.price} → ${after.price} IQD`, changes: price });
+  if (status.length) events.push({ action: after.isActive ? "PACKAGE_ACTIVATED" : "PACKAGE_DEACTIVATED", summary: `Package ${after.isActive ? "activated" : "deactivated"}: ${name}`, changes: status });
+  if (media.length) events.push({ action: "PACKAGE_MEDIA_CHANGED", summary: `Image changed for ${name}`, changes: media });
+  if (links?.changed) events.push({ action: "PACKAGE_COMPATIBILITY_CHANGED", summary: `Compatible devices changed for ${name}`, changes: [`added: ${links.added.join(", ") || "—"}`, `removed: ${links.removed.join(", ") || "—"}`] });
+  if (details.length) events.push({ action: "PACKAGE_UPDATED", summary: `Package edited: ${name}`, changes: details });
+
+  for (const event of events) {
+    await auditCatalogue({ actor, entityType: "PACKAGE", entityId: packageId, ...event });
   }
 }

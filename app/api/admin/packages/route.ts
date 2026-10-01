@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { catalogueImageUrl, isValidPrice } from "@/src/lib/catalogue";
 import { requireAdmin } from "@/src/lib/session";
+import { auditCatalogue } from "@/src/server/catalogue";
 import {
   db,
   ensureDatabaseConnection,
@@ -185,14 +187,8 @@ export async function POST(
       );
     }
 
-    if (
-      typeof price !==
-        "number" ||
-      !Number.isFinite(
-        price
-      ) ||
-      price < 0
-    ) {
+    // Whole dinars only (Int column): a fraction or string is rejected, not coerced.
+    if (!isValidPrice(price)) {
       return NextResponse.json(
         {
           success: false,
@@ -249,8 +245,18 @@ export async function POST(
       null;
 
     const imageUrl =
-      body.imageUrl?.trim() ||
-      null;
+      catalogueImageUrl(body.imageUrl);
+
+    if (imageUrl === false) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "رابط الصورة غير صالح. ارفع صورة أو استخدم رابط https.",
+        },
+        { status: 400 }
+      );
+    }
 
     const isActive =
       typeof body.isActive ===
@@ -351,6 +357,15 @@ export async function POST(
         );
       }
     }
+
+    await auditCatalogue({
+      actor: { id: admin.user.id, role: admin.user.role },
+      entityType: "PACKAGE",
+      entityId: created.id,
+      action: "PACKAGE_CREATED",
+      summary: `Package created: ${name} (${serviceType}, ${price} IQD)`,
+      changes: deviceIds.length ? [`devices: ${deviceIds.join(", ")}`] : [],
+    });
 
     return NextResponse.json(
       {

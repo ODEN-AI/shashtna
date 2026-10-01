@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { catalogueImageUrl, describeChanges, describeLinks, isValidPrice } from "@/src/lib/catalogue";
 import { requireAdmin } from "@/src/lib/session";
+import { auditCatalogue, deviceReferences } from "@/src/server/catalogue";
 import { ensureDatabaseConnection, db } from "@/src/prisma/db";
 
 type ServiceType = "IPTV" | "VIP";
@@ -199,9 +201,10 @@ export async function POST(
         body.serviceType
       );
 
-    const price = Number(
-      body.price ?? 0
-    );
+    // Whole dinars only: a missing, fractional or text price is rejected, not coerced.
+    const price = isValidPrice(body.price)
+      ? body.price
+      : Number.NaN;
 
     const description = String(
       body.description ?? ""
@@ -220,11 +223,20 @@ export async function POST(
           ).trim() || null;
 
     const imageUrl =
-      body.imageUrl == null
-        ? null
-        : String(
-            body.imageUrl
-          ).trim() || null;
+      catalogueImageUrl(body.imageUrl);
+
+    if (imageUrl === false) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "رابط الصورة غير صالح. ارفع صورة أو استخدم رابط https.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     const isActive =
       typeof body.isActive ===
@@ -401,6 +413,15 @@ export async function POST(
       );
     }
 
+    await auditCatalogue({
+      actor: { id: admin.user.id, role: admin.user.role },
+      entityType: "DEVICE",
+      entityId: device.id,
+      action: "DEVICE_CREATED",
+      summary: `Device created: ${name} (${serviceType}, ${price} IQD)`,
+      changes: packageIds.length ? [`packages: ${packageIds.join(", ")}`] : [],
+    });
+
     return NextResponse.json(
       {
         success: true,
@@ -499,9 +520,10 @@ export async function PUT(
         body.serviceType
       );
 
-    const price = Number(
-      body.price ?? 0
-    );
+    // Whole dinars only: a missing, fractional or text price is rejected, not coerced.
+    const price = isValidPrice(body.price)
+      ? body.price
+      : Number.NaN;
 
     const description = String(
       body.description ?? ""
@@ -520,11 +542,20 @@ export async function PUT(
           ).trim() || null;
 
     const imageUrl =
-      body.imageUrl == null
-        ? null
-        : String(
-            body.imageUrl
-          ).trim() || null;
+      catalogueImageUrl(body.imageUrl);
+
+    if (imageUrl === false) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "رابط الصورة غير صالح. ارفع صورة أو استخدم رابط https.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     const isActive =
       typeof body.isActive ===
@@ -716,6 +747,10 @@ export async function PUT(
         .delete();
     }
 
+    const linksBefore: number[] = deviceRelations.map(
+      (relation: { packageId: number }) => Number(relation.packageId)
+    );
+
     for (const packageId of packageIds) {
       await database.orm.public.PackageDevice.create(
         {
@@ -724,6 +759,15 @@ export async function PUT(
         }
       );
     }
+
+    await auditDeviceUpdate({
+      actor: { id: admin.user.id, role: admin.user.role },
+      deviceId: id,
+      name,
+      before: currentDevice,
+      after: { name, slug, serviceType, price, description, specifications, notes, imageUrl, isActive },
+      links: describeLinks(linksBefore, packageIds),
+    });
 
     return NextResponse.json({
       success: true,
@@ -805,6 +849,27 @@ export async function DELETE(
       );
     }
 
+    /*
+     * Orders store the device they sold: deleting it would break their
+     * history, so such devices are deactivated instead.
+     */
+    const references =
+      await deviceReferences(id);
+
+    if (references.orders > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "لا يمكن حذف الجهاز لأنه مرتبط بطلبات سابقة. أوقفه بدل الحذف.",
+          references,
+        },
+        {
+          status: 409,
+        }
+      );
+    }
+
     const allRelations =
       await database.orm.public.PackageDevice.all();
 
@@ -828,6 +893,14 @@ export async function DELETE(
       .where({ id })
       .delete();
 
+    await auditCatalogue({
+      actor: { id: admin.user.id, role: admin.user.role },
+      entityType: "DEVICE",
+      entityId: id,
+      action: "DEVICE_DELETED",
+      summary: `Device deleted: ${device.name} (unused by orders)`,
+    });
+
     return NextResponse.json({
       success: true,
       message:
@@ -849,5 +922,31 @@ export async function DELETE(
         status: 500,
       }
     );
+  }
+}
+/** One audit event per kind of change (price, status, media, compatibility, details). */
+async function auditDeviceUpdate(input: {
+  actor: { id: number; role?: string | null };
+  deviceId: number;
+  name: string;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  links: ReturnType<typeof describeLinks>;
+}) {
+  const { actor, deviceId, name, before, after, links } = input;
+  const events: { action: string; summary: string; changes: string[] }[] = [];
+  const price = describeChanges(before, after, ["price"]);
+  const status = describeChanges(before, after, ["isActive"]);
+  const media = describeChanges(before, after, ["imageUrl"]);
+  const details = describeChanges(before, after, ["name", "slug", "serviceType", "description", "specifications", "notes"]);
+
+  if (price.length) events.push({ action: "DEVICE_PRICE_CHANGED", summary: `Price changed for ${name}: ${before.price} → ${after.price} IQD`, changes: price });
+  if (status.length) events.push({ action: after.isActive ? "DEVICE_ACTIVATED" : "DEVICE_DEACTIVATED", summary: `Device ${after.isActive ? "activated" : "deactivated"}: ${name}`, changes: status });
+  if (media.length) events.push({ action: "DEVICE_MEDIA_CHANGED", summary: `Image changed for ${name}`, changes: media });
+  if (links.changed) events.push({ action: "DEVICE_COMPATIBILITY_CHANGED", summary: `Compatible packages changed for ${name}`, changes: [`added: ${links.added.join(", ") || "—"}`, `removed: ${links.removed.join(", ") || "—"}`] });
+  if (details.length) events.push({ action: "DEVICE_UPDATED", summary: `Device edited: ${name}`, changes: details });
+
+  for (const event of events) {
+    await auditCatalogue({ actor, entityType: "DEVICE", entityId: deviceId, ...event });
   }
 }

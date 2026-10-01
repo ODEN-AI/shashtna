@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { parseBusinessDay } from "@/src/lib/business-time";
+import { businessDay, parseBusinessDay } from "@/src/lib/business-time";
+import { parseInstant } from "@/src/lib/finance";
 import { db } from "@/src/prisma/db";
 import { logActivity } from "@/src/server/activity";
 import { generateReport } from "@/src/server/analyst";
@@ -122,7 +123,7 @@ export async function deleteExpenseAction(_: FinanceState, formData: FormData): 
       entityType: "FINANCE",
       entityId: `expense:${id}`,
       action: "EXPENSE_DELETED",
-      summary: `Expense deleted: ${existing.amount} IQD (${existing.category}, ${String(existing.spentOn).slice(0, 10)})`,
+      summary: `Expense deleted: ${existing.amount} IQD (${existing.category}, ${businessDay(parseInstant(String(existing.spentOn)) ?? new Date())})`,
     });
     refresh();
 

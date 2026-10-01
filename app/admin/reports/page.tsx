@@ -4,6 +4,7 @@ import { Download } from "lucide-react";
 import { Forbidden } from "@/app/components/admin/Forbidden";
 import { Card } from "@/app/ui/Card";
 import { PageHeader } from "@/app/ui/Page";
+import { hasPermission } from "@/src/lib/roles";
 import { requireStaffPage } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "التقارير" };
 
 export default async function ReportsPage() {
-  const { allowed } = await requireStaffPage("/admin/reports", "insights");
+  const { user, allowed } = await requireStaffPage("/admin/reports", "insights");
 
   if (!allowed) {
     return <Forbidden />;
@@ -20,10 +21,11 @@ export default async function ReportsPage() {
   const { t } = await getI18n();
   const reports = [
     { type: "customers", title: t("العملاء", "Customers"), body: t("الاسم، الهاتف، الدور، التفضيلات وتاريخ الانضمام.", "Name, phone, role, preferences and join date.") },
-    { type: "orders", title: t("الطلبات", "Orders"), body: t("كل الطلبات مع الحالة والمبالغ وطرق التواصل والدفع.", "All orders with status, amounts, contact and payment details.") },
+    { finance: true, type: "orders", title: t("الطلبات", "Orders"), body: t("كل الطلبات مع الحالة والمبالغ وطرق التواصل والدفع.", "All orders with status, amounts, contact and payment details.") },
     { type: "subscriptions", title: t("الاشتراكات", "Subscriptions"), body: t("الباقة، الحالة والتواريخ — بدون بيانات الدخول.", "Plan, status and dates — without login credentials.") },
-    { type: "receipts", title: t("الإيصالات", "Receipts"), body: t("كل الإيصالات الصادرة مع المبالغ.", "Every issued receipt with amounts.") },
-  ];
+    { finance: true, type: "receipts", title: t("الإيصالات", "Receipts"), body: t("كل الإيصالات الصادرة مع المبالغ.", "Every issued receipt with amounts.") },
+  ].filter((report) => !("finance" in report) || hasPermission(user.role, "finance"));
+  const financeHidden = !hasPermission(user.role, "finance");
 
   return (
     <div className="space-y-6">
@@ -45,6 +47,11 @@ export default async function ReportsPage() {
           </li>
         ))}
       </ul>
+      {financeHidden ? (
+        <p className="text-xs text-ink-3" data-testid="reports-finance-note">
+          {t("تصدير الطلبات والإيصالات يحتوي مبالغ مالية، لذلك متاح لصلاحية المالية فقط.", "Order and receipt exports contain amounts, so they're available to the finance permission only.")}
+        </p>
+      ) : null}
     </div>
   );
 }

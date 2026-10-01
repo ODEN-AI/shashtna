@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { formatOrderNumber, normalizeOrderStatus } from "@/src/lib/order-status";
+import { hasPermission } from "@/src/lib/roles";
 import { requireAdmin } from "@/src/lib/session";
 import { db } from "@/src/prisma/db";
 import { logActivity } from "@/src/server/activity";
@@ -19,7 +20,14 @@ function csv(rows: (string | number | null | undefined)[][]) {
   return "﻿" + rows.map((row) => row.map(escape).join(",")).join("\r\n");
 }
 
-/** CSV exports for staff with the insights permission. Credentials are never exported. */
+/** Exports that carry amounts: they also need the finance permission. */
+const FINANCE_EXPORTS = ["orders", "receipts"];
+
+/**
+ * CSV exports for staff with the insights permission. Credentials are never
+ * exported. Orders and receipts carry amounts, so they additionally require
+ * "finance" — checked before anything is loaded.
+ */
 export async function GET(request: Request) {
   const admin = await requireAdmin(request, "insights");
 
@@ -28,6 +36,11 @@ export async function GET(request: Request) {
   }
 
   const type = new URL(request.url).searchParams.get("type");
+
+  if (type && FINANCE_EXPORTS.includes(type) && !hasPermission(admin.user.role, "finance")) {
+    return NextResponse.json({ success: false, message: "ليس لديك صلاحية لتنفيذ هذا الإجراء." }, { status: 403 });
+  }
+
   let rows: (string | number | null)[][];
 
   if (type === "customers") {

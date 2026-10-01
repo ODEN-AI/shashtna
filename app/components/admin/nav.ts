@@ -68,12 +68,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
   {
-    ar: "التحليلات",
-    en: "Insights",
+    ar: "الذكاء والتحليلات",
+    en: "Intelligence",
     items: [
-      { href: "/admin/insights", ar: "لوحة المؤشرات", en: "Dashboard", icon: "insights", permission: "insights" },
+      { href: "/admin/intelligence", ar: "الذكاء والتحليلات", en: "Intelligence", icon: "insights", anyOf: ["finance", "insights", "catalogue", "orders", "customers", "subscriptions", "support", "content"] },
+      { href: "/admin/intelligence/analyst", ar: "محلل الأعمال", en: "Business analyst", icon: "analyst", anyOf: ["insights", "finance"] },
       { href: "/admin/finance", ar: "المالية والأداء", en: "Finance & BI", icon: "finance", permission: "finance" },
-      { href: "/admin/revenue", ar: "الإيرادات", en: "Revenue", icon: "revenue", permission: "insights" },
       { href: "/admin/reports", ar: "التقارير", en: "Reports", icon: "reports", permission: "insights" },
     ],
   },

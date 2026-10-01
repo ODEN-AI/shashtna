@@ -301,3 +301,45 @@ model StaffSessionRevocation {
   revokedBy   Int?
   updatedAt   temporal.updatedAtString()
 }
+
+// Phase 10A — native Console devices (Capacitor Android / Tauri Windows
+// shells). One row per installed shell. The device holds a random secret in
+// OS secure storage; only its SHA-256 verifier is stored here. A device
+// session never outlives the password sign-in it was bound to
+// (`authenticatedAt` + the 7-day staff maximum) and is checked against the
+// existing StaffSessionRevocation. `credentialHash` is cleared on device
+// logout; `revokedAt` blocks the device permanently. No relation to User
+// (same convention as StaffSessionRevocation) so customer queries are
+// unaffected. `platform` is validated in code: WINDOWS | ANDROID | IOS | WEB.
+model ConsoleDevice {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  platform        String
+  label           String
+  appVersion      String?
+  credentialHash  String?
+  authenticatedAt TimestamptzString?
+  pushToken       String?
+  createdAt       TimestamptzString @default(now())
+  lastSeenAt      TimestamptzString?
+  revokedAt       TimestamptzString?
+  revokedBy       Int?
+  updatedAt       temporal.updatedAtString()
+
+  @@index([userId])
+}
+
+// Phase 10A — login throttling, shared by every server instance. `key` is
+// an HMAC of the dimension (account, account+source, source), never a raw
+// phone number or IP address. Rows are short-lived: a window, a failure
+// count and an optional temporary lock; stale rows are pruned.
+model LoginThrottle {
+  id              Int      @id @default(autoincrement())
+  key             String   @unique
+  failures        Int      @default(0)
+  windowStartedAt TimestamptzString
+  lockedUntil     TimestamptzString?
+  updatedAt       temporal.updatedAtString()
+
+  @@index([updatedAt])
+}

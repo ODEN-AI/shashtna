@@ -1,0 +1,200 @@
+[
+  {
+    "id": "table.consoleDevice",
+    "label": "Create table \"consoleDevice\"",
+    "summary": "Creates table \"consoleDevice\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "consoleDevice"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"consoleDevice\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"consoleDevice\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"consoleDevice\"",
+        "sql": "CREATE TABLE \"public\".\"consoleDevice\" (\n  \"appVersion\" text,\n  \"authenticatedAt\" timestamptz,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"credentialHash\" text,\n  \"id\" SERIAL NOT NULL,\n  \"label\" text NOT NULL,\n  \"lastSeenAt\" timestamptz,\n  \"platform\" text NOT NULL,\n  \"pushToken\" text,\n  \"revokedAt\" timestamptz,\n  \"revokedBy\" int4,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"consoleDevice\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"consoleDevice\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.loginThrottle",
+    "label": "Create table \"loginThrottle\"",
+    "summary": "Creates table \"loginThrottle\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "loginThrottle"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"loginThrottle\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"loginThrottle\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"loginThrottle\"",
+        "sql": "CREATE TABLE \"public\".\"loginThrottle\" (\n  \"failures\" int4 DEFAULT 0 NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"key\" text NOT NULL,\n  \"lockedUntil\" timestamptz,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"windowStartedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"loginThrottle\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"loginThrottle\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.loginThrottle.loginThrottle_key_key",
+    "label": "Add unique constraint on \"loginThrottle\" (key)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "loginThrottle_key_key",
+        "table": "loginThrottle"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"loginThrottle_key_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "loginThrottle_key_key",
+          "public",
+          "\"public\".\"loginThrottle\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"loginThrottle_key_key\"",
+        "sql": "ALTER TABLE \"public\".\"loginThrottle\" ADD CONSTRAINT \"loginThrottle_key_key\" UNIQUE (\"key\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"loginThrottle_key_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "loginThrottle_key_key",
+          "public",
+          "\"public\".\"loginThrottle\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.consoleDevice.consoleDevice_userId_idx_a489d58a",
+    "label": "Create index \"consoleDevice_userId_idx_a489d58a\" on \"consoleDevice\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "consoleDevice_userId_idx_a489d58a",
+        "table": "consoleDevice"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"consoleDevice_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"consoleDevice_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"consoleDevice_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"consoleDevice_userId_idx_a489d58a\" ON \"public\".\"consoleDevice\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"consoleDevice_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"consoleDevice_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.loginThrottle.loginThrottle_updatedAt_idx_8c508b31",
+    "label": "Create index \"loginThrottle_updatedAt_idx_8c508b31\" on \"loginThrottle\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "loginThrottle_updatedAt_idx_8c508b31",
+        "table": "loginThrottle"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"loginThrottle_updatedAt_idx_8c508b31\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"loginThrottle_updatedAt_idx_8c508b31\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"loginThrottle_updatedAt_idx_8c508b31\"",
+        "sql": "CREATE INDEX \"loginThrottle_updatedAt_idx_8c508b31\" ON \"public\".\"loginThrottle\" (\"updatedAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"loginThrottle_updatedAt_idx_8c508b31\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"loginThrottle_updatedAt_idx_8c508b31\""
+        ]
+      }
+    ]
+  }
+]

@@ -97,8 +97,13 @@ export function ImageUploadField({
             }}
           />
         </label>
+        {/* Plain text, not type="url": uploads return relative paths
+            (/uploads/…, /api/uploads/media/…) that the browser's URL check
+            would reject, silently blocking the form. The server validates. */}
         <input
-          type="url"
+          type="text"
+          inputMode="url"
+          dir="ltr"
           value={url}
           onChange={(event) => setUrl(event.target.value)}
           placeholder={t("أو الصق رابط https://", "or paste an https:// URL")}

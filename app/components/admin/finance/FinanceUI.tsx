@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/app/ui/cn";
 import type { Granularity, PeriodKey } from "@/src/lib/business-time";
-import { formatPrice, translator, type Lang } from "@/src/lib/i18n";
+import { formatPrice, localeOf, translator, type Lang } from "@/src/lib/i18n";
 
 /**
  * Shashtna Business Intelligence — shared visual pieces. Premium fintech on
@@ -227,4 +227,17 @@ export function expenseCategoryLabel(category: string, lang: Lang) {
   const label = EXPENSE_LABELS[category];
 
   return label ? translator(lang)(label.ar, label.en) : category;
+}
+
+/** Short axis label for a trend bucket key ("2026-09-05", "2026-09", "2026"). */
+export function bucketLabel(key: string, view: string, lang: Lang) {
+  const locale = localeOf(lang);
+
+  if (view === "year") return key;
+  if (view === "month") {
+    const [y, m] = key.split("-").map(Number);
+    return new Intl.DateTimeFormat(locale, { month: "short", year: "2-digit", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, 1)));
+  }
+  const [y, m, d] = key.split("-").map(Number);
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, d)));
 }

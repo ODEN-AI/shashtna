@@ -16,6 +16,7 @@ import {
   FileSpreadsheet,
   Inbox,
   KeyRound,
+  LayoutDashboard,
   LayoutGrid,
   LockKeyhole,
   LogOut,
@@ -44,6 +45,7 @@ import { primaryItems, type AdminNavGroup } from "./nav";
 
 const ICONS: Record<string, typeof Inbox> = {
   inbox: Inbox,
+  home: LayoutDashboard,
   orders: ShoppingBag,
   activations: PackageCheck,
   renewals: RefreshCw,

@@ -29,7 +29,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const groups = ADMIN_NAV.map((group) => ({
     ...group,
-    items: group.items.filter((item) => hasPermission(user.role, item.permission)),
+    items: group.items.filter((item) => !item.permission || hasPermission(user.role, item.permission)),
   })).filter((group) => group.items.length);
 
   return (

@@ -24,6 +24,7 @@ import {
   Sparkline,
   TileLabel,
   Unavailable,
+  bucketLabel,
   comparisonLabel,
   money,
   percent,
@@ -32,7 +33,7 @@ import {
 import { TrendChart } from "@/app/components/admin/finance/TrendChart";
 import { Forbidden } from "@/app/components/admin/Forbidden";
 import { cn } from "@/app/ui/cn";
-import { localeOf, translator, type Lang } from "@/src/lib/i18n";
+import { translator, type Lang } from "@/src/lib/i18n";
 import { requireStaffPage } from "@/src/server/auth";
 import { getFinanceSnapshot, parseSelection, type FinanceSnapshot, type Insight } from "@/src/server/finance";
 import { getI18n } from "@/src/server/i18n";
@@ -40,18 +41,6 @@ import { latestReport } from "@/src/server/analyst";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "المالية والأداء" };
-
-function bucketLabel(key: string, view: string, lang: Lang) {
-  const locale = localeOf(lang);
-
-  if (view === "year") return key;
-  if (view === "month") {
-    const [y, m] = key.split("-").map(Number);
-    return new Intl.DateTimeFormat(locale, { month: "short", year: "2-digit", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, 1)));
-  }
-  const [y, m, d] = key.split("-").map(Number);
-  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, d)));
-}
 
 function insightCopy(insight: Insight, lang: Lang, period: string) {
   const t = translator(lang);

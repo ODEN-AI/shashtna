@@ -5,7 +5,8 @@ export type AdminNavItem = {
   ar: string;
   en: string;
   icon: string;
-  permission: Permission;
+  /** Omitted = every staff role (e.g. the Console Home). */
+  permission?: Permission;
   badgeKey?: "orders" | "activations" | "renewals" | "tickets" | "resets" | "leads";
 };
 
@@ -16,7 +17,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ar: "العمليات",
     en: "Operations",
     items: [
-      { href: "/admin", ar: "صندوق المهام", en: "Inbox", icon: "inbox", permission: "orders" },
+      { href: "/admin", ar: "الرئيسية", en: "Home", icon: "home" },
       { href: "/admin/orders", ar: "الطلبات", en: "Orders", icon: "orders", permission: "orders", badgeKey: "orders" },
       { href: "/admin/activations", ar: "التفعيل", en: "Activations", icon: "activations", permission: "orders", badgeKey: "activations" },
       { href: "/admin/renewals", ar: "التجديدات المستحقة", en: "Renewals due", icon: "renewals", permission: "subscriptions", badgeKey: "renewals" },

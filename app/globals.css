@@ -36,6 +36,11 @@
   --color-brand-ink: #9ec5ff;
   --color-sky: #3781fc;
   --color-glow: #cbe9fd;
+  /* VIP product gradient (same stops as Shashtna Mobile's VIP cards). */
+  --color-brand-mid: #1542d8;
+  --color-vip-1: #12206e;
+  --color-vip-2: #2b2fa8;
+  --color-vip-3: #4b4fe0;
 
   --color-success: #34d399;
   --color-warning: #fbbf24;
@@ -65,6 +70,17 @@
   --animate-fade-up: fade-up 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   --animate-fade-in: fade-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-float: float 5.2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 @keyframes fade-in {
@@ -325,4 +341,202 @@ a {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* =========================================================
+   ANIMATED PRODUCT SHOWCASE (app/components/home/ProductShowcase)
+   Every scene is a stack of layers. A scene is "idle" (parked at its enter
+   pose, no transition), "in" (layers travel to rest with staggered delays)
+   or "out" (layers leave in different directions). Only transform and
+   opacity animate. Under reduced motion the global rule above makes every
+   transition instant, so scenes simply swap.
+   ========================================================= */
+
+.sx-scene {
+  --sx-ease: cubic-bezier(0.22, 0.8, 0.2, 1);
+  --sx-dir: 1;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+[dir="rtl"] .sx-scene {
+  --sx-dir: -1;
+}
+
+.sx-scene[data-state="in"] {
+  pointer-events: auto;
+}
+
+.sx-layer {
+  transition-property: transform, opacity;
+  will-change: transform, opacity;
+}
+
+.sx-scene[data-state="idle"] .sx-layer {
+  transition: none;
+}
+
+/* Background wash */
+.sx-bg {
+  opacity: 0;
+  transform: scale(1.08);
+}
+.sx-scene[data-state="in"] .sx-bg {
+  opacity: 1;
+  transform: none;
+  transition-duration: 1100ms;
+  transition-timing-function: var(--sx-ease);
+}
+.sx-scene[data-state="out"] .sx-bg {
+  opacity: 0;
+  transform: scale(0.96);
+  transition-duration: 900ms;
+}
+
+/* Orbit ring behind the product */
+.sx-ring {
+  opacity: 0;
+  transform: rotate(-40deg) scale(0.6);
+}
+.sx-scene[data-state="in"] .sx-ring {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+  transition-duration: 1400ms;
+  transition-timing-function: var(--sx-ease);
+}
+.sx-scene[data-state="out"] .sx-ring {
+  opacity: 0;
+  transform: rotate(50deg) scale(1.3);
+  transition-duration: 800ms;
+}
+
+/* Light orbs drift to a new position */
+.sx-orb {
+  opacity: 0;
+  transform: translate(calc(var(--sx-dir) * -60px), 40px) scale(0.7);
+}
+.sx-scene[data-state="in"] .sx-orb {
+  opacity: 1;
+  transform: none;
+  transition-duration: 1600ms;
+  transition-timing-function: var(--sx-ease);
+}
+.sx-scene[data-state="out"] .sx-orb {
+  opacity: 0;
+  transform: translate(calc(var(--sx-dir) * 80px), -50px) scale(1.2);
+  transition-duration: 900ms;
+}
+
+/* The product visual: enters from the far side growing, leaves past us */
+.sx-visual {
+  opacity: 0;
+  transform: translateX(calc(var(--sx-dir) * -22%)) scale(0.78) rotate(calc(var(--sx-dir) * -4deg));
+}
+.sx-scene[data-state="in"] .sx-visual {
+  opacity: 1;
+  transform: none;
+  transition-duration: 1000ms;
+  transition-delay: 220ms;
+  transition-timing-function: var(--sx-ease);
+}
+.sx-scene[data-state="out"] .sx-visual {
+  opacity: 0;
+  transform: translateX(calc(var(--sx-dir) * 26%)) scale(1.12) rotate(calc(var(--sx-dir) * 5deg));
+  transition-duration: 700ms;
+  transition-timing-function: cubic-bezier(0.55, 0, 0.75, 0.2);
+}
+
+/* Floating chips around the visual, each on its own path */
+.sx-float {
+  opacity: 0;
+  transform: translate(calc(var(--sx-dir) * var(--fx, -30px)), var(--fy, 30px)) scale(0.7);
+}
+.sx-scene[data-state="in"] .sx-float {
+  opacity: 1;
+  transform: none;
+  transition-duration: 900ms;
+  transition-delay: calc(520ms + var(--i, 0) * 140ms);
+  transition-timing-function: var(--sx-ease);
+}
+.sx-scene[data-state="out"] .sx-float {
+  opacity: 0;
+  transform: translate(calc(var(--sx-dir) * var(--fx, -30px) * -1.4), calc(var(--fy, 30px) * -1.2)) scale(0.85);
+  transition-duration: 500ms;
+  transition-delay: calc(var(--i, 0) * 60ms);
+}
+
+/* Text: word-by-word headline, then lines, tiles and CTA */
+.sx-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-block: 0.08em;
+}
+.sx-text {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(105%);
+}
+.sx-scene[data-state="in"] .sx-text {
+  opacity: 1;
+  transform: none;
+  transition-duration: 760ms;
+  transition-delay: calc(180ms + var(--i, 0) * 55ms);
+  transition-timing-function: var(--sx-ease);
+}
+.sx-scene[data-state="out"] .sx-text {
+  opacity: 0;
+  transform: translateY(-70%);
+  transition-duration: 380ms;
+  transition-delay: calc(var(--i, 0) * 25ms);
+}
+
+.sx-rise {
+  opacity: 0;
+  transform: translateY(18px);
+}
+.sx-scene[data-state="in"] .sx-rise {
+  opacity: 1;
+  transform: none;
+  transition-duration: 700ms;
+  transition-delay: calc(420ms + var(--i, 0) * 90ms);
+  transition-timing-function: var(--sx-ease);
+}
+.sx-scene[data-state="out"] .sx-rise {
+  opacity: 0;
+  transform: translateY(-12px);
+  transition-duration: 320ms;
+}
+
+/* Continuous drift only for the visible scene */
+.sx-drift {
+  animation: float 6s ease-in-out infinite;
+  animation-play-state: paused;
+}
+.sx-scene[data-state="in"] .sx-drift {
+  animation-play-state: running;
+}
+.sx-paused .sx-drift {
+  animation-play-state: paused !important;
+}
+
+/* Story-style progress for the current scene */
+@keyframes sx-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.sx-progress {
+  transform-origin: var(--sx-origin, left);
+  animation: sx-progress var(--sx-duration, 6500ms) linear forwards;
+}
+[dir="rtl"] .sx-progress {
+  --sx-origin: right;
+}
+.sx-paused .sx-progress {
+  animation-play-state: paused;
 }

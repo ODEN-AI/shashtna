@@ -17,6 +17,7 @@ import {
   INCIDENT_COMPONENTS,
   INCIDENT_STATUSES,
 } from "@/src/server/content";
+import { AUDIENCES, EDITORIAL_KINDS, MEDIA_TYPES, WEBSITE_PLACEMENTS } from "@/src/lib/promotions";
 import { notify } from "@/src/server/notifications";
 import { updateOrderStatus } from "@/src/server/orders";
 import { dismissReset, issueResetCode } from "@/src/server/password-reset";
@@ -288,6 +289,17 @@ export async function saveAnnouncementAction(_prev: AdminState, formData: FormDa
       return { ok: false, message: "رابط الصورة غير صالح." };
     }
 
+    const mediaType = pick(formData.get("mediaType"), MEDIA_TYPES, "IMAGE");
+    const videoUrl = mediaType === "VIDEO" ? optionalText(formData.get("videoUrl"), 500) : null;
+
+    if (videoUrl && !/^https:\/\//.test(videoUrl) && !(videoUrl.startsWith("/") && !videoUrl.startsWith("//"))) {
+      return { ok: false, message: "رابط الفيديو غير صالح." };
+    }
+
+    if (mediaType === "VIDEO" && !videoUrl) {
+      return { ok: false, message: "ارفع الفيديو أو اكتب رابطه، أو اختر «صورة»." };
+    }
+
     const startsAt = isoOrNull(formData.get("startsAt"));
     const endsAt = isoOrNull(formData.get("endsAt"));
 
@@ -295,15 +307,24 @@ export async function saveAnnouncementAction(_prev: AdminState, formData: FormDa
       return { ok: false, message: "تاريخ النهاية قبل تاريخ البداية." };
     }
 
+    const placement = pick(formData.get("placement"), [...ANNOUNCEMENT_PLACEMENTS, ...WEBSITE_PLACEMENTS], "HOME_CAROUSEL");
+    // Hero board, latest list and entry experiences are website surfaces:
+    // keep them out of the Shashtna Player / app feeds.
+    const websiteOnly = (WEBSITE_PLACEMENTS as readonly string[]).includes(placement);
+
     const data = {
-      kind: pick(formData.get("kind"), ANNOUNCEMENT_KINDS, "AD"),
+      kind: pick(formData.get("kind"), [...ANNOUNCEMENT_KINDS, ...EDITORIAL_KINDS], "AD"),
       title,
       description: optionalText(formData.get("description"), 400),
       imageUrl,
       ctaLabel: optionalText(formData.get("ctaLabel"), 40),
       ctaUrl,
-      target: pick(formData.get("target"), ANNOUNCEMENT_TARGETS, "ALL"),
-      placement: pick(formData.get("placement"), ANNOUNCEMENT_PLACEMENTS, "HOME_CAROUSEL"),
+      target: websiteOnly ? "WEBSITE" : pick(formData.get("target"), ANNOUNCEMENT_TARGETS, "ALL"),
+      placement,
+      mediaType: videoUrl ? "VIDEO" : "IMAGE",
+      videoUrl,
+      audience: pick(formData.get("audience"), AUDIENCES, "ALL"),
+      highlight: optionalText(formData.get("highlight"), 60),
       style: pick(formData.get("style"), ANNOUNCEMENT_STYLES, "STANDARD"),
       priority: Math.max(-100, Math.min(100, Math.trunc(Number(formData.get("priority")) || 0))),
       isActive: formData.get("isActive") === "on",

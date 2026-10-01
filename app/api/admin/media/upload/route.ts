@@ -13,6 +13,9 @@ const ALLOWED_TYPES = new Set([
   "image/png",
   "image/webp",
   "image/gif",
+  // Short promo videos for the homepage editorial board.
+  "video/mp4",
+  "video/webm",
 ]);
 
 function getExtension(file: File) {
@@ -21,6 +24,8 @@ function getExtension(file: File) {
     "image/png": "png",
     "image/webp": "webp",
     "image/gif": "gif",
+    "video/mp4": "mp4",
+    "video/webm": "webm",
   };
 
   return map[file.type] ?? "bin";
@@ -52,7 +57,7 @@ export async function POST(request: Request) {
         {
           success: false,
           message:
-            "نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو GIF.",
+            "نوع الملف غير مدعوم. استخدم JPG أو PNG أو WEBP أو GIF، أو فيديو MP4 أو WEBM.",
         },
         { status: 400 }
       );
@@ -72,7 +77,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "حجم الصورة يجب أن لا يتجاوز 8MB.",
+          message: "حجم الملف يجب أن لا يتجاوز 8MB.",
         },
         { status: 400 }
       );

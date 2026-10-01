@@ -1,4 +1,5 @@
 import { CustomerBottomNav } from "@/app/components/site/CustomerBottomNav";
+import { EntryExperience } from "@/app/components/site/EntryExperience";
 import { SiteFooter } from "@/app/components/site/SiteFooter";
 import { SiteHeader } from "@/app/components/site/SiteHeader";
 import { getSessionUser } from "@/src/server/auth";
@@ -21,6 +22,7 @@ export default async function SiteLayout({
       </main>
       <SiteFooter />
       {user ? <CustomerBottomNav /> : null}
+      <EntryExperience />
     </div>
   );
 }

@@ -1,0 +1,170 @@
+[
+  {
+    "id": "column.public.announcement.audience",
+    "label": "Add column \"audience\" to \"announcement\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "audience",
+        "table": "announcement"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"audience\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "announcement",
+          "audience"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"audience\"",
+        "sql": "ALTER TABLE \"public\".\"announcement\" ADD COLUMN \"audience\" text DEFAULT 'ALL' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"audience\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "announcement",
+          "audience"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.announcement.highlight",
+    "label": "Add column \"highlight\" to \"announcement\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "highlight",
+        "table": "announcement"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"highlight\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "announcement",
+          "highlight"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"highlight\"",
+        "sql": "ALTER TABLE \"public\".\"announcement\" ADD COLUMN \"highlight\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"highlight\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "announcement",
+          "highlight"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.announcement.mediaType",
+    "label": "Add column \"mediaType\" to \"announcement\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "mediaType",
+        "table": "announcement"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"mediaType\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "announcement",
+          "mediaType"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"mediaType\"",
+        "sql": "ALTER TABLE \"public\".\"announcement\" ADD COLUMN \"mediaType\" text DEFAULT 'IMAGE' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"mediaType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "announcement",
+          "mediaType"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.announcement.videoUrl",
+    "label": "Add column \"videoUrl\" to \"announcement\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "videoUrl",
+        "table": "announcement"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"videoUrl\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "announcement",
+          "videoUrl"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"videoUrl\"",
+        "sql": "ALTER TABLE \"public\".\"announcement\" ADD COLUMN \"videoUrl\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"videoUrl\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "announcement",
+          "videoUrl"
+        ]
+      }
+    ]
+  }
+]

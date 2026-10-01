@@ -92,7 +92,7 @@ export default async function AdminInboxPage() {
       ) : null}
 
       {tiles.length ? (
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {tiles.map((tile) => (
             <li key={tile.href}>
               <Link href={tile.href} className="surface group flex h-full items-start justify-between gap-4 rounded-card p-5 transition hover:border-brand/50">
@@ -108,7 +108,7 @@ export default async function AdminInboxPage() {
         </ul>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {can("orders") ? (
           <Card className="p-6">
             <CardHeader

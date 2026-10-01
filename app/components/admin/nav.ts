@@ -72,3 +72,29 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
 ];
+
+/**
+ * Primary destinations for the compact layouts (tablet rail, mobile bottom
+ * bar), in priority order. Each user sees the first ones their role can
+ * open (see `primaryItems`); everything else stays one tap away in "More".
+ */
+export const PRIMARY_DESTINATIONS: { href: string; ar: string; en: string }[] = [
+  { href: "/admin", ar: "الرئيسية", en: "Home" },
+  { href: "/admin/orders", ar: "الطلبات", en: "Orders" },
+  { href: "/admin/customers", ar: "العملاء", en: "Customers" },
+  { href: "/admin/finance", ar: "المالية", en: "Finance" },
+  { href: "/admin/subscriptions", ar: "الاشتراكات", en: "Subscriptions" },
+  { href: "/admin/support", ar: "الدعم", en: "Support" },
+  { href: "/admin/packages", ar: "الباقات", en: "Packages" },
+  { href: "/admin/announcements", ar: "الإعلانات", en: "Ads" },
+];
+
+export function primaryItems(groups: AdminNavGroup[], limit: number) {
+  const allowed = new Map(groups.flatMap((group) => group.items).map((item) => [item.href, item]));
+
+  return PRIMARY_DESTINATIONS.flatMap((destination) => {
+    const item = allowed.get(destination.href);
+
+    return item ? [{ ...item, short: { ar: destination.ar, en: destination.en } }] : [];
+  }).slice(0, limit);
+}

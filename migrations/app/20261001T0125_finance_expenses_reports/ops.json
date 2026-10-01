@@ -1,0 +1,158 @@
+[
+  {
+    "id": "table.businessReport",
+    "label": "Create table \"businessReport\"",
+    "summary": "Creates table \"businessReport\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "businessReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"businessReport\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"businessReport\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"businessReport\"",
+        "sql": "CREATE TABLE \"public\".\"businessReport\" (\n  \"content\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"createdBy\" int4,\n  \"facts\" text NOT NULL,\n  \"generator\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"period\" text NOT NULL,\n  \"rangeEnd\" timestamptz NOT NULL,\n  \"rangeStart\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"businessReport\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"businessReport\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.expense",
+    "label": "Create table \"expense\"",
+    "summary": "Creates table \"expense\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "expense"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"expense\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"expense\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"expense\"",
+        "sql": "CREATE TABLE \"public\".\"expense\" (\n  \"amount\" int4 NOT NULL,\n  \"category\" text DEFAULT 'OTHER' NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"createdBy\" int4,\n  \"description\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"reference\" text,\n  \"spentOn\" timestamptz NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"expense\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"expense\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.businessReport.businessReport_createdAt_idx_9575dbd7",
+    "label": "Create index \"businessReport_createdAt_idx_9575dbd7\" on \"businessReport\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "businessReport_createdAt_idx_9575dbd7",
+        "table": "businessReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"businessReport_createdAt_idx_9575dbd7\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"businessReport_createdAt_idx_9575dbd7\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"businessReport_createdAt_idx_9575dbd7\"",
+        "sql": "CREATE INDEX \"businessReport_createdAt_idx_9575dbd7\" ON \"public\".\"businessReport\" (\"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"businessReport_createdAt_idx_9575dbd7\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"businessReport_createdAt_idx_9575dbd7\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.expense.expense_spentOn_idx_3f0f8de8",
+    "label": "Create index \"expense_spentOn_idx_3f0f8de8\" on \"expense\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "expense_spentOn_idx_3f0f8de8",
+        "table": "expense"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"expense_spentOn_idx_3f0f8de8\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"expense_spentOn_idx_3f0f8de8\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"expense_spentOn_idx_3f0f8de8\"",
+        "sql": "CREATE INDEX \"expense_spentOn_idx_3f0f8de8\" ON \"public\".\"expense\" (\"spentOn\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"expense_spentOn_idx_3f0f8de8\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"expense_spentOn_idx_3f0f8de8\""
+        ]
+      }
+    ]
+  }
+]

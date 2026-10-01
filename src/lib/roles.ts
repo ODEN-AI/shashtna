@@ -23,6 +23,9 @@ export type Permission =
   | "support"
   | "content"
   | "insights"
+  // Money: revenue, expenses, profit and AI business reports. Owner/admin
+  // only (they hold "all"); no other role is granted it.
+  | "finance"
   | "staff"
   | "settings"
   | "audit";

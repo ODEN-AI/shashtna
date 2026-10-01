@@ -256,3 +256,36 @@ model PasswordReset {
 
   @@index([userId])
 }
+
+// Business expenses recorded by the owner (Admin → Finance → Expenses).
+// Amounts are whole Iraqi dinars, like every price in this schema.
+model Expense {
+  id          Int      @id @default(autoincrement())
+  amount      Int
+  category    String   @default("OTHER")
+  spentOn     TimestamptzString
+  description String
+  reference   String?
+  createdBy   Int?
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
+
+  @@index([spentOn])
+}
+
+// Stored AI / analyst business reports (Admin → Finance → Reports).
+// `facts` is the JSON fact pack the report was written from, so every
+// statement can be traced back to the numbers it used.
+model BusinessReport {
+  id          Int      @id @default(autoincrement())
+  period      String
+  rangeStart  TimestamptzString
+  rangeEnd    TimestamptzString
+  generator   String
+  facts       String
+  content     String
+  createdBy   Int?
+  createdAt   TimestamptzString @default(now())
+
+  @@index([createdAt])
+}

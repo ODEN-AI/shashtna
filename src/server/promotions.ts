@@ -182,14 +182,18 @@ function toEditorial(item: Announcement): EditorialItem {
 /**
  * The hero board's items: HERO_EDITORIAL records first, then the existing
  * homepage carousel ads, filtered by the viewer's audience. Live-ness and
- * scheduling are already applied by getLiveAnnouncements.
+ * scheduling are already applied by getLiveAnnouncements. Homepage carousel
+ * ads keep (up to) two reserved slots so they always stay on the homepage,
+ * however many board items are live.
  */
 export function editorialItems(announcements: Announcement[], viewer: Viewer, limit = 6) {
   const matches = (item: Announcement) => audienceMatches(item.audience, viewer);
   const board = announcements.filter((item) => item.placement === "HERO_EDITORIAL" && matches(item));
   const carousel = announcements.filter((item) => item.placement === "HOME_CAROUSEL" && matches(item));
+  const boardSlots = Math.max(0, limit - Math.min(carousel.length, 2));
+  const picked = board.slice(0, boardSlots);
 
-  return [...board, ...carousel].slice(0, limit).map(toEditorial);
+  return [...picked, ...carousel.slice(0, limit - picked.length)].map(toEditorial);
 }
 
 /** Latest list: HOME_LATEST records plus published news / announcements not used elsewhere. */

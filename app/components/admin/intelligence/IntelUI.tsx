@@ -100,10 +100,7 @@ export function IntelHeader({
         <div className="space-y-2">
           <PeriodControl basePath={INTEL_PATHS[active]} period={selection.period} from={range.from} to={range.to} lang={lang} periods={EXTENDED_PERIODS} />
           <p className="nums text-xs text-ink-3" data-testid="intel-range" data-from={range.from} data-to={range.to}>
-            {t(
-              `${range.from} → ${range.to} · مقارنة بـ ${range.previousFrom} → ${range.previousTo} · بتوقيت بغداد`,
-              `${range.from} → ${range.to} · compared with ${range.previousFrom} → ${range.previousTo} · Baghdad time`,
-            )}
+            <bdi dir="ltr">{range.from} → {range.to}</bdi> · {t("مقارنة بـ", "compared with")} <bdi dir="ltr">{range.previousFrom} → {range.previousTo}</bdi> · {t("بتوقيت بغداد", "Baghdad time")}
           </p>
         </div>
       ) : null}
@@ -212,8 +209,8 @@ export function Bars({ rows, lang, testId, empty }: { rows: { label: string; val
 
   return (
     <ul className="space-y-3" data-testid={testId} aria-label={t("قائمة مرتبة", "Ranked list")}>
-      {rows.map((row) => (
-        <li key={row.label} className="space-y-1" data-testid="intel-bar" data-label={row.label} data-value={row.value}>
+      {rows.map((row, index) => (
+        <li key={`${index}:${row.label}`} className="space-y-1" data-testid="intel-bar" data-label={row.label} data-value={row.value}>
           <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
             <span className="min-w-0 break-words text-ink">{row.label}</span>
             <span className="nums font-bold text-ink">

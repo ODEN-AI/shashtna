@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { History, LockKeyhole, ShieldAlert } from "lucide-react";
+import { History, LockKeyhole, MonitorSmartphone, ShieldAlert } from "lucide-react";
+
+import { DeviceList } from "@/app/components/admin/system/DeviceList";
 
 import { SystemHeader } from "@/app/components/admin/system/SystemUI";
 import { EmptyLine, SectionCard, SectionError } from "@/app/components/admin/dashboard/DashboardUI";
@@ -10,6 +12,8 @@ import { formatDateTime } from "@/src/lib/i18n";
 import { ROLE_LABELS, hasPermission } from "@/src/lib/roles";
 import { requireStaffPage } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
+import { customersById } from "@/src/server/admin-data";
+import { listDevices } from "@/src/server/console-devices";
 import { getSecurityOverview } from "@/src/server/system";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +32,8 @@ export default async function SystemSecurityPage() {
   if (!allowed) return <Forbidden />;
 
   const { t, lang } = await getI18n();
-  const data = await getSecurityOverview();
+  const [data, devices] = await Promise.all([getSecurityOverview(), listDevices(user, "team").catch(() => undefined)]);
+  const owners = devices ? new Map([...(await customersById(devices.map((device) => device.userId)).catch(() => new Map())).entries()].map(([id, person]) => [id, person.name as string])) : undefined;
   const can = (permission: Parameters<typeof hasPermission>[1]) => hasPermission(user.role, permission);
 
   return (
@@ -46,6 +51,14 @@ export default async function SystemSecurityPage() {
           {t("لا تُخزَّن الجلسات بشكل منفصل، لذلك لا توجد قائمة أجهزة. لإدارة جلساتك أنت: ", "Sessions aren't stored individually, so there's no device list. For your own sessions: ")}
           <Link href="/admin/security" className="font-semibold text-brand-ink hover:underline">{t("الأمان والجلسات الشخصية", "your security page")}</Link>
         </p>
+      </SectionCard>
+
+      <SectionCard title={t("أجهزة الفريق (تطبيقات لوحة الإدارة)", "Team devices (Console apps)")} icon={<MonitorSmartphone size={14} aria-hidden />} testId="team-devices">
+        {devices === undefined ? (
+          <SectionError label={t("تعذر تحميل الأجهزة.", "Couldn't load devices.")} />
+        ) : devices === null ? null : (
+          <DeviceList devices={devices} owners={owners} t={t} lang={lang} empty={t("لا توجد أجهزة تطبيق مسجّلة لأي عضو.", "No app devices are registered for anyone yet.")} />
+        )}
       </SectionCard>
 
       <div className="grid gap-4 lg:grid-cols-2">

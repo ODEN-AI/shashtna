@@ -36,6 +36,8 @@ export default async function SystemPage() {
     SETTINGS_UPDATED: t("تعديل إعدادات", "Settings changes"),
     PASSWORD_RESET_CODE_ISSUED: t("رموز إعادة تعيين", "Reset codes issued"),
     PASSWORD_CHANGED: t("تغيير كلمات مرور", "Passwords changed"),
+    CONSOLE_DEVICE_REGISTERED: t("تسجيل أجهزة التطبيق", "App devices registered"),
+    CONSOLE_DEVICE_REVOKED: t("إلغاء أجهزة التطبيق", "App devices revoked"),
   };
 
   return (

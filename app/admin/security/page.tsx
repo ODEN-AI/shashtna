@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { Clock, KeyRound, LockKeyhole, ShieldCheck } from "lucide-react";
+import { Clock, KeyRound, LockKeyhole, MonitorSmartphone, ShieldCheck } from "lucide-react";
+
+import { DeviceList } from "@/app/components/admin/system/DeviceList";
 
 import { Card, CardHeader } from "@/app/ui/Card";
 import { PageHeader } from "@/app/ui/Page";
@@ -7,6 +9,7 @@ import { formatDateTime } from "@/src/lib/i18n";
 import { STAFF_SESSION_MAX_AGE_SECONDS } from "@/src/lib/staff-session";
 import { requireStaffPage } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
+import { listDevices } from "@/src/server/console-devices";
 import { currentStaffSession } from "@/src/server/staff-sessions";
 
 import { SignOutEverywhere } from "./SignOutEverywhere";
@@ -17,7 +20,7 @@ export const metadata: Metadata = { title: "الأمان والجلسات" };
 /** Every staff member's own security page (no extra permission needed). */
 export default async function SecurityPage() {
   const { user } = await requireStaffPage("/admin/security");
-  const [{ t, lang }, session] = await Promise.all([getI18n(), currentStaffSession(user.id)]);
+  const [{ t, lang }, session, devices] = await Promise.all([getI18n(), currentStaffSession(user.id), listDevices(user, "mine").catch(() => null)]);
   const days = STAFF_SESSION_MAX_AGE_SECONDS / 86400;
 
   return (
@@ -63,6 +66,23 @@ export default async function SecurityPage() {
             {t("آخر خروج من كل الأجهزة:", "Last signed out everywhere:")} {formatDateTime(new Date(session.lastRevokedAt), lang)}
           </p>
         ) : null}
+      </Card>
+
+      <Card className="p-6">
+        <CardHeader
+          title={<span className="flex items-center gap-2"><MonitorSmartphone size={16} aria-hidden /> {t("أجهزتك", "Your devices")}</span>}
+          description={t(
+            "تطبيقات لوحة الإدارة (Windows وAndroid) المسجّلة باسمك. إلغاء جهاز يوقفه وحده؛ «تسجيل الخروج من كل الأجهزة» يوقفها كلها مع المتصفحات.",
+            "Console apps (Windows, Android) registered to you. Revoking a device stops only that device; “Sign out of all devices” stops all of them and every browser.",
+          )}
+        />
+        <div className="mt-4" data-testid="my-devices">
+          {devices === null ? (
+            <p className="text-sm text-danger" role="status">{t("تعذر تحميل الأجهزة.", "Couldn't load devices.")}</p>
+          ) : (
+            <DeviceList devices={devices} t={t} lang={lang} empty={t("لا توجد أجهزة تطبيق مسجّلة. تطبيقات Windows وAndroid قادمة.", "No app devices registered yet. The Windows and Android apps are coming.")} />
+          )}
+        </div>
       </Card>
 
       <Card className="p-6">

@@ -8,7 +8,7 @@ import { parseInstant } from "@/src/lib/finance";
 import { db } from "@/src/prisma/db";
 import { logActivity } from "@/src/server/activity";
 import { generateReport } from "@/src/server/analyst";
-import { assertStaff } from "@/src/server/auth";
+import { assertStaff, getSessionUser } from "@/src/server/auth";
 import { EXPENSE_CATEGORIES, parseSelection } from "@/src/server/finance";
 import { getLang } from "@/src/server/i18n";
 
@@ -17,7 +17,7 @@ import { getLang } from "@/src/server/i18n";
  * (owner / admin), validates on the server and is written to the audit log.
  */
 
-export type FinanceState = { ok: boolean; message: string } | null;
+export type FinanceState = { ok: boolean; message: string; code?: string } | null;
 
 const MAX_AMOUNT = 10_000_000_000;
 
@@ -25,13 +25,18 @@ async function guard() {
   try {
     return await assertStaff("finance");
   } catch {
-    throw new Error("FORBIDDEN");
+    // 401 vs 403: a missing/expired session is not a missing permission.
+    throw new Error((await getSessionUser()) ? "FORBIDDEN" : "UNAUTHENTICATED");
   }
 }
 
 function fail(error: unknown, fallback: string): FinanceState {
+  if (error instanceof Error && error.message === "UNAUTHENTICATED") {
+    return { ok: false, code: "UNAUTHENTICATED", message: "انتهت جلسة تسجيل الدخول. يرجى تسجيل الدخول مرة أخرى." };
+  }
+
   if (error instanceof Error && error.message === "FORBIDDEN") {
-    return { ok: false, message: "ليس لديك صلاحية لتنفيذ هذا الإجراء." };
+    return { ok: false, code: "FORBIDDEN", message: "ليس لديك صلاحية لتنفيذ هذا الإجراء." };
   }
   if (error instanceof Error && error.message.startsWith("INVALID:")) {
     return { ok: false, message: error.message.slice("INVALID:".length) };

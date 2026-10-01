@@ -20,6 +20,8 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { adminFetch } from "@/app/components/admin/adminFetch";
+
 type Subscription = {
   id: number;
   userId: number;
@@ -322,7 +324,7 @@ export default function AdminSubscriptionsPage() {
       setError("");
 
       const response =
-        await fetch(
+        await adminFetch(
           "/api/admin/subscriptions",
           {
             method: "GET",
@@ -509,7 +511,7 @@ export default function AdminSubscriptionsPage() {
       setEditSuccess("");
 
       const response =
-        await fetch(
+        await adminFetch(
           "/api/admin/subscriptions",
           {
             method: "PATCH",

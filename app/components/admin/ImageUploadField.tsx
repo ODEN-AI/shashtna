@@ -6,6 +6,8 @@ import { useId, useState } from "react";
 import { useLanguage } from "@/app/components/LanguageProvider";
 import { inputClass } from "@/app/ui/Field";
 
+import { adminFetch } from "@/app/components/admin/adminFetch";
+
 /**
  * Uploads an image (or, with media="video", a short MP4/WEBM video) through
  * the existing media API and stores its URL in a hidden field.
@@ -38,7 +40,7 @@ export function ImageUploadField({
       const body = new FormData();
       body.append("file", file);
 
-      const response = await fetch("/api/admin/media/upload", { method: "POST", body });
+      const response = await adminFetch("/api/admin/media/upload", { method: "POST", body });
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok || !data.imageUrl) {

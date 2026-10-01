@@ -24,6 +24,8 @@ import {
   XCircle,
 } from "lucide-react";
 
+import { adminFetch } from "@/app/components/admin/adminFetch";
+
 type AppItem = {
   id: number;
   name: string;
@@ -98,7 +100,7 @@ export default function AdminAppsPage() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(
+      const response = await adminFetch(
         "/api/admin/apps",
         {
           method: "GET",
@@ -233,7 +235,7 @@ export default function AdminAppsPage() {
         file
       );
 
-      const response = await fetch(
+      const response = await adminFetch(
         "/api/admin/media/upload",
         {
           method: "POST",
@@ -365,7 +367,7 @@ export default function AdminAppsPage() {
 
     try {
       const response =
-        await fetch(
+        await adminFetch(
           "/api/admin/apps",
           {
             method: editingApp
@@ -447,7 +449,7 @@ export default function AdminAppsPage() {
       setMessage("");
 
       const response =
-        await fetch(
+        await adminFetch(
           "/api/admin/apps",
           {
             method: "DELETE",

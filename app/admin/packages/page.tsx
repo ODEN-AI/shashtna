@@ -23,6 +23,8 @@ import {
   type FormEvent,
 } from "react";
 
+import { adminFetch } from "@/app/components/admin/adminFetch";
+
 type ServiceType = "IPTV" | "VIP";
 
 type RelatedPackage = {
@@ -136,11 +138,11 @@ export default function AdminPackagesPage() {
 
       const [packagesResponse, devicesResponse] =
         await Promise.all([
-          fetch("/api/admin/packages", {
+          adminFetch("/api/admin/packages", {
             method: "GET",
             cache: "no-store",
           }),
-          fetch("/api/admin/devices", {
+          adminFetch("/api/admin/devices", {
             method: "GET",
             cache: "no-store",
           }),
@@ -314,7 +316,7 @@ export default function AdminPackagesPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(
+      const response = await adminFetch(
         "/api/admin/packages/upload",
         {
           method: "POST",
@@ -474,7 +476,7 @@ export default function AdminPackagesPage() {
         ? `/api/admin/packages/${editingId}`
         : "/api/admin/packages";
 
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method: editingId ? "PATCH" : "POST",
         headers: {
           "Content-Type":
@@ -523,7 +525,7 @@ export default function AdminPackagesPage() {
       setError("");
       setMessage("");
 
-      const response = await fetch(
+      const response = await adminFetch(
         `/api/admin/packages/${pkg.id}`,
         {
           method: "PATCH",
@@ -581,7 +583,7 @@ export default function AdminPackagesPage() {
       setError("");
       setMessage("");
 
-      const response = await fetch(
+      const response = await adminFetch(
         `/api/admin/packages/${pkg.id}`,
         {
           method: "DELETE",

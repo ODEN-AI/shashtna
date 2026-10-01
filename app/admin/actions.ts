@@ -8,7 +8,7 @@ import { ORDER_STATUSES, formatOrderNumber, type OrderStatus } from "@/src/lib/o
 import { ASSIGNABLE_ROLES, normalizeRole, type Permission } from "@/src/lib/roles";
 import { getSupportTicket, makeSupportMessageId, normalizeSupportStatus, saveSupportTicket } from "@/src/lib/support-store";
 import { logActivity } from "@/src/server/activity";
-import { assertStaff } from "@/src/server/auth";
+import { assertStaff, getSessionUser } from "@/src/server/auth";
 import {
   ANNOUNCEMENT_KINDS,
   ANNOUNCEMENT_PLACEMENTS,
@@ -29,13 +29,18 @@ async function guard(permission: Permission) {
   try {
     return await assertStaff(permission);
   } catch {
-    throw new Error("FORBIDDEN");
+    // 401 vs 403: a missing/expired session is not a missing permission.
+    throw new Error((await getSessionUser()) ? "FORBIDDEN" : "UNAUTHENTICATED");
   }
 }
 
 function fail(error: unknown, fallback: string): AdminState {
+  if (error instanceof Error && error.message === "UNAUTHENTICATED") {
+    return { ok: false, code: "UNAUTHENTICATED", message: "انتهت جلسة تسجيل الدخول. يرجى تسجيل الدخول مرة أخرى." };
+  }
+
   if (error instanceof Error && error.message === "FORBIDDEN") {
-    return { ok: false, message: "ليس لديك صلاحية لتنفيذ هذا الإجراء." };
+    return { ok: false, code: "FORBIDDEN", message: "ليس لديك صلاحية لتنفيذ هذا الإجراء." };
   }
 
   console.error("ADMIN_ACTION_ERROR:", error);

@@ -11,6 +11,8 @@ import {
   KeyRound,
 } from "lucide-react";
 
+import { adminFetch } from "@/app/components/admin/adminFetch";
+
 type SubscriptionResult = {
   subscription: {
     id: number;
@@ -51,7 +53,7 @@ export default function AdminLookupPage() {
     setResult(null);
 
     try {
-      const response = await fetch("/api/admin/subscriptions/lookup", {
+      const response = await adminFetch("/api/admin/subscriptions/lookup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

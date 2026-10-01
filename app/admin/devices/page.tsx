@@ -23,6 +23,8 @@ import {
   XCircle,
 } from "lucide-react";
 
+import { adminFetch } from "@/app/components/admin/adminFetch";
+
 type ServiceType = "IPTV" | "VIP";
 
 type PackageItem = {
@@ -167,12 +169,12 @@ export default function AdminDevicesPage() {
         devicesResponse,
         packagesResponse,
       ] = await Promise.all([
-        fetch("/api/admin/devices", {
+        adminFetch("/api/admin/devices", {
           method: "GET",
           cache: "no-store",
         }),
 
-        fetch("/api/admin/packages", {
+        adminFetch("/api/admin/packages", {
           method: "GET",
           cache: "no-store",
         }),
@@ -379,7 +381,7 @@ export default function AdminDevicesPage() {
       );
 
       const response =
-        await fetch(
+        await adminFetch(
           "/api/admin/media/upload",
           {
             method: "POST",
@@ -562,7 +564,7 @@ export default function AdminDevicesPage() {
 
     try {
       const response =
-        await fetch(
+        await adminFetch(
           "/api/admin/devices",
           {
             method: editingDevice
@@ -650,7 +652,7 @@ export default function AdminDevicesPage() {
       setMessage("");
 
       const response =
-        await fetch(
+        await adminFetch(
           "/api/admin/devices",
           {
             method: "DELETE",

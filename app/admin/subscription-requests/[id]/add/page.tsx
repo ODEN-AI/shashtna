@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { adminFetch } from "@/app/components/admin/adminFetch";
+
 type RequestData = {
   id: number;
   userId: number;
@@ -364,7 +366,7 @@ export default function AddSubscriptionPage({
           await params;
 
         const response =
-          await fetch(
+          await adminFetch(
             `/api/admin/subscription-requests/${routeParams.id}`,
             {
               cache: "no-store",
@@ -419,7 +421,7 @@ export default function AddSubscriptionPage({
           );
 
           const subscriptionsResponse =
-            await fetch(
+            await adminFetch(
               "/api/admin/subscriptions",
               {
                 cache:
@@ -727,7 +729,7 @@ export default function AddSubscriptionPage({
       setSuccess("");
 
       const response =
-        await fetch(
+        await adminFetch(
           "/api/admin/subscriptions",
           {
             method: "POST",

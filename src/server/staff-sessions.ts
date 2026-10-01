@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 
+import { LAST_SEEN_INTERVAL_MS } from "@/src/lib/console-api";
 import { toDate } from "@/src/lib/i18n";
 import { SESSION_COOKIE, verifyAuthToken } from "@/src/lib/mobile-auth";
 import { isStaffRole, normalizeRole } from "@/src/lib/roles";
@@ -24,6 +25,37 @@ export async function staffSessionState(userId: number, role: unknown, issuedAt:
   if (!isStaffRole(normalizeRole(role))) return "ok";
 
   return checkStaffSession(issuedAt, Date.now(), await revokedAtMs(userId));
+}
+
+/**
+ * The session check every request runs (pages, server actions, admin
+ * APIs). Browser sessions behave exactly as before. A Console device
+ * session (token carries `did`) is additionally valid only while:
+ *  - the account is still staff (a demoted account's device session ends);
+ *  - the device exists, belongs to this user and is not revoked;
+ *  - the device is still signed in (credential not cleared by logout) and
+ *    the token belongs to the device's current sign-in.
+ * Then the normal staff rules apply (7-day maximum, sign-out-everywhere).
+ */
+export async function sessionState(user: { id: number; role: unknown }, payload: { iat: number; did?: number }): Promise<StaffSessionState> {
+  if (payload.did !== undefined) {
+    if (!isStaffRole(normalizeRole(user.role))) return "revoked";
+
+    const device = await db.orm.public.ConsoleDevice.where({ id: payload.did })
+      .select("id", "userId", "credentialHash", "authenticatedAt", "revokedAt", "lastSeenAt")
+      .first();
+    const boundAt = device?.authenticatedAt ? Math.floor((toDate(String(device.authenticatedAt))?.getTime() ?? NaN) / 1000) : NaN;
+
+    if (!device || device.userId !== user.id || device.revokedAt || !device.credentialHash || boundAt !== payload.iat) return "revoked";
+
+    const lastSeen = device.lastSeenAt ? (toDate(String(device.lastSeenAt))?.getTime() ?? 0) : 0;
+    if (Date.now() - lastSeen > LAST_SEEN_INTERVAL_MS) {
+      // Throttled: at most one write per device per interval.
+      await db.orm.public.ConsoleDevice.where({ id: device.id }).update({ lastSeenAt: new Date().toISOString() }).catch(() => undefined);
+    }
+  }
+
+  return staffSessionState(user.id, user.role, payload.iat);
 }
 
 /** Invalidate every existing session of a staff member (all devices). */

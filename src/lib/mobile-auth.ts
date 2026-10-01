@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
@@ -11,6 +11,8 @@ export type MobileAuthPayload = {
   role?: string;
   iat: number;
   exp: number;
+  /** Console device id: present only on sessions created by a native shell's credential exchange. */
+  did?: number;
 };
 
 function getAuthSecret() {
@@ -39,15 +41,23 @@ function sign(value: string) {
     .digest("base64url");
 }
 
-export function createAuthToken(userId: number, role?: string) {
+/**
+ * Sign a session token. Normal sign-ins use the defaults. A Console device
+ * session passes its device id, the time of the password sign-in it is
+ * bound to (as `iat`, so the 7-day staff maximum and sign-out-everywhere
+ * keep counting from that sign-in) and a shorter expiry.
+ */
+export function createAuthToken(userId: number, role?: string, device?: { deviceId: number; issuedAt: number; expiresAt: number }) {
   const now = Math.floor(Date.now() / 1000);
 
-  const payload: MobileAuthPayload = {
-    sub: userId,
-    role,
-    iat: now,
-    exp: now + TOKEN_TTL_SECONDS,
-  };
+  const payload: MobileAuthPayload = device
+    ? { sub: userId, role, iat: device.issuedAt, exp: device.expiresAt, did: device.deviceId }
+    : {
+        sub: userId,
+        role,
+        iat: now,
+        exp: now + TOKEN_TTL_SECONDS,
+      };
 
   const encodedPayload = encode(JSON.stringify(payload));
   const signature = sign(encodedPayload);
@@ -90,10 +100,36 @@ export function verifyAuthToken(token: string): MobileAuthPayload | null {
       return null;
     }
 
+    if (payload.did !== undefined && (!Number.isSafeInteger(payload.did) || payload.did <= 0)) {
+      return null;
+    }
+
     return payload;
   } catch {
     return null;
   }
+}
+
+/**
+ * Keyed digest for values that must be looked up but never stored raw
+ * (login-throttle keys). Keyed with AUTH_SECRET so a database copy can't be
+ * reversed by hashing candidate phone numbers.
+ */
+export function keyedDigest(value: string) {
+  return createHmac("sha256", getAuthSecret()).update(`shashtna:v1:${value}`).digest("hex");
+}
+
+/** Verifier for a high-entropy random secret (device credentials). */
+export function secretVerifier(secret: string) {
+  return createHash("sha256").update(secret, "utf8").digest("hex");
+}
+
+/** Constant-time comparison of two hex digests. */
+export function sameDigest(a: string, b: string) {
+  const left = Buffer.from(a, "utf8");
+  const right = Buffer.from(b, "utf8");
+
+  return left.length === right.length && timingSafeEqual(left, right);
 }
 
 function unauthorized(

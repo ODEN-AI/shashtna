@@ -7,7 +7,7 @@ import {
 } from "@/src/lib/mobile-auth";
 import { hasPermission, type Permission } from "@/src/lib/roles";
 import { db } from "@/src/prisma/db";
-import { staffSessionState } from "@/src/server/staff-sessions";
+import { sessionState } from "@/src/server/staff-sessions";
 
 /*
  * The website session cookie carries the same signed token the mobile app
@@ -75,7 +75,9 @@ function authError(status: 401 | 403, message: string) {
 export function requireUser(request: Request, claimedUserId?: unknown) {
   const payload = getRequestAuth(request);
 
-  if (!payload) {
+  // Console device sessions are for the staff console only, never the
+  // customer APIs (which don't re-check device state).
+  if (!payload || payload.did !== undefined) {
     return {
       ok: false as const,
       response: authError(
@@ -104,27 +106,37 @@ export function requireUser(request: Request, claimedUserId?: unknown) {
 }
 
 /**
+ * The authenticated account behind a request (Bearer or cookie), after the
+ * full session check (role re-read from the database, staff maximum age,
+ * sign-out-everywhere, Console device state). Null = no valid session.
+ */
+export async function authenticateRequest(request: Request) {
+  const payload = getRequestAuth(request);
+
+  if (!payload) {
+    return null;
+  }
+
+  const user = await db.orm.public.User.first({ id: payload.sub });
+
+  if (!user || (await sessionState(user, payload)) !== "ok") {
+    return null;
+  }
+
+  return { user, payload };
+}
+
+/**
  * Staff guard for admin APIs. The role is re-read from the database so a
  * demoted or deleted account loses access immediately, even with an
  * unexpired token. Legacy ADMIN accounts keep full access.
  */
 export async function requireAdmin(request: Request, permission: Permission) {
-  const payload = getRequestAuth(request);
+  const auth = await authenticateRequest(request);
 
-  if (!payload) {
-    return {
-      ok: false as const,
-      response: authError(
-        401,
-        "انتهت جلسة تسجيل الدخول. يرجى تسجيل الدخول مرة أخرى.",
-      ),
-    };
-  }
-
-  const user = await db.orm.public.User.first({ id: payload.sub });
-
-  // 401: no valid session (account gone, staff session expired or revoked).
-  if (!user || (await staffSessionState(user.id, user.role, payload.iat)) !== "ok") {
+  // 401: no valid session (account gone, staff session expired or revoked,
+  // Console device revoked / signed out).
+  if (!auth) {
     return {
       ok: false as const,
       response: authError(
@@ -135,7 +147,7 @@ export async function requireAdmin(request: Request, permission: Permission) {
   }
 
   // 403: signed in, but the role lacks this permission.
-  if (!hasPermission(user.role, permission)) {
+  if (!hasPermission(auth.user.role, permission)) {
     return {
       ok: false as const,
       response: authError(403, "ليس لديك صلاحية لتنفيذ هذا الإجراء."),
@@ -144,7 +156,7 @@ export async function requireAdmin(request: Request, permission: Permission) {
 
   return {
     ok: true as const,
-    user,
+    user: auth.user,
   };
 }
 

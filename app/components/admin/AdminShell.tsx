@@ -8,6 +8,7 @@ import {
   AppWindow,
   BarChart3,
   Bell,
+  Boxes,
   Briefcase,
   CircleDollarSign,
   Cpu,
@@ -18,6 +19,7 @@ import {
   KeyRound,
   LayoutDashboard,
   LayoutGrid,
+  Link2,
   LockKeyhole,
   LogOut,
   Megaphone,
@@ -42,7 +44,7 @@ import { cn } from "@/app/ui/cn";
 import { LogoImage } from "@/app/ui/Logo";
 
 import { ConsoleRuntime, consoleSignOut, useInstallPrompt, useStandalone } from "./ConsoleRuntime";
-import { primaryItems, type AdminNavGroup } from "./nav";
+import { activeHref, primaryItems, type AdminNavGroup } from "./nav";
 
 const ICONS: Record<string, typeof Inbox> = {
   inbox: Inbox,
@@ -55,8 +57,10 @@ const ICONS: Record<string, typeof Inbox> = {
   subscriptions: Tv,
   lookup: Search,
   resets: KeyRound,
+  catalogue: Boxes,
   packages: Package,
   devices: Cpu,
+  compatibility: Link2,
   apps: AppWindow,
   tickets: MessagesSquare,
   announcements: Megaphone,
@@ -81,6 +85,7 @@ function isActive(pathname: string, href: string) {
 function Nav({ groups, counts, onNavigate }: { groups: AdminNavGroup[]; counts: Counts; onNavigate?: () => void }) {
   const pathname = usePathname();
   const { language } = useLanguage();
+  const current = activeHref(pathname, groups.flatMap((group) => group.items.map((item) => item.href)));
 
   return (
     <nav aria-label={language === "ar" ? "قائمة الإدارة" : "Admin navigation"} className="space-y-6">
@@ -90,7 +95,7 @@ function Nav({ groups, counts, onNavigate }: { groups: AdminNavGroup[]; counts: 
           <ul className="mt-2 space-y-0.5">
             {group.items.map((item) => {
               const Icon = ICONS[item.icon] ?? Inbox;
-              const active = isActive(pathname, item.href);
+              const active = item.href === current;
               const badge = item.badgeKey ? counts[item.badgeKey] : undefined;
 
               return (

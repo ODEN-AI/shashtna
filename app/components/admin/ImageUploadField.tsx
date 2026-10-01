@@ -18,12 +18,15 @@ export function ImageUploadField({
   label,
   media = "image",
   hint,
+  endpoint = "/api/admin/media/upload",
 }: {
   name: string;
   defaultValue?: string | null;
   label: string;
   media?: "image" | "video";
   hint?: string;
+  /** Upload route; defaults to the media library. The catalogue uses its own (catalogue permission). */
+  endpoint?: string;
 }) {
   const isVideo = media === "video";
   const { t } = useLanguage();
@@ -40,7 +43,7 @@ export function ImageUploadField({
       const body = new FormData();
       body.append("file", file);
 
-      const response = await adminFetch("/api/admin/media/upload", { method: "POST", body });
+      const response = await adminFetch(endpoint, { method: "POST", body });
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok || !data.imageUrl) {

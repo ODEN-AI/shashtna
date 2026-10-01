@@ -40,8 +40,10 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ar: "الكتالوج",
     en: "Catalogue",
     items: [
-      { href: "/admin/packages", ar: "الباقات", en: "Packages", icon: "packages", permission: "catalogue" },
-      { href: "/admin/devices", ar: "الأجهزة", en: "Devices", icon: "devices", permission: "catalogue" },
+      { href: "/admin/catalogue", ar: "نظرة عامة", en: "Overview", icon: "catalogue", permission: "catalogue" },
+      { href: "/admin/catalogue/packages", ar: "الباقات", en: "Packages", icon: "packages", permission: "catalogue" },
+      { href: "/admin/catalogue/devices", ar: "الأجهزة", en: "Devices", icon: "devices", permission: "catalogue" },
+      { href: "/admin/catalogue/compatibility", ar: "التوافق", en: "Compatibility", icon: "compatibility", permission: "catalogue" },
       { href: "/admin/apps", ar: "التطبيقات", en: "Apps", icon: "apps", permission: "catalogue" },
     ],
   },
@@ -90,9 +92,19 @@ export const PRIMARY_DESTINATIONS: { href: string; ar: string; en: string }[] = 
   { href: "/admin/finance", ar: "المالية", en: "Finance" },
   { href: "/admin/subscriptions", ar: "الاشتراكات", en: "Subscriptions" },
   { href: "/admin/support", ar: "الدعم", en: "Support" },
-  { href: "/admin/packages", ar: "الباقات", en: "Packages" },
+  { href: "/admin/catalogue", ar: "الكتالوج", en: "Catalogue" },
   { href: "/admin/announcements", ar: "الإعلانات", en: "Ads" },
 ];
+
+/**
+ * The nav item for the current page: the most specific href that matches,
+ * so /admin/catalogue/packages highlights "Packages", not also "Overview".
+ */
+export function activeHref(pathname: string, hrefs: string[]) {
+  return hrefs
+    .filter((href) => (href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(`${href}/`)))
+    .sort((a, b) => b.length - a.length)[0];
+}
 
 export function primaryItems(groups: AdminNavGroup[], limit: number) {
   const allowed = new Map(groups.flatMap((group) => group.items).map((item) => [item.href, item]));

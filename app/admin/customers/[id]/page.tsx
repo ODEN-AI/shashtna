@@ -394,7 +394,7 @@ async function Devices({ data }: { data: Customer360 }) {
   const empty = !(purchased?.length || linked?.length);
 
   return (
-    <SectionCard title={t("الأجهزة", "Devices")} icon={<Cpu size={14} aria-hidden />} action={data.can("catalogue") ? { href: "/admin/devices", label: t("كتالوج الأجهزة", "Device catalogue") } : undefined} testId="c360-devices">
+    <SectionCard title={t("الأجهزة", "Devices")} icon={<Cpu size={14} aria-hidden />} action={data.can("catalogue") ? { href: "/admin/catalogue/devices", label: t("كتالوج الأجهزة", "Device catalogue") } : undefined} testId="c360-devices">
       {failed ? <div className="mb-3"><SectionError label={t("تعذر تحميل بعض بيانات الأجهزة.", "Couldn't load some device data.")} /></div> : null}
       {purchased?.length ? (
         <div>

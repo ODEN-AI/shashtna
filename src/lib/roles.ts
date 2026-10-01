@@ -15,6 +15,9 @@ export const STAFF_ROLES = [
 
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
+/** Every permission, in display order (the role matrix in System → Roles). */
+export const PERMISSIONS = ["orders", "subscriptions", "customers", "catalogue", "support", "content", "insights", "finance", "staff", "settings", "audit"] as const satisfies readonly Permission[];
+
 export type Permission =
   | "orders"
   | "subscriptions"

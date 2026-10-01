@@ -18,11 +18,12 @@ import {
   INCIDENT_STATUSES,
 } from "@/src/server/content";
 import { isInternalPath, strictChoice, strictPriority } from "@/src/lib/content-console";
+import { checkRoleChange, describeSettingChanges, isFullAccess, settingProblem } from "@/src/lib/system";
 import { AUDIENCES, EDITORIAL_KINDS, MEDIA_TYPES, WEBSITE_PLACEMENTS } from "@/src/lib/promotions";
 import { notify } from "@/src/server/notifications";
 import { updateOrderStatus } from "@/src/server/orders";
 import { dismissReset, issueResetCode } from "@/src/server/password-reset";
-import { SETTING_KEYS, saveSetting, type SettingKey } from "@/src/server/settings";
+import { SETTING_DEFINITIONS, SETTING_KEYS, getSettings, saveSetting, type SettingKey } from "@/src/server/settings";
 import { revokeStaffSessions } from "@/src/server/staff-sessions";
 
 export type AdminState = { ok: boolean; message: string; code?: string; id?: number } | null;
@@ -551,31 +552,42 @@ export async function resolveIncidentAction(formData: FormData) {
 export async function saveSettingsAction(_prev: AdminState, formData: FormData): Promise<AdminState> {
   try {
     const staff = await guard("settings");
-    const changed: string[] = [];
+    const current = await getSettings();
+    const changes: { key: SettingKey; group: string; before: string; after: string }[] = [];
 
+    // Validate everything first, then save only what actually changed.
     for (const key of SETTING_KEYS) {
       if (formData.has(key)) {
         const value = text(formData.get(key), 20000);
+        const problem = settingProblem(key, value);
 
-        if (key === "contact.telegram" && value && !/^https:\/\/t\.me\//.test(value)) {
-          return { ok: false, message: "رابط تيليجرام يجب أن يبدأ بـ https://t.me/" };
+        if (problem) {
+          return { ok: false, message: problem };
         }
 
-        if ((key === "contact.facebook" || key === "player.downloadUrl") && value && !/^https:\/\//.test(value)) {
-          return { ok: false, message: "الروابط يجب أن تبدأ بـ https://" };
+        if (value !== String(current[key] ?? "").trim()) {
+          changes.push({ key, group: SETTING_DEFINITIONS[key].group, before: String(current[key] ?? "").trim(), after: value });
         }
-
-        await saveSetting(key as SettingKey, value, staff.id);
-        changed.push(key);
       }
+    }
+
+    if (!changes.length) {
+      return { ok: true, message: "لا توجد تغييرات للحفظ." };
+    }
+
+    for (const change of changes) {
+      await saveSetting(change.key, change.after, staff.id);
     }
 
     await logActivity({
       actor: staff,
       entityType: "SETTING",
       action: "SETTINGS_UPDATED",
-      summary: `تحديث الإعدادات: ${changed.join("، ")}`,
+      summary: `تحديث الإعدادات: ${changes.map((change) => change.key).join("، ")}`,
+      details: describeSettingChanges(changes).join("\n"),
     });
+
+    revalidatePath("/admin/system", "layout");
 
     revalidatePath("/", "layout");
     return { ok: true, message: "تم حفظ الإعدادات." };
@@ -600,10 +612,32 @@ export async function setUserRoleAction(_prev: AdminState, formData: FormData): 
       return { ok: false, message: "ما تكدر تغير دورك بنفسك." };
     }
 
-    const target = await db.orm.public.User.first({ id: userId });
+    const target = Number.isInteger(userId) && userId > 0 ? await db.orm.public.User.first({ id: userId }) : null;
 
     if (!target) {
       return { ok: false, message: "المستخدم غير موجود." };
+    }
+
+    if (normalizeRole(target.role) === role) {
+      return { ok: true, message: "الدور نفسه بدون تغيير." };
+    }
+
+    // Privilege rules: only full-access staff grant or remove full access,
+    // and the last full-access account can't be demoted (no lock-out).
+    const fullAccessCount = isFullAccess(target.role)
+      ? (await db.orm.public.User.where((user) => user.role.in(["OWNER", "ADMIN"])).aggregate((a) => ({ n: a.count() }))).n
+      : 1;
+    const allowed = checkRoleChange({ actorId: staff.id, actorRole: staff.role, targetId: userId, targetRole: target.role, nextRole: role, fullAccessCount: Number(fullAccessCount) });
+
+    if (!allowed.ok) {
+      const messages = {
+        SELF: "ما تكدر تغير دورك بنفسك.",
+        NOT_ALLOWED: "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
+        ESCALATION: "منح أو سحب الصلاحيات الكاملة متاح فقط لمالك بصلاحيات كاملة.",
+        LAST_OWNER: "لا يمكن سحب الصلاحيات الكاملة من آخر حساب مالك.",
+      } as const;
+
+      return { ok: false, code: allowed.reason === "NOT_ALLOWED" ? "FORBIDDEN" : undefined, message: messages[allowed.reason] };
     }
 
     await db.orm.public.User.where({ id: userId }).update({ role });
@@ -614,9 +648,11 @@ export async function setUserRoleAction(_prev: AdminState, formData: FormData): 
       entityId: userId,
       action: "ROLE_CHANGED",
       summary: `تغيير دور ${target.name} من ${target.role} إلى ${role}`,
+      details: `${target.role} → ${role}`,
     });
 
     revalidatePath("/admin/admins");
+    revalidatePath("/admin/system", "layout");
     return { ok: true, message: "تم تحديث الدور. يسري فورًا على صلاحيات لوحة الإدارة." };
   } catch (error) {
     return fail(error, "تعذر تحديث الدور.");
@@ -641,6 +677,7 @@ export async function revokeStaffSessionsAction(_prev: AdminState, formData: For
 
     await revokeStaffSessions(userId, staff, "ADMIN");
     revalidatePath("/admin/admins");
+    revalidatePath("/admin/system", "layout");
 
     return { ok: true, message: `تم إنهاء كل جلسات ${target.name}. لازم يسجّل الدخول من جديد.` };
   } catch (error) {

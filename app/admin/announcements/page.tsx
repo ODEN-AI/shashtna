@@ -13,7 +13,8 @@ import { Checkbox, Field, Input, Select, Textarea } from "@/app/ui/Field";
 import { PageHeader } from "@/app/ui/Page";
 import { EmptyState } from "@/app/ui/States";
 import { SubmitButton } from "@/app/ui/SubmitButton";
-import { formatDateTime, toDate } from "@/src/lib/i18n";
+import { toLocalInput } from "@/src/lib/content-console";
+import { formatDateTime } from "@/src/lib/i18n";
 import { db } from "@/src/prisma/db";
 import { requireStaffPage } from "@/src/server/auth";
 import { announcementLifecycle } from "@/src/server/content";
@@ -21,18 +22,6 @@ import { getI18n } from "@/src/server/i18n";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "الإعلانات" };
-
-function toLocalInput(value: string | null) {
-  const date = toDate(value);
-
-  if (!date) {
-    return "";
-  }
-
-  const pad = (number: number) => String(number).padStart(2, "0");
-
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 export default async function AnnouncementsPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
   const { edit } = await searchParams;

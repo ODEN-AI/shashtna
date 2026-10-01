@@ -48,12 +48,21 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
   {
+    ar: "العروض والمحتوى",
+    en: "Promotions & content",
+    items: [
+      { href: "/admin/promotions", ar: "نظرة عامة", en: "Overview", icon: "promotions", anyOf: ["content", "support"] },
+      { href: "/admin/promotions/offers", ar: "الإعلانات والعروض", en: "Ads & offers", icon: "announcements", permission: "content" },
+      { href: "/admin/promotions/announcements", ar: "الأخبار والتنبيهات", en: "News & announcements", icon: "news", permission: "content" },
+      { href: "/admin/promotions/media", ar: "الوسائط", en: "Media", icon: "media", permission: "content" },
+      { href: "/admin/promotions/notifications", ar: "الإشعارات", en: "Notifications", icon: "notifications", permission: "support" },
+    ],
+  },
+  {
     ar: "التفاعل",
     en: "Engagement",
     items: [
       { href: "/admin/support", ar: "تذاكر الدعم", en: "Tickets", icon: "tickets", permission: "support", badgeKey: "tickets" },
-      { href: "/admin/announcements", ar: "الإعلانات", en: "Ads & announcements", icon: "announcements", permission: "content" },
-      { href: "/admin/notifications", ar: "الإشعارات", en: "Notifications", icon: "notifications", permission: "support" },
       { href: "/admin/status", ar: "حالة الخدمة", en: "Service status", icon: "status", permission: "content" },
       { href: "/admin/leads", ar: "طلبات الحلول الرقمية", en: "Digital leads", icon: "leads", permission: "orders", badgeKey: "leads" },
     ],
@@ -93,7 +102,7 @@ export const PRIMARY_DESTINATIONS: { href: string; ar: string; en: string }[] = 
   { href: "/admin/subscriptions", ar: "الاشتراكات", en: "Subscriptions" },
   { href: "/admin/support", ar: "الدعم", en: "Support" },
   { href: "/admin/catalogue", ar: "الكتالوج", en: "Catalogue" },
-  { href: "/admin/announcements", ar: "الإعلانات", en: "Ads" },
+  { href: "/admin/promotions", ar: "العروض", en: "Promotions" },
 ];
 
 /**

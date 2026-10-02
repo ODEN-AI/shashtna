@@ -1,6 +1,6 @@
 import { clientAddress } from "@/src/lib/login-throttle";
 import { setSessionCookie } from "@/src/lib/session";
-import { MESSAGES, consoleError, consoleJson, readJsonBody } from "@/src/server/console-api";
+import { MESSAGES, consoleError, consoleJson, readJsonBody, consoleRoute } from "@/src/server/console-api";
 import { exchangeCredential } from "@/src/server/console-devices";
 import { clearThrottle, recordThrottleFailure, throttleKeys, throttleRetryAfter } from "@/src/server/login-throttle";
 
@@ -12,7 +12,7 @@ import { clearThrottle, recordThrottleFailure, throttleKeys, throttleRetryAfter 
  * existing HttpOnly session cookie. The token itself is not returned.
  * Failures are one generic 401 and are throttled like sign-ins.
  */
-export async function POST(request: Request) {
+export const POST = consoleRoute(async (request: Request) => {
   const read = await readJsonBody(request);
   if (!read.ok) return read.response;
 
@@ -33,4 +33,4 @@ export async function POST(request: Request) {
   setSessionCookie(response, result.session.token, result.session.expiresAt);
 
   return response;
-}
+});

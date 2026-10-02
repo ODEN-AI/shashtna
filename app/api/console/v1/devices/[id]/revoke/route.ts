@@ -1,8 +1,8 @@
-import { MESSAGES, consoleError, consoleJson, idParam, readJsonBody, requireConsoleStaff } from "@/src/server/console-api";
+import { MESSAGES, consoleError, consoleJson, idParam, readJsonBody, requireConsoleStaff, consoleRoute } from "@/src/server/console-api";
 import { revokeDevice } from "@/src/server/console-devices";
 
 /** POST /api/console/v1/devices/:id/revoke — the device's owner, or the "staff" permission. Audited. */
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export const POST = consoleRoute(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const auth = await requireConsoleStaff(request);
   if (!auth.ok) return auth.response;
 
@@ -14,4 +14,4 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!result?.ok) return consoleError(404, "NOT_FOUND", MESSAGES.notFound);
 
   return consoleJson({ ok: true, device: result.device, changed: result.changed });
-}
+});

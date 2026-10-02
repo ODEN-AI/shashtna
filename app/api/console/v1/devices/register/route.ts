@@ -1,5 +1,5 @@
 import { parseDeviceInput } from "@/src/lib/console-api";
-import { MESSAGES, consoleError, consoleJson, readJsonBody, requireConsoleStaff } from "@/src/server/console-api";
+import { MESSAGES, consoleError, consoleJson, readJsonBody, requireConsoleStaff, consoleRoute } from "@/src/server/console-api";
 import { registerDevice } from "@/src/server/console-devices";
 
 /**
@@ -11,7 +11,7 @@ import { registerDevice } from "@/src/server/console-devices";
  * server keeps only its verifier. With `deviceId`, re-binds one of the
  * caller's own devices (rotating its credential) instead of adding a row.
  */
-export async function POST(request: Request) {
+export const POST = consoleRoute(async (request: Request) => {
   const auth = await requireConsoleStaff(request);
   if (!auth.ok) return auth.response;
   if (auth.payload.did !== undefined) return consoleError(403, "FORBIDDEN", MESSAGES.forbidden);
@@ -31,4 +31,4 @@ export async function POST(request: Request) {
   }
 
   return consoleJson({ ok: true, device: result.device, credential: result.credential, rebound: result.rebound }, result.rebound ? 200 : 201);
-}
+});

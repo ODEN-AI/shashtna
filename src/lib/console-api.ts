@@ -126,3 +126,92 @@ export function deviceStatus(device: { revokedAt: unknown; credentialHash: unkno
   if (device.revokedAt) return "REVOKED";
   return device.credentialHash ? "ACTIVE" : "SIGNED_OUT";
 }
+
+// ------------------------------------------------------------------ v1 contract (Phase 10B)
+
+/**
+ * Error envelope of every /api/console/v1 failure:
+ *   { ok: false, code, message, field?, retryAfter? }
+ * `code` is stable and machine-readable; `message` is Arabic UI text and may
+ * change. Clients branch on the kind (derived from code/status), never on
+ * the message. No stack traces, secrets or credentials are ever included.
+ */
+export const CONSOLE_ERROR_CODES = {
+  UNAUTHENTICATED: 401,
+  FORBIDDEN: 403,
+  INVALID: 400,
+  INVALID_JSON: 400,
+  UNSUPPORTED_MEDIA_TYPE: 415,
+  TOO_LARGE: 413,
+  NOT_FOUND: 404,
+  DEVICE_LIMIT: 409,
+  DEVICE_REVOKED: 409,
+  RATE_LIMITED: 429,
+  SERVER_ERROR: 500,
+} as const;
+
+export type ConsoleErrorCode = keyof typeof CONSOLE_ERROR_CODES;
+
+/** What a client needs to decide: re-auth, show "no permission", fix input, back off, retry. */
+export type ConsoleErrorKind = "unauthenticated" | "forbidden" | "invalid" | "not_found" | "conflict" | "throttled" | "server" | "network" | "timeout";
+
+export type ConsoleErrorBody = { ok: false; code: ConsoleErrorCode | string; message: string; field?: string; retryAfter?: number };
+
+export function consoleErrorKind(status: number): ConsoleErrorKind {
+  if (status === 401) return "unauthenticated";
+  if (status === 403) return "forbidden";
+  if (status === 404) return "not_found";
+  if (status === 409) return "conflict";
+  if (status === 429) return "throttled";
+  if (status === 400 || status === 413 || status === 415 || status === 422) return "invalid";
+  return "server";
+}
+
+export type ConsoleUser = { id: number; name: string; role: string };
+export type ConsoleDeviceRef = { id: number; platform: string; label: string };
+
+/** POST /session/exchange — the session itself travels as the HttpOnly cookie. */
+export type ExchangeResponse = { ok: true; expiresAt: number; user: ConsoleUser; device: ConsoleDeviceRef };
+/** POST /session/logout */
+export type LogoutResponse = { ok: true; device: boolean };
+/** GET /session — who is signed in, with which permissions, until when. */
+export type SessionResponse = {
+  ok: true;
+  user: ConsoleUser;
+  permissions: string[];
+  session: { kind: "browser" | "device"; deviceId: number | null; issuedAt: number; endsAt: number };
+};
+/** GET /devices */
+export type DevicesResponse = { ok: true; scope: "mine" | "team"; devices: DeviceView[] };
+/** POST /devices/register — `credential` is shown once; store it only in OS secure storage. */
+export type RegisterResponse = { ok: true; device: DeviceView; credential: string; rebound: boolean };
+/** POST /devices/:id/rename and /revoke */
+export type DeviceChangeResponse = { ok: true; device: DeviceView; changed: boolean };
+
+/**
+ * GET /summary — the native shell's home: attention counts and, only for
+ * roles with "finance", the month's money headline. A count key is present
+ * only when the role may see that queue; a source that failed to load is
+ * listed in `unavailable` (never reported as 0).
+ */
+export const SUMMARY_COUNT_KEYS = ["orders", "proofs", "activations", "renewals", "resets", "leads", "tickets"] as const;
+export type SummaryCountKey = (typeof SUMMARY_COUNT_KEYS)[number];
+export type SummaryResponse = {
+  ok: true;
+  generatedAt: string;
+  timeZone: string;
+  counts: Partial<Record<SummaryCountKey, number>>;
+  finance?: {
+    currency: "IQD";
+    period: "month";
+    revenue: number;
+    sales: number;
+    previous: number;
+    changePct: number | null;
+    netProfit: { status: "ok"; amount: number } | { status: "incomplete" };
+  };
+  unavailable: string[];
+};
+
+/** v1 has no paginated lists (devices are capped per user and listed whole). */
+export const CONSOLE_PAGINATION = null;

@@ -1,4 +1,4 @@
-import { consoleError, consoleJson, requireConsoleStaff, MESSAGES } from "@/src/server/console-api";
+import { consoleError, consoleJson, requireConsoleStaff, MESSAGES, consoleRoute } from "@/src/server/console-api";
 import { listDevices } from "@/src/server/console-devices";
 
 /**
@@ -7,7 +7,7 @@ import { listDevices } from "@/src/server/console-devices";
  *
  * Safe metadata only: never credential verifiers, tokens or push tokens.
  */
-export async function GET(request: Request) {
+export const GET = consoleRoute(async (request: Request) => {
   const auth = await requireConsoleStaff(request);
   if (!auth.ok) return auth.response;
 
@@ -16,4 +16,4 @@ export async function GET(request: Request) {
   if (!devices) return consoleError(403, "FORBIDDEN", MESSAGES.forbidden);
 
   return consoleJson({ ok: true, scope, devices });
-}
+});

@@ -1,5 +1,5 @@
 import { clearSessionCookie, getRequestAuth } from "@/src/lib/session";
-import { consoleJson, readJsonBody } from "@/src/server/console-api";
+import { consoleJson, readJsonBody, consoleRoute } from "@/src/server/console-api";
 import { signOutDevice } from "@/src/server/console-devices";
 
 /**
@@ -10,7 +10,7 @@ import { signOutDevice } from "@/src/server/console-devices";
  * again); the device itself is not revoked and other devices and browser
  * sessions are untouched. Always clears the cookie; idempotent.
  */
-export async function POST(request: Request) {
+export const POST = consoleRoute(async (request: Request) => {
   const read = await readJsonBody(request);
   if (!read.ok) return read.response;
 
@@ -20,4 +20,4 @@ export async function POST(request: Request) {
   clearSessionCookie(response);
 
   return response;
-}
+});

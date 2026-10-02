@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import type { ConsoleErrorCode } from "@/src/lib/console-api";
 import { isStaffRole, normalizeRole } from "@/src/lib/roles";
 import { authenticateRequest } from "@/src/lib/session";
 
@@ -24,8 +25,33 @@ export function consoleJson(body: Record<string, unknown>, status = 200, headers
   return NextResponse.json(body, { status, headers: { ...NO_STORE, ...headers } });
 }
 
-export function consoleError(status: number, code: string, message: string, headers: Record<string, string> = {}) {
-  return consoleJson({ ok: false, code, message }, status, headers);
+/**
+ * The v1 error envelope (src/lib/console-api: ConsoleErrorBody). `field`
+ * names the invalid input; `retryAfter` (seconds) accompanies 429 — both are
+ * also sent as headers (X-Invalid-Field / Retry-After) for older callers.
+ */
+export function consoleError(status: number, code: ConsoleErrorCode, message: string, headers: Record<string, string> = {}) {
+  const extra: { field?: string; retryAfter?: number } = {};
+  if (headers["X-Invalid-Field"]) extra.field = headers["X-Invalid-Field"];
+  if (headers["Retry-After"]) extra.retryAfter = Number(headers["Retry-After"]);
+
+  return consoleJson({ ok: false, code, message, ...extra }, status, headers);
+}
+
+/**
+ * Wrap a Console route so an unexpected exception answers with the JSON
+ * envelope (SERVER_ERROR, 500) instead of an HTML error page. Only the
+ * error message is logged; nothing internal reaches the response.
+ */
+export function consoleRoute<A extends unknown[]>(handler: (...args: A) => Promise<Response>) {
+  return async (...args: A): Promise<Response> => {
+    try {
+      return await handler(...args);
+    } catch (error) {
+      console.error("CONSOLE_API_ERROR:", error instanceof Error ? error.message : "unknown error");
+      return consoleError(500, "SERVER_ERROR", "حدث خطأ غير متوقع. حاول مرة أخرى.");
+    }
+  };
 }
 
 /**

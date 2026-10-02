@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 
-import { createAuthToken } from "@/src/lib/mobile-auth";
 import { setSessionCookie } from "@/src/lib/session";
-import { db } from "@/src/prisma/db";
+import { registerCustomer } from "@/src/server/customer-auth";
 
 export async function POST(request: Request) {
   try {
@@ -62,12 +60,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingUser =
-      await db.orm.public.User.first({
-        phone,
-      });
+    const result = await registerCustomer({ name, phone, password });
 
-    if (existingUser) {
+    if (!result.ok) {
       return NextResponse.json(
         {
           message:
@@ -77,20 +72,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const passwordHash = await bcrypt.hash(
-      password,
-      12
-    );
-
-    const user =
-      await db.orm.public.User.create({
-        name,
-        phone,
-        passwordHash,
-        role: "CUSTOMER",
-      });
-
-    const session = createAuthToken(user.id, user.role);
+    const { user, session } = result;
 
     const response = NextResponse.json(
       {

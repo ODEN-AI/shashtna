@@ -6,12 +6,10 @@ import { LinkButton } from "@/app/ui/Button";
 import { Container, PageHeader } from "@/app/ui/Page";
 import { EmptyState } from "@/app/ui/States";
 import { requireCustomer } from "@/src/server/auth";
-import { getActiveDevices, getActivePackages } from "@/src/server/catalog";
+import { resolveCheckoutSelection, type CheckoutMode } from "@/src/server/checkout-selection";
 import { getI18n } from "@/src/server/i18n";
-import { getSettings, safeExternalUrl, whatsappLink } from "@/src/server/settings";
-import { getSubscriptionForUser } from "@/src/server/subscriptions";
 
-import { CheckoutForm, type CheckoutMode, type ContactOption } from "./CheckoutForm";
+import { CheckoutForm } from "./CheckoutForm";
 
 export const dynamic = "force-dynamic";
 
@@ -22,16 +20,12 @@ export const metadata: Metadata = {
 
 type Params = { plan?: string; device?: string; renew?: string; upgrade?: string; type?: string };
 
-function positive(value: unknown) {
-  const number = Number(value);
-  return Number.isInteger(number) && number > 0 ? number : null;
-}
-
 /**
  * Confirms ONE order the customer already chose on the Packages page (or on
  * a device / renewal link). Nothing to pick here except, for VIP plans, the
  * compatible device. Without a valid selection the customer goes back to
- * choose. Payment happens after the order exists, from the account.
+ * choose. Payment happens after the order exists, from the account. The
+ * selection rules live in resolveCheckoutSelection (shared with the mobile app).
  */
 export default async function CheckoutPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
@@ -42,27 +36,9 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   // Visitors without a session sign in (or register) and come straight back
   // here with the same selection.
   const user = await requireCustomer(`/checkout${query ? `?${query}` : ""}`);
-  const [{ t }, packages, devices, settings] = await Promise.all([getI18n(), getActivePackages(), getActiveDevices(), getSettings()]);
+  const [{ t }, selection] = await Promise.all([getI18n(), resolveCheckoutSelection(user, params)]);
 
-  const renewId = positive(params.renew);
-  const upgradeId = positive(params.upgrade);
-  const deviceParam = positive(params.device);
-  const subscription = renewId || upgradeId ? await getSubscriptionForUser(user.id, (renewId ?? upgradeId)!) : null;
-
-  let mode: CheckoutMode = "NEW";
-
-  if (renewId) {
-    mode = "RENEW";
-  } else if (upgradeId) {
-    mode = "UPGRADE";
-  } else if (deviceParam && !params.plan) {
-    mode = "DEVICE_PURCHASE";
-  } else if (String(params.type ?? "").toUpperCase() === "RENEW") {
-    // Old links: /contact?plan=x&type=RENEW without a subscription.
-    mode = "RENEW";
-  }
-
-  if ((renewId || upgradeId) && !subscription) {
+  if (!selection.ok && selection.reason === "SUBSCRIPTION_NOT_FOUND") {
     return (
       <Container className="py-16">
         <EmptyState
@@ -74,57 +50,11 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     );
   }
 
-  // Where "change plan" (and a missing/invalid selection) sends the customer.
-  const choosePath =
-    mode === "RENEW" && subscription
-      ? `/plans?renew=${subscription.id}`
-      : mode === "UPGRADE" && subscription
-        ? `/plans?upgrade=${subscription.id}`
-        : mode === "DEVICE_PURCHASE"
-          ? "/devices"
-          : "/plans";
-
-  const requested = params.plan ? packages.find((pkg) => pkg.slug === params.plan) : undefined;
-  let plan = requested;
-
-  if (mode === "RENEW") {
-    // Renewals stay on the same service; default to the current package.
-    plan =
-      requested && (!subscription || requested.serviceType === subscription.serviceType)
-        ? requested
-        : subscription?.packageSlug
-          ? packages.find((pkg) => pkg.slug === subscription.packageSlug)
-          : undefined;
-  } else if (mode === "UPGRADE") {
-    plan = requested && requested.id !== subscription?.packageId ? requested : undefined;
+  if (!selection.ok) {
+    redirect(selection.choosePath);
   }
 
-  let device = null as (typeof devices)[number] | null;
-
-  if (mode === "DEVICE_PURCHASE") {
-    device = devices.find((item) => item.id === deviceParam) ?? null;
-
-    if (!device) {
-      redirect(choosePath);
-    }
-  } else if (!plan) {
-    redirect(choosePath);
-  }
-
-  const compatibleDevices =
-    mode !== "DEVICE_PURCHASE" && mode !== "RENEW" && plan?.serviceType === "VIP"
-      ? devices.filter((item) => item.packageIds.includes(plan.id))
-      : [];
-
-  // The contact channels the site actually offers (same rules as before the
-  // payment change); the customer's saved preference is the default.
-  const contactOptions = [
-    safeExternalUrl(settings["contact.telegram"]) ? ("TELEGRAM" as const) : null,
-    whatsappLink(settings["contact.whatsapp"]) ? ("WHATSAPP" as const) : null,
-    safeExternalUrl(settings["contact.facebook"]) ? ("FACEBOOK" as const) : null,
-    "PHONE" as const,
-  ].filter((option): option is ContactOption => option !== null);
-  const initialContact = contactOptions.find((option) => option === user.preferredContact) ?? contactOptions[0];
+  const { mode, plan, device, devices: compatibleDevices, initialDeviceId, subscription, contactOptions, initialContact, choosePath } = selection;
 
   const titles: Record<CheckoutMode, [string, string]> = {
     NEW: [t("تأكيد الطلب", "Confirm your order"), t("راجع باقتك وأكّد الطلب.", "Review your plan and confirm the order.")],
@@ -164,7 +94,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
           }
           device={device ? { id: device.id, name: device.name, price: device.price, description: device.description } : null}
           devices={compatibleDevices.map((item) => ({ id: item.id, name: item.name, price: item.price, description: item.description }))}
-          initialDevice={compatibleDevices.some((item) => item.id === deviceParam) ? deviceParam : compatibleDevices.length === 1 ? compatibleDevices[0].id : null}
+          initialDevice={initialDeviceId}
           subscriptionId={subscription?.id ?? null}
           changeHref={choosePath}
           user={{ name: user.name, phone: user.phone, email: user.email }}

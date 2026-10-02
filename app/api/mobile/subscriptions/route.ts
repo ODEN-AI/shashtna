@@ -1,20 +1,19 @@
-import { GET as baseGET } from "@/app/api/subscriptions/route";
-import { requireMobileAuth } from "@/src/lib/mobile-auth";
+import { claimsOtherUser, fail, FORBIDDEN_MESSAGE, ok, withMobileUser } from "@/src/server/mobile/http";
+import { shapeSubscription } from "@/src/server/mobile/shape";
+import { listSubscriptionsForUser } from "@/src/server/subscriptions";
 
-export async function GET(request: Request) {
-  const auth = requireMobileAuth(request);
+export const dynamic = "force-dynamic";
 
-  if (!auth.ok) {
-    return auth.response;
+/**
+ * The customer's subscriptions (both app generations read this list). IPTV
+ * login details are never in the list — only on GET /subscriptions/{id}.
+ */
+export const GET = withMobileUser(async ({ request, user }) => {
+  if (claimsOtherUser(new URL(request.url).searchParams.get("userId"), user.id)) {
+    return fail(403, "FORBIDDEN", FORBIDDEN_MESSAGE);
   }
 
-  const url = new URL(request.url);
-  url.searchParams.set("userId", String(auth.userId));
+  const subscriptions = await listSubscriptionsForUser(user.id);
 
-  return baseGET(
-    new Request(url.toString(), {
-      method: "GET",
-      headers: request.headers,
-    }),
-  );
-}
+  return ok({ subscriptions: subscriptions.map((subscription) => shapeSubscription(subscription)) });
+});

@@ -21,6 +21,8 @@ export type CustomerSubscription = {
   password: string | null;
   macAddress: string | null;
   deviceId: string | null;
+  /** Active connections as recorded by staff (older app builds show it). */
+  connections: number;
   maxConnections: number;
   createdAt: string;
 };
@@ -57,6 +59,7 @@ export async function listSubscriptionsForUser(
       password: row.password,
       macAddress: row.macAddress,
       deviceId: row.deviceId,
+      connections: row.connections,
       maxConnections: row.maxConnections,
       createdAt: String(row.createdAt),
     };

@@ -2,10 +2,10 @@ import {
   GET as baseGET,
   POST as basePOST,
 } from "@/app/api/subscription-requests/route";
-import { requireMobileAuth } from "@/src/lib/mobile-auth";
+import { requireMobileSession } from "@/src/server/mobile/http";
 
 export async function GET(request: Request) {
-  const auth = requireMobileAuth(request);
+  const auth = await requireMobileSession(request);
 
   if (!auth.ok) {
     return auth.response;
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = requireMobileAuth(request);
+  const auth = await requireMobileSession(request);
 
   if (!auth.ok) {
     return auth.response;

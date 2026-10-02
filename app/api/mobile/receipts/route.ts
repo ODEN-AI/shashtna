@@ -1,8 +1,8 @@
 import { GET as baseGET } from "@/app/api/receipts/route";
-import { requireMobileAuth } from "@/src/lib/mobile-auth";
+import { requireMobileSession } from "@/src/server/mobile/http";
 
 export async function GET(request: Request) {
-  const auth = requireMobileAuth(request);
+  const auth = await requireMobileSession(request);
 
   if (!auth.ok) {
     return auth.response;

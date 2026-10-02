@@ -37,9 +37,12 @@ export async function notify(input: NotificationInput) {
   }
 }
 
-export async function listNotifications(userId: number, limit = 30) {
-  return db.orm.public.Notification.where({ userId })
-    .orderBy((item) => item.createdAt.desc())
+/** Newest first. `before` (a notification id) pages backwards for the app's notification centre. */
+export async function listNotifications(userId: number, limit = 30, before?: number) {
+  const scope = db.orm.public.Notification.where({ userId });
+
+  return (before ? scope.where((item) => item.id.lt(before)) : scope)
+    .orderBy([(item) => item.createdAt.desc(), (item) => item.id.desc()])
     .limit(limit)
     .all();
 }

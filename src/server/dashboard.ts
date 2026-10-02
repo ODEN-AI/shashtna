@@ -73,7 +73,7 @@ async function subscriptionSnapshot() {
 }
 
 /** Unpaid orders whose customer already uploaded a transfer proof (to verify). */
-async function proofsAwaitingReview() {
+export async function proofsAwaitingReview() {
   const unpaid = await db.orm.public.SubscriptionRequest.where((order) => order.status.in(UNPAID)).select("id").all();
 
   return (await proofUploadTimes(unpaid.map((order) => order.id))).size;

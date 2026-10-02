@@ -207,3 +207,45 @@ WebView or JavaScript, or backed up (`allowBackup=false`, data-extraction rules 
 `scripts/console-routes.ts` writes `android/app/src/main/assets/console-routes.txt` from `CONSOLE_ROUTES`/`CONSOLE_QUERY_KEYS`;
 `tests/console-contract.test.ts` fails if it is stale, and the JVM tests (`ConsoleShellTest`) repeat the web contract cases.
 
+---
+
+# Phase 10C-B — Windows shell
+
+Project: `shells/desktop` (Tauri 2.12.1; own `package.json` for the CLI, Cargo workspace in `src-tauri`; excluded from the root
+tsconfig/ESLint). Build, layout and the Windows validation checklist: `shells/desktop/README.md`.
+
+| | |
+|---|---|
+| Identifier / name | `com.shashtna.console` / «شاشتنا Console» (`shashtna-console.exe`, NSIS per-user installer) |
+| Loads | `https://shashtna.netlify.app/admin` (bundled `www/` only for the loading and offline pages) |
+| Scheme | `shashtna-console://` (installer + per-user registration; single instance, warm links go to the open window) |
+
+## Session lifecycle
+
+Same flow as Android (logic in `src-tauri/core/src/session.rs`, tested with fakes):
+
+1. Launch: credential from Windows Credential Manager → `POST /session/exchange` → the `Set-Cookie` goes into the WebView2 cookie
+   store (host-only, HttpOnly, Secure) → load the Console.
+2. Password sign-in → next `/admin` page: `GET /session` with the WebView2 cookie; a `browser` session → `POST /devices/register`
+   (`platform: WINDOWS`, label `Windows · <PC name>`, stored `deviceId` to re-bind; `DEVICE_REVOKED` → register anew) →
+   Credential Manager → exchange at once.
+3. Window focus (≥ 60 s since the last check): `GET /session`; 401 → exchange once → reload, else the sign-in page. A Console
+   redirect to `/login` while a credential is stored triggers one silent exchange (≤ every 30 s) and a return to the page.
+4. Sign-out: a WebView2 `WebResourceRequested` filter holds the Console's `POST /api/auth/logout` (deferral) while the shell calls
+   `POST /session/logout` with the current cookie (or, if none is left, with a native-only device session) and deletes the
+   credential; the Console's request then continues unchanged.
+5. 401 → sign-in page · 403 → the Console's own page (never bypassed) · 429 → native message from `retryAfter` · no network →
+   offline page with retry. Not offline-first; no data cached by the shell; WebView2 form autofill off.
+
+## WebView boundary
+
+- No IPC surface: no commands, `app.security.capabilities: []`, no `withGlobalTauri`. Plugins (deep-link, single-instance, opener,
+  dialog) are used from Rust only; their JavaScript commands are not permitted for any page.
+- Navigation allow-list (`core/src/policy.rs`): HTTPS on the Console host (default port) stays in the window; `https://tauri.localhost`
+  is the bundled pages; `shashtna-console:` is resolved by `core/src/links.rs` (WHATWG URL parser, same cases as the web test);
+  other HTTPS sites, `mailto:`, `tel:` open in the default Windows handler; `http:`, `file:`, `javascript:`, `data:`, `blob:`,
+  `about:`, unknown schemes, user info and non-default ports are dropped. `window.open` never creates a second window.
+- Downloads only from the Console origin. File drops go to the page (native drag-drop handler disabled).
+- Route table: `scripts/console-routes.ts` → `src-tauri/core/console-routes.txt`; `tests/console-contract.test.ts` checks it,
+  `SESSION_COOKIE`, the platform value, the deep-link scheme and the empty capability list.
+

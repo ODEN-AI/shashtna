@@ -139,3 +139,17 @@ test("the Android shell's route table is generated from console-links (not hand-
   assert.equal(asset.match(/^route /gm)?.length, links.CONSOLE_ROUTES.length);
   assert.ok(asset.includes(`origin ${api.CONSOLE_ORIGIN}\n`) && asset.includes(`scheme ${api.CONSOLE_URL_SCHEME}\n`));
 });
+
+test("the Windows shell's route table and session constants come from the web contract", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { consoleRoutesFile } = await import("@/scripts/console-routes");
+  const { SESSION_COOKIE } = await import("@/src/lib/mobile-auth");
+  const table = readFileSync("shells/desktop/src-tauri/core/console-routes.txt", "utf8");
+  assert.equal(table, consoleRoutesFile(), "run `npm run routes` in shells/desktop");
+  const session = readFileSync("shells/desktop/src-tauri/core/src/session.rs", "utf8");
+  assert.ok(session.includes(`pub const SESSION_COOKIE: &str = "${SESSION_COOKIE}";`), "SESSION_COOKIE drifted");
+  assert.ok(api.CONSOLE_PLATFORMS.includes("WINDOWS") && session.includes('pub const PLATFORM: &str = "WINDOWS";'));
+  const config = JSON.parse(readFileSync("shells/desktop/src-tauri/tauri.conf.json", "utf8"));
+  assert.deepEqual(config.plugins["deep-link"].desktop.schemes, [api.CONSOLE_URL_SCHEME]);
+  assert.deepEqual(config.app.security.capabilities, [], "the remote Console gets no IPC permissions");
+});

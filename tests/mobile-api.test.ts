@@ -7,7 +7,7 @@ process.env.DATABASE_URL ??= "postgresql://user:pass@127.0.0.1:5432/test";
 
 const { parseDestination } = await import("@/src/server/mobile/destinations");
 const { issuedAfterRevocation } = await import("@/src/server/mobile/sessions");
-const { claimsOtherUser, serializeMobileUser } = await import("@/src/server/mobile/http");
+const { claimsOtherUser, serializeMobileUser, requireMobileSession } = await import("@/src/server/mobile/http");
 const { serializeAnnouncement, shapeSubscription, shapeTicket, shapeNotification, absoluteUrl } = await import("@/src/server/mobile/shape");
 const { contactOptionsFrom } = await import("@/src/server/checkout-selection");
 
@@ -87,6 +87,32 @@ test("sign-out-everywhere: tokens from the revocation's second or earlier are re
   assert.equal(issuedAfterRevocation(second - 60, revokedAt), false);
   assert.equal(issuedAfterRevocation(second, revokedAt), false, "same second fails closed");
   assert.equal(issuedAfterRevocation(second + 1, revokedAt), true, "fresh token after the revocation");
+});
+
+test("older-route gate: database error → 500 (never 401), no session → 401, valid → ok", async () => {
+  const request = new Request("https://shashtna.netlify.app/api/mobile/receipts", { headers: { Authorization: "Bearer x.y" } });
+  const originalError = console.error;
+  console.error = () => undefined;
+  try {
+    const outage = await requireMobileSession(request, async () => {
+      throw new Error("connect ECONNREFUSED");
+    });
+    assert.equal(outage.ok, false);
+    assert.equal(!outage.ok && outage.response.status, 500, "the older app deletes its token on 401: an outage must not be 401");
+    assert.equal(!outage.ok && (await outage.response.json()).code, "SERVER_ERROR");
+  } finally {
+    console.error = originalError;
+  }
+
+  const noSession = await requireMobileSession(request, async () => null);
+  assert.equal(!noSession.ok && noSession.response.status, 401);
+
+  // A malformed token is refused before any database access: still 401 through the real check.
+  const invalid = await requireMobileSession(request);
+  assert.equal(!invalid.ok && invalid.response.status, 401);
+
+  const valid = await requireMobileSession(request, async () => ({ id: 42 }) as never);
+  assert.deepEqual(valid, { ok: true, userId: 42 });
 });
 
 test("a client-sent userId is never trusted", () => {

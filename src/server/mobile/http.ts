@@ -144,9 +144,20 @@ export const FORBIDDEN_MESSAGE = "ليس لديك صلاحية الوصول إل
  * Drop-in for the older routes that still forward to the website handlers
  * (receipts, subscription-requests, account/profile): same result shape as
  * requireMobileAuth, but with the full session check above.
+ *
+ * Only a missing/invalid/revoked session is 401. A database or server error
+ * while checking is 500: the older app deletes its stored token on any 401,
+ * so an outage must not sign customers out.
  */
-export async function requireMobileSession(request: Request) {
-  const row = await authenticateMobile(request).catch(() => null);
+export async function requireMobileSession(request: Request, authenticate: (request: Request) => Promise<UserRow | null> = authenticateMobile) {
+  let row: UserRow | null;
+
+  try {
+    row = await authenticate(request);
+  } catch (error) {
+    logServerError(request, error);
+    return { ok: false as const, response: fail(500, "SERVER_ERROR", "صار خطأ بالخادم. حاول مرة ثانية.") };
+  }
 
   return row
     ? { ok: true as const, userId: row.id }

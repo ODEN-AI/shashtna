@@ -1,0 +1,42 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "شاشتنا Console",
+  "mainBinaryName": "shashtna-console",
+  "version": "0.1.0",
+  "identifier": "com.shashtna.console",
+  "build": {
+    "frontendDist": "../www"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'none'; img-src 'self'; style-src 'self' 'unsafe-inline'",
+      "capabilities": []
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "Shashtna",
+    "category": "Business",
+    "shortDescription": "شاشتنا Console",
+    "longDescription": "Desktop shell for the شاشتنا staff Console (https://shashtna.netlify.app/admin).",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico", "icons/icon.png"],
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["Arabic", "English"],
+        "displayLanguageSelector": false
+      }
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["shashtna-console"]
+      }
+    }
+  }
+}

@@ -1,8 +1,8 @@
 import { PUT as basePUT } from "@/app/api/account/profile/route";
-import { requireMobileAuth } from "@/src/lib/mobile-auth";
+import { requireMobileSession } from "@/src/server/mobile/http";
 
 export async function PUT(request: Request) {
-  const auth = requireMobileAuth(request);
+  const auth = await requireMobileSession(request);
 
   if (!auth.ok) {
     return auth.response;

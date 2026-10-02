@@ -1,54 +1,38 @@
-import {
-  GET as baseGET,
-  POST as basePOST,
-} from "@/app/api/support/tickets/[id]/route";
-import { requireMobileAuth } from "@/src/lib/mobile-auth";
+import { claimsOtherUser, fail, FORBIDDEN_MESSAGE, ok, readJson, withMobileUser } from "@/src/server/mobile/http";
+import { shapeTicket } from "@/src/server/mobile/shape";
+import { closeTicket, getTicketForUser, replyToTicket } from "@/src/server/tickets";
 
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
-  const auth = requireMobileAuth(request);
+export const dynamic = "force-dynamic";
 
-  if (!auth.ok) {
-    return auth.response;
+const NOT_FOUND = "التذكرة غير موجودة.";
+
+/** One of the customer's tickets with its conversation (another customer's id answers 404). */
+export const GET = withMobileUser<{ id: string }>(async ({ request, user, params }) => {
+  if (claimsOtherUser(new URL(request.url).searchParams.get("userId"), user.id)) {
+    return fail(403, "FORBIDDEN", FORBIDDEN_MESSAGE);
   }
 
-  const url = new URL(request.url);
-  url.searchParams.set("userId", String(auth.userId));
+  const ticket = await getTicketForUser(user.id, params.id);
 
-  return baseGET(
-    new Request(url.toString(), {
-      method: "GET",
-      headers: request.headers,
-    }),
-    context,
-  );
-}
+  return ticket ? ok({ ticket: shapeTicket(ticket) }) : fail(404, "NOT_FOUND", NOT_FOUND);
+});
 
-export async function POST(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
-  const auth = requireMobileAuth(request);
+/** Reply (`{ message }`, older builds `{ action: "REPLY", message }`) or close (`{ action: "close" | "CLOSE" }`). */
+export const POST = withMobileUser<{ id: string }>(async ({ request, user, params }) => {
+  const body = await readJson(request);
 
-  if (!auth.ok) {
-    return auth.response;
+  if (claimsOtherUser(body.userId, user.id)) {
+    return fail(403, "FORBIDDEN", FORBIDDEN_MESSAGE);
   }
 
-  const body = await request.json();
-  body.userId = auth.userId;
+  const action = String(body.action ?? "REPLY").toUpperCase();
+  const result = action === "CLOSE" ? await closeTicket(user, params.id) : await replyToTicket(user, params.id, String(body.message ?? ""));
 
-  const headers = new Headers(request.headers);
-  headers.set("Content-Type", "application/json");
-  headers.delete("Content-Length");
+  if (!result.ok) {
+    return result.error === NOT_FOUND ? fail(404, "NOT_FOUND", NOT_FOUND) : fail(400, "VALIDATION", result.error);
+  }
 
-  return basePOST(
-    new Request(request.url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    }),
-    context,
-  );
-}
+  const ticket = await getTicketForUser(user.id, params.id);
+
+  return ticket ? ok({ ticket: shapeTicket(ticket) }) : fail(404, "NOT_FOUND", NOT_FOUND);
+});

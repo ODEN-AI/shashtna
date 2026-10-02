@@ -1,0 +1,18 @@
+{
+  "name": "shashtna-console-android",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Shashtna Console — Android shell (Capacitor). A thin native wrapper around https://shashtna.netlify.app/admin; no UI or business logic of its own.",
+  "scripts": {
+    "routes": "node --experimental-strip-types --import ../../tests/register-alias.mjs ../../scripts/console-routes.ts android/app/src/main/assets/console-routes.txt",
+    "sync": "npm run routes && cap sync android",
+    "build:debug": "npm run sync && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/core": "8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.2"
+  }
+}

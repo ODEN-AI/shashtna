@@ -1,0 +1,22 @@
+{
+  "appId": "com.shashtna.console",
+  "appName": "شاشتنا Console",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false,
+    "appendUserAgent": "ShashtnaConsole/0.1 (Android)",
+    "backgroundColor": "#020b2b"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "native",
+      "style": "DARK"
+    }
+  }
+}

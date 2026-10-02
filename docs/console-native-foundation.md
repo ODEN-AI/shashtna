@@ -161,3 +161,49 @@ shashtna-console://admin/support/<ticket-uuid>   → /admin/support/<ticket-uuid
 Only existing `/admin` routes are mapped (`CONSOLE_ROUTES`); unknown routes, other schemes, path traversal and foreign origins map to
 null (the shell opens `/admin`). Only page-relevant query keys are kept (`queue, period, from, to, view, q, status, page, scope`).
 Destination pages still enforce permissions. `shashtna-console://` remains free (customer app: `shashtna://`; Player: none).
+
+---
+
+# Phase 10C-A — Android shell
+
+Project: `shells/mobile` (Capacitor 8.5.2, own `package.json`/lockfile; excluded from the root tsconfig/ESLint). Build, layout and the
+manual validation checklist: `shells/mobile/README.md`.
+
+| | |
+|---|---|
+| Package / name | `com.shashtna.console` / «شاشتنا Console» (package needs approval before any store upload) |
+| Loads | `https://shashtna.netlify.app/admin` (bundled `www/` only for the loading and offline pages) |
+| Scheme | `shashtna-console://` (VIEW + BROWSABLE); App Links deferred until a custom domain exists |
+
+## Session lifecycle (native layer only)
+
+1. Launch: credential from the Keystore → `POST /session/exchange` → the server's `Set-Cookie` goes into the WebView cookie jar → load the Console.
+2. Password sign-in in the WebView → on the next `/admin` page `GET /session`; a `browser` session → `POST /devices/register`
+   (`platform: ANDROID`, label = device model, stored `deviceId` to re-bind; `DEVICE_REVOKED` → forget it and register anew) →
+   Keystore → exchange at once, so the WebView holds a device session.
+3. Resume (≥ 60 s since the last check): `GET /session`; 401 → exchange once → reload, else the sign-in page.
+   If the device cookie (≤ 12 h) ends while in use and the Console shows `/login`, the shell exchanges once (≤ every 30 s) and returns.
+4. Sign-out: the shell sees the Console's `POST /api/auth/logout`, first calls `POST /session/logout` with the current cookie and
+   forgets the credential, then lets the Console's request through.
+5. 401 → sign-in page · 403 → the Console's own "no permission" (never bypassed) · 429 → «حاول بعد N دقيقة» from `retryAfter` ·
+   no network → offline page with retry. Not offline-first.
+
+The credential is plaintext only in memory for the exchange body. It is never logged, put in a URL/header/cookie, given to the
+WebView or JavaScript, or backed up (`allowBackup=false`, data-extraction rules exclude everything).
+
+## WebView boundary
+
+- No JavaScript bridge: Capacitor's `androidBridge` (web message listener / JS interface) is removed at startup and
+  `server.allowNavigation` is empty, so remote pages get no plugin access.
+- Navigation allow-list (`NavigationPolicy`): HTTPS on the Console host (default port) stays in the app; `https://localhost`
+  is the bundled pages; `shashtna-console:` is resolved by `DeepLinkResolver`; other https/http sites, `tel:`, `mailto:`, `sms:`,
+  `whatsapp:` open outside (only from a user action); `javascript:`, `file:`, `content:`, `intent:`, `data:`, cleartext Console,
+  user-info or non-default ports are dropped.
+- HTTPS only (network security config: no cleartext, system CAs only), mixed content never, file/content access off,
+  geolocation off, no multiple windows, Safe Browsing on, WebView debugging off.
+
+## Deep-link table
+
+`scripts/console-routes.ts` writes `android/app/src/main/assets/console-routes.txt` from `CONSOLE_ROUTES`/`CONSOLE_QUERY_KEYS`;
+`tests/console-contract.test.ts` fails if it is stale, and the JVM tests (`ConsoleShellTest`) repeat the web contract cases.
+

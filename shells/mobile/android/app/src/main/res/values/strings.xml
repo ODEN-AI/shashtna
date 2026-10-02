@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">شاشتنا Console</string>
+    <string name="title_activity_main">شاشتنا Console</string>
+    <string name="package_name">com.shashtna.console</string>
+    <string name="custom_url_scheme">shashtna-console</string>
+
+    <string name="offline">لا يوجد اتصال بالإنترنت. تحقق من الشبكة ثم حاول مجددًا.</string>
+    <string name="session_ended">انتهت جلسة هذا الجهاز. سجّل الدخول مجددًا.</string>
+    <string name="device_limit">وصلت للحد الأعلى من الأجهزة. ألغِ جهازًا قديمًا من صفحة الأمان ليبقى هذا الجهاز مسجّلًا.</string>
+    <string name="no_app_for_link">لا يوجد تطبيق لفتح هذا الرابط.</string>
+    <plurals name="throttled_minutes">
+        <item quantity="zero">محاولات كثيرة. حاول بعد %d دقيقة.</item>
+        <item quantity="one">محاولات كثيرة. حاول بعد دقيقة.</item>
+        <item quantity="two">محاولات كثيرة. حاول بعد دقيقتين.</item>
+        <item quantity="few">محاولات كثيرة. حاول بعد %d دقائق.</item>
+        <item quantity="many">محاولات كثيرة. حاول بعد %d دقيقة.</item>
+        <item quantity="other">محاولات كثيرة. حاول بعد %d دقيقة.</item>
+    </plurals>
+</resources>

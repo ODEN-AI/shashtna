@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'" />
+<title>لا يوجد اتصال — شاشتنا Console</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #020b2b; color: #e8f2ff; font-family: system-ui, sans-serif; }
+  main { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; box-sizing: border-box; text-align: center; }
+  img { width: 88px; height: 88px; opacity: .9; }
+  h1 { margin: 0; font-size: 20px; }
+  p { margin: 0; font-size: 14px; line-height: 1.7; color: #9fb4d6; max-width: 320px; }
+  a { margin-top: 8px; display: inline-block; padding: 12px 22px; border-radius: 14px; background: #1951fc; color: #fff; text-decoration: none; font-weight: 700; }
+</style>
+</head>
+<body>
+<!-- No data is cached: the Console needs the network. The retry link goes back through the native shell. -->
+<main>
+  <img src="logo.png" alt="شاشتنا" />
+  <h1>لا يوجد اتصال بالإنترنت</h1>
+  <p>لوحة الإدارة تحتاج اتصالًا لعرض البيانات وتنفيذ الإجراءات. تحقق من الشبكة ثم أعد المحاولة.</p>
+  <a href="shashtna-console://admin">إعادة المحاولة</a>
+</main>
+</body>
+</html>

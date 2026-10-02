@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Console navy (matches the web Console and the bundled loading page). -->
+    <color name="console_navy">#020B2B</color>
+    <color name="colorPrimary">#020B2B</color>
+    <color name="colorPrimaryDark">#020B2B</color>
+    <color name="colorAccent">#2889EC</color>
+</resources>

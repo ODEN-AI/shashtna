@@ -130,3 +130,12 @@ test("every mapped route exists as a page", async () => {
     assert.ok(existsSync(`app${dir}/page.tsx`), `app${dir}/page.tsx`);
   }
 });
+
+test("the Android shell's route table is generated from console-links (not hand-copied)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { consoleRoutesFile } = await import("@/scripts/console-routes");
+  const asset = readFileSync("shells/mobile/android/app/src/main/assets/console-routes.txt", "utf8");
+  assert.equal(asset, consoleRoutesFile(), "run `npm run routes` in shells/mobile");
+  assert.equal(asset.match(/^route /gm)?.length, links.CONSOLE_ROUTES.length);
+  assert.ok(asset.includes(`origin ${api.CONSOLE_ORIGIN}\n`) && asset.includes(`scheme ${api.CONSOLE_URL_SCHEME}\n`));
+});

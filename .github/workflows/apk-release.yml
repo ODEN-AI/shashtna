@@ -1,0 +1,92 @@
+# Publish or promote the Shashtna APK on download.shashtna.net (Cloudflare R2).
+# Run from GitHub → Actions → "APK release" → Run workflow.
+# Secrets (Settings → Secrets and variables → Actions):
+#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET
+#   optional: CLOUDFLARE_ZONE_ID, CLOUDFLARE_API_TOKEN (cache purge)
+name: APK release
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "publish = upload a new APK; promote = make an existing version the latest (rollback)"
+        type: choice
+        options: [publish, promote]
+        default: publish
+      apk_url:
+        description: "publish: HTTPS link to the built APK (e.g. the EAS build artifact URL)"
+        required: false
+      version:
+        description: "Version, e.g. 1.0.1"
+        required: true
+      build:
+        description: "publish: build number / versionCode, e.g. 3"
+        required: false
+      notes:
+        description: "publish: release notes (optional)"
+        required: false
+      make_latest:
+        description: "publish: also make it the latest (Shashtna.apk)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apk-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      # Inputs are read from the environment only (never interpolated into shell code).
+      ACTION: ${{ inputs.action }}
+      APK_URL: ${{ inputs.apk_url }}
+      VERSION: ${{ inputs.version }}
+      BUILD: ${{ inputs.build }}
+      NOTES: ${{ inputs.notes }}
+      MAKE_LATEST: ${{ inputs.make_latest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download APK
+        if: env.ACTION == 'publish'
+        run: |
+          case "$APK_URL" in https://*) ;; *) echo "apk_url must be an https:// link"; exit 1 ;; esac
+          curl --fail --location --proto '=https' --max-filesize 4294967296 --retry 3 -o "$RUNNER_TEMP/Shashtna.apk" "$APK_URL"
+          ls -l "$RUNNER_TEMP/Shashtna.apk"
+          sha256sum "$RUNNER_TEMP/Shashtna.apk"
+
+      - name: Publish
+        if: env.ACTION == 'publish'
+        run: |
+          set -- publish --file "$RUNNER_TEMP/Shashtna.apk" --version "$VERSION" --build "$BUILD"
+          if [ -n "$NOTES" ]; then set -- "$@" --notes "$NOTES"; fi
+          if [ "$MAKE_LATEST" != "true" ]; then set -- "$@" --no-latest; fi
+          node scripts/apk/release.mjs "$@"
+
+      - name: Promote
+        if: env.ACTION == 'promote'
+        run: node scripts/apk/release.mjs promote --version "$VERSION"
+
+      - name: Verify public download
+        if: env.ACTION == 'promote' || env.MAKE_LATEST == 'true'
+        run: |
+          # The CDN may serve the previous APK for up to 5 minutes when no purge token is configured.
+          for attempt in 1 2 3 4 5 6; do
+            node scripts/apk/release.mjs verify && exit 0
+            echo "retrying in 60s ($attempt/6)"; sleep 60
+          done
+          exit 1

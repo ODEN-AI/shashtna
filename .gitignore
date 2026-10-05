@@ -54,3 +54,7 @@ dist/
 
 # local data written by the dev support-ticket store
 /.data/
+
+# APK releases are published to Cloudflare R2 (scripts/apk), never committed
+*.apk
+*.aab

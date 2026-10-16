@@ -1,0 +1,78 @@
+[
+  {
+    "id": "column.public.package.durationUnit",
+    "label": "Add column \"durationUnit\" to \"package\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "durationUnit",
+        "table": "package"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"durationUnit\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "package",
+          "durationUnit"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"durationUnit\"",
+        "sql": "ALTER TABLE \"public\".\"package\" ADD COLUMN \"durationUnit\" text DEFAULT 'MONTH' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"durationUnit\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "package",
+          "durationUnit"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "data.public.package.seed_initial_subscription_packages",
+    "label": "Seed the initial IQD subscription packages (3, 6, 12, 24 months) when missing",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "package"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "insert missing initial packages (existing slugs are not touched)",
+        "sql": "INSERT INTO \"public\".\"package\" (\"name\", \"slug\", \"serviceType\", \"price\", \"durationMonths\", \"durationUnit\", \"durationLabel\", \"description\", \"specifications\", \"isActive\", \"updatedAt\") VALUES\n  ('IPTV 3 أشهر', 'iptv-3m', 'IPTV', 6000, 3, 'MONTH', '3 أشهر', 'اشتراك IPTV لمدة 3 أشهر', 'اشتراك لمدة 3 أشهر', true, now()),\n  ('IPTV 6 أشهر', 'iptv-6m', 'IPTV', 10000, 6, 'MONTH', '6 أشهر', 'اشتراك IPTV لمدة 6 أشهر', 'اشتراك لمدة 6 أشهر', true, now()),\n  ('IPTV 12 شهرًا', 'iptv-12m', 'IPTV', 15000, 12, 'YEAR', 'سنة واحدة', 'اشتراك IPTV لمدة سنة واحدة', 'اشتراك لمدة 12 شهرًا', true, now()),\n  ('IPTV 24 شهرًا', 'iptv-24m', 'IPTV', 25000, 24, 'YEAR', 'سنتان', 'اشتراك IPTV لمدة سنتين', 'اشتراك لمدة 24 شهرًا', true, now())\nON CONFLICT (\"slug\") DO NOTHING"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify every initial package slug exists",
+        "sql": "SELECT (SELECT count(*) FROM \"public\".\"package\" WHERE \"slug\" = ANY($1::text[])) = 4 AS \"result\"",
+        "params": [
+          [
+            "iptv-3m",
+            "iptv-6m",
+            "iptv-12m",
+            "iptv-24m"
+          ]
+        ]
+      }
+    ]
+  }
+]

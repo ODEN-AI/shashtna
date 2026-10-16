@@ -1244,6 +1244,13 @@
                   "kind": "scalar"
                 }
               },
+              "durationUnit": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -1345,6 +1352,9 @@
                 },
                 "durationMonths": {
                   "column": "durationMonths"
+                },
+                "durationUnit": {
+                  "column": "durationUnit"
                 },
                 "id": {
                   "column": "id"
@@ -3528,6 +3538,15 @@
                   "nativeType": "int4",
                   "nullable": false
                 },
+                "durationUnit": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "MONTH"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
                 "id": {
                   "codecId": "pg/int4@1",
                   "default": {
@@ -4598,7 +4617,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "bec797f6cdd0f6176e108bccf699b545d84ccf8cdc029a2ee65af944c807ef51"
+    "storageHash": "aa9d3f9a4366ee3df22bb8f6ec3778b49ac77ce4f3c48af3e3d48bd7a566b2bf"
   },
   "execution": {
     "executionHash": "83a013426672b06d72508a485be9554a773c1b26ab0e8f706bdf77ce10305836",

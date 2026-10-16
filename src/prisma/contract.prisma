@@ -44,6 +44,8 @@ model Package {
   serviceType     String   @default("IPTV")
   price           Int
   durationMonths  Int
+  /// How the admin entered the duration: MONTH or YEAR. durationMonths stays canonical.
+  durationUnit    String   @default("MONTH")
   durationLabel   String
   description     String
   specifications  String

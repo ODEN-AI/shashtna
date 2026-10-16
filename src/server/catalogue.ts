@@ -66,7 +66,7 @@ export async function auditCatalogue(input: {
 
 // ------------------------------------------------------------------ shared loaders
 
-const PACKAGE_FIELDS = ["id", "name", "slug", "serviceType", "price", "durationMonths", "durationLabel", "description", "imageUrl", "isActive", "updatedAt"] as const;
+const PACKAGE_FIELDS = ["id", "name", "slug", "serviceType", "price", "durationMonths", "durationUnit", "durationLabel", "description", "imageUrl", "isActive", "updatedAt"] as const;
 const DEVICE_FIELDS = ["id", "name", "slug", "serviceType", "price", "description", "imageUrl", "isActive", "updatedAt"] as const;
 
 async function loadCatalogue() {

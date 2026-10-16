@@ -85,6 +85,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
                   name: plan.name,
                   serviceType: plan.serviceType,
                   price: plan.price,
+                  durationMonths: plan.durationMonths,
                   durationLabel: plan.durationLabel,
                   description: plan.description,
                   features: plan.features.slice(0, 4),

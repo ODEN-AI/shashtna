@@ -13,12 +13,13 @@ import { EmptyState } from "@/app/ui/States";
 import { LinkTabs } from "@/app/ui/Tabs";
 import { PACKAGE_VIEWS, parseCatalogueQuery } from "@/src/lib/catalogue";
 import { formatDate, formatPrice } from "@/src/lib/i18n";
+import { formatDuration, monthlyPrice } from "@/src/lib/subscription-duration";
 import { requireStaffPage } from "@/src/server/auth";
 import { listPackagesForConsole } from "@/src/server/catalogue";
 import { getI18n } from "@/src/server/i18n";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "الباقات — الكتالوج" };
+export const metadata: Metadata = { title: "باقات الاشتراك — الكتالوج" };
 
 export default async function CataloguePackagesPage({ searchParams }: { searchParams: Promise<{ q?: string; view?: string; type?: string; page?: string }> }) {
   const params = await searchParams;
@@ -42,7 +43,7 @@ export default async function CataloguePackagesPage({ searchParams }: { searchPa
       <CatalogueHeader
         active="packages"
         t={t}
-        title={t("الباقات", "Packages")}
+        title={t("باقات الاشتراك", "Subscription packages")}
         description={result.ok ? <span data-testid="catalogue-count">{t(`${result.rows.length} نتيجة`, `${result.rows.length} results`)}</span> : undefined}
         actions={<LinkButton href="/admin/catalogue/packages/new" size="sm"><Plus size={15} aria-hidden /> {t("باقة جديدة", "New package")}</LinkButton>}
       />
@@ -104,7 +105,8 @@ function PackagesTable({ rows, page: pageParam, t, lang, params }: { rows: Rows;
           },
           { key: "type", header: t("النوع", "Type"), cell: (row) => <TypeBadge type={row.serviceType} /> },
           { key: "price", header: t("السعر", "Price"), cell: (row) => <span className="nums font-semibold" data-testid="catalogue-price">{formatPrice(row.price, lang)}</span> },
-          { key: "duration", header: t("المدة", "Duration"), hideOnMobile: true, cell: (row) => <span className="nums text-sm">{row.durationLabel || t(`${row.durationMonths} شهر`, `${row.durationMonths} months`)}</span> },
+          { key: "duration", header: t("المدة", "Duration"), cell: (row) => <span className="nums text-sm" data-testid="catalogue-duration" data-months={row.durationMonths}>{formatDuration(row.durationMonths, lang)}</span> },
+          { key: "monthly", header: t("شهريًا", "Per month"), hideOnMobile: true, cell: (row) => <span className="nums text-xs text-ink-3">{formatPrice(monthlyPrice(row.price, row.durationMonths), lang)}</span> },
           { key: "status", header: t("الحالة", "Status"), cell: (row) => <ActiveBadge active={row.isActive} t={t} /> },
           {
             key: "devices",

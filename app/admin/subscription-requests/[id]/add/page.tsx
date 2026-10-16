@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatDurationAr, isValidDurationMonths } from "@/src/lib/subscription-duration";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -53,13 +54,32 @@ type ExistingSubscription = {
   expiryDate: string;
 };
 
-const RENEWAL_YEAR_OPTIONS = [
-  1,
-  2,
+/** Renewal lengths staff can pick (months); the ordered length is always offered and preselected. */
+const RENEWAL_MONTH_OPTIONS = [
   3,
-  4,
-  5,
+  6,
+  12,
+  24,
+  36,
+  48,
+  60,
 ];
+
+function renewalOptions(
+  orderedMonths: number | undefined
+) {
+  return [
+    ...new Set([
+      ...(orderedMonths &&
+      isValidDurationMonths(
+        orderedMonths
+      )
+        ? [orderedMonths]
+        : []),
+      ...RENEWAL_MONTH_OPTIONS,
+    ]),
+  ].sort((a, b) => a - b);
+}
 
 const BONUS_YEAR_OPTIONS = [
   0,
@@ -230,20 +250,6 @@ function calculateExpiry(
   return `${year}-${month}-${day}`;
 }
 
-function getYearLabel(
-  years: number
-) {
-  if (years === 1) {
-    return "سنة واحدة";
-  }
-
-  if (years === 2) {
-    return "سنتين";
-  }
-
-  return `${years} سنوات`;
-}
-
 function getBonusLabel(
   years: number
 ) {
@@ -353,8 +359,8 @@ export default function AddSubscriptionPage({
   const [price, setPrice] =
     useState("");
 
-  const [durationYears, setDurationYears] =
-    useState(1);
+  const [renewalMonths, setRenewalMonths] =
+    useState(12);
 
   const [bonusYears, setBonusYears] =
     useState(0);
@@ -414,8 +420,12 @@ export default function AddSubscriptionPage({
           requestType ===
           "RENEW"
         ) {
-          setDurationYears(
-            1
+          setRenewalMonths(
+            isValidDurationMonths(
+              request.durationMonths
+            )
+              ? request.durationMonths
+              : 12
           );
 
           setBonusYears(
@@ -504,27 +514,6 @@ export default function AddSubscriptionPage({
             }
           }
         } else {
-          const originalYears =
-            request.durationMonths /
-            12;
-
-          if (
-            Number.isInteger(
-              originalYears
-            ) &&
-            RENEWAL_YEAR_OPTIONS.includes(
-              originalYears
-            )
-          ) {
-            setDurationYears(
-              originalYears
-            );
-          } else {
-            setDurationYears(
-              1
-            );
-          }
-
           setBonusYears(
             Number.isInteger(
               request.bonusYears
@@ -575,15 +564,18 @@ export default function AddSubscriptionPage({
 
   const finalDurationMonths =
     isRenewal
-      ? durationYears * 12
+      ? renewalMonths
       : baseDurationMonths +
         selectedBonusMonths;
 
   const finalDurationLabel =
     isRenewal
-      ? `${getYearLabel(
-          durationYears
-        )}`
+      ? renewalMonths ===
+          requestData?.durationMonths
+        ? requestData.durationLabel
+        : formatDurationAr(
+            renewalMonths
+          )
       : getNewDurationLabel(
           requestData?.durationLabel ??
             "1 Year",
@@ -645,11 +637,9 @@ export default function AddSubscriptionPage({
 
     if (
       isRenewal &&
-      (!Number.isInteger(
-        durationYears
-      ) ||
-        durationYears < 1 ||
-        durationYears > 5)
+      !isValidDurationMonths(
+        renewalMonths
+      )
     ) {
       setError(
         "مدة التجديد غير صحيحة."
@@ -798,8 +788,8 @@ export default function AddSubscriptionPage({
 
       setSuccess(
         isRenewal
-          ? `تم تجديد الاشتراك بنجاح لمدة ${getYearLabel(
-              durationYears
+          ? `تم تجديد الاشتراك بنجاح لمدة ${formatDurationAr(
+              renewalMonths
             )}. رقم الاشتراك #${data.subscription.id}`
           : bonusYears > 0
             ? `تم إنشاء الاشتراك بنجاح مع ${getBonusLabel(
@@ -1119,12 +1109,12 @@ export default function AddSubscriptionPage({
 
                   <select
                     value={
-                      durationYears
+                      renewalMonths
                     }
                     onChange={(
                       event
                     ) =>
-                      setDurationYears(
+                      setRenewalMonths(
                         Number(
                           event.target
                             .value
@@ -1133,19 +1123,25 @@ export default function AddSubscriptionPage({
                     }
                     className="w-full appearance-none rounded-2xl border border-blue-200 bg-blue-50 px-12 py-3.5 text-sm font-black text-blue-900 outline-none transition focus:border-blue-400 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-100"
                   >
-                    {RENEWAL_YEAR_OPTIONS.map(
-                      (years) => (
+                    {renewalOptions(
+                      requestData?.durationMonths
+                    ).map(
+                      (months) => (
                         <option
                           key={
-                            years
+                            months
                           }
                           value={
-                            years
+                            months
                           }
                         >
-                          {getYearLabel(
-                            years
+                          {formatDurationAr(
+                            months
                           )}
+                          {months ===
+                          requestData?.durationMonths
+                            ? " (حسب الطلب)"
+                            : ""}
                         </option>
                       )
                     )}
@@ -1279,8 +1275,8 @@ export default function AddSubscriptionPage({
               <>
                 سيتم منح العميل{" "}
                 <strong>
-                  {getYearLabel(
-                    durationYears
+                  {formatDurationAr(
+                    renewalMonths
                   )}
                 </strong>
                 ، أي{" "}

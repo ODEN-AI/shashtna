@@ -41,7 +41,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     en: "Catalogue",
     items: [
       { href: "/admin/catalogue", ar: "نظرة عامة", en: "Overview", icon: "catalogue", permission: "catalogue" },
-      { href: "/admin/catalogue/packages", ar: "الباقات", en: "Packages", icon: "packages", permission: "catalogue" },
+      { href: "/admin/catalogue/packages", ar: "باقات الاشتراك", en: "Subscription packages", icon: "packages", permission: "catalogue" },
       { href: "/admin/catalogue/devices", ar: "الأجهزة", en: "Devices", icon: "devices", permission: "catalogue" },
       { href: "/admin/catalogue/compatibility", ar: "التوافق", en: "Compatibility", icon: "compatibility", permission: "catalogue" },
       { href: "/admin/apps", ar: "التطبيقات", en: "Apps", icon: "apps", permission: "catalogue" },

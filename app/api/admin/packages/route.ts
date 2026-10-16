@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { catalogueImageUrl, isValidPrice } from "@/src/lib/catalogue";
 import { requireAdmin } from "@/src/lib/session";
+import { formatDurationAr, resolvePackageDuration } from "@/src/lib/subscription-duration";
 import { auditCatalogue } from "@/src/server/catalogue";
 import {
   db,
@@ -17,6 +18,8 @@ type PackageBody = {
   serviceType?: string;
   price?: number;
   durationMonths?: number;
+  durationValue?: number;
+  durationUnit?: string;
   durationLabel?: string;
   description?: string;
   specifications?: string;
@@ -103,6 +106,8 @@ export async function GET(request: Request) {
           price: pkg.price,
           durationMonths:
             pkg.durationMonths,
+          durationUnit:
+            pkg.durationUnit,
           durationLabel:
             pkg.durationLabel,
           description:
@@ -199,38 +204,22 @@ export async function POST(
       );
     }
 
-    let durationMonths =
-      body.durationMonths;
+    // Value + unit (months / years), whole numbers, 1 month to 5 years.
+    const duration =
+      resolvePackageDuration(body, serviceType);
 
-    let durationLabel =
-      body.durationLabel?.trim();
-
-    if (serviceType === "VIP") {
-      durationMonths = 3;
-      durationLabel = "3 Months";
-    } else {
-      if (
-        typeof durationMonths !==
-          "number" ||
-        !Number.isInteger(
-          durationMonths
-        ) ||
-        durationMonths <= 0
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            message:
-              "مدة الاشتراك غير صحيحة.",
-          },
-          { status: 400 }
-        );
-      }
-
-      durationLabel =
-        durationLabel ||
-        `${durationMonths} Months`;
+    if (!duration.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: duration.error,
+        },
+        { status: 400 }
+      );
     }
+
+    const { durationMonths, durationUnit, durationLabel } =
+      duration;
 
     const description =
       body.description?.trim() ||
@@ -238,7 +227,7 @@ export async function POST(
 
     const specifications =
       body.specifications?.trim() ||
-      `اشتراك لمدة ${durationMonths} شهر`;
+      `اشتراك لمدة ${formatDurationAr(durationMonths)}`;
 
     const notes =
       body.notes?.trim() ||
@@ -335,6 +324,7 @@ export async function POST(
           serviceType,
           price,
           durationMonths,
+          durationUnit,
           durationLabel,
           description,
           specifications,

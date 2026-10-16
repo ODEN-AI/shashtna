@@ -13,6 +13,7 @@ import { requireStaffPage } from "@/src/server/auth";
 import { safeHref, splitLines } from "@/src/server/catalog";
 import { getPackageDetail } from "@/src/server/catalogue";
 import { getI18n } from "@/src/server/i18n";
+import { normalizeDurationUnit } from "@/src/lib/subscription-duration";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "باقة — الكتالوج" };
@@ -56,6 +57,7 @@ export default async function CataloguePackagePage({ params }: { params: Promise
                 serviceType: pkg.serviceType,
                 price: pkg.price,
                 durationMonths: pkg.durationMonths,
+                durationUnit: normalizeDurationUnit(pkg.durationUnit),
                 durationLabel: pkg.durationLabel,
                 description: pkg.description,
                 specifications: pkg.specifications,

@@ -12,6 +12,7 @@ import { Field, Textarea } from "@/app/ui/Field";
 import { Notice } from "@/app/ui/States";
 import { SubmitButton } from "@/app/ui/SubmitButton";
 import { formatPrice } from "@/src/lib/i18n";
+import { formatDuration } from "@/src/lib/subscription-duration";
 
 import { placeOrderAction, type CheckoutState } from "./actions";
 
@@ -20,6 +21,7 @@ export type CheckoutPlan = {
   name: string;
   serviceType: "IPTV" | "VIP";
   price: number;
+  durationMonths: number;
   durationLabel: string;
   description: string;
   features: string[];
@@ -270,6 +272,19 @@ export function CheckoutForm({
                 <dd className="text-end font-semibold text-ink">
                   {plan.name}
                   <span className="block text-xs font-normal text-ink-3">{plan.durationLabel}</span>
+                </dd>
+              </div>
+            ) : null}
+            {plan ? (
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-3">{mode === "RENEW" ? t("مدة التجديد", "Renewal length") : t("المدة", "Duration")}</dt>
+                <dd className="nums text-end font-semibold text-ink" data-testid="summary-duration" data-months={plan.durationMonths}>
+                  {formatDuration(plan.durationMonths, language)}
+                  <span className="block text-xs font-normal text-ink-3">
+                    {mode === "RENEW"
+                      ? t("تُضاف إلى تاريخ انتهاء اشتراكك بعد تأكيد الدفع", "Added to your expiry date once payment is confirmed")
+                      : t("تبدأ من يوم التفعيل بعد تأكيد الدفع", "Starts on activation, after payment is confirmed")}
+                  </span>
                 </dd>
               </div>
             ) : null}

@@ -108,7 +108,8 @@ export async function getActivePackages(): Promise<CatalogPackage[]> {
       ? a.serviceType === "IPTV"
         ? -1
         : 1
-      : a.price - b.price || a.id - b.id,
+      : // Shortest to longest, so durations and prices read side by side.
+        a.durationMonths - b.durationMonths || a.price - b.price || a.id - b.id,
   );
 }
 

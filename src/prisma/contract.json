@@ -1293,6 +1293,13 @@
                   "kind": "scalar"
                 }
               },
+              "renewalPrice": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "serviceType": {
                 "nullable": false,
                 "type": {
@@ -1373,6 +1380,9 @@
                 },
                 "price": {
                   "column": "price"
+                },
+                "renewalPrice": {
+                  "column": "renewalPrice"
                 },
                 "serviceType": {
                   "column": "serviceType"
@@ -3585,6 +3595,11 @@
                   "nativeType": "int4",
                   "nullable": false
                 },
+                "renewalPrice": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
                 "serviceType": {
                   "codecId": "pg/text@1",
                   "default": {
@@ -4617,7 +4632,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "aa9d3f9a4366ee3df22bb8f6ec3778b49ac77ce4f3c48af3e3d48bd7a566b2bf"
+    "storageHash": "0c1c7155a55af79645b85de36570082b47d347a726673318e733c3762314c73d"
   },
   "execution": {
     "executionHash": "83a013426672b06d72508a485be9554a773c1b26ab0e8f706bdf77ce10305836",

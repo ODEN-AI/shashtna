@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'aa9d3f9a4366ee3df22bb8f6ec3778b49ac77ce4f3c48af3e3d48bd7a566b2bf'>;
+  StorageHashBase<'0c1c7155a55af79645b85de36570082b47d347a726673318e733c3762314c73d'>;
 export type ExecutionHash =
   ExecutionHashBase<'83a013426672b06d72508a485be9554a773c1b26ab0e8f706bdf77ce10305836'>;
 export type ProfileHash =
@@ -366,6 +366,7 @@ export type FieldOutputTypes = {
       readonly slug: CodecTypes['pg/text@1']['output'];
       readonly serviceType: CodecTypes['pg/text@1']['output'];
       readonly price: CodecTypes['pg/int4@1']['output'];
+      readonly renewalPrice: CodecTypes['pg/int4@1']['output'] | null;
       readonly durationMonths: CodecTypes['pg/int4@1']['output'];
       readonly durationUnit: CodecTypes['pg/text@1']['output'];
       readonly durationLabel: CodecTypes['pg/text@1']['output'];
@@ -634,6 +635,7 @@ export type FieldInputTypes = {
       readonly slug: CodecTypes['pg/text@1']['input'];
       readonly serviceType: CodecTypes['pg/text@1']['input'];
       readonly price: CodecTypes['pg/int4@1']['input'];
+      readonly renewalPrice: CodecTypes['pg/int4@1']['input'] | null;
       readonly durationMonths: CodecTypes['pg/int4@1']['input'];
       readonly durationUnit: CodecTypes['pg/text@1']['input'];
       readonly durationLabel: CodecTypes['pg/text@1']['input'];
@@ -908,6 +910,7 @@ export type StorageColumnTypes = {
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly notes: CodecTypes['pg/text@1']['output'] | null;
       readonly price: CodecTypes['pg/int4@1']['output'];
+      readonly renewalPrice: CodecTypes['pg/int4@1']['output'] | null;
       readonly serviceType: CodecTypes['pg/text@1']['output'];
       readonly slug: CodecTypes['pg/text@1']['output'];
       readonly specifications: CodecTypes['pg/text@1']['output'];
@@ -1176,6 +1179,7 @@ export type StorageColumnInputTypes = {
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly notes: CodecTypes['pg/text@1']['input'] | null;
       readonly price: CodecTypes['pg/int4@1']['input'];
+      readonly renewalPrice: CodecTypes['pg/int4@1']['input'] | null;
       readonly serviceType: CodecTypes['pg/text@1']['input'];
       readonly slug: CodecTypes['pg/text@1']['input'];
       readonly specifications: CodecTypes['pg/text@1']['input'];
@@ -2093,6 +2097,11 @@ type ContractBase = Omit<
                   readonly nativeType: 'int4';
                   readonly codecId: 'pg/int4@1';
                   readonly nullable: false;
+                };
+                readonly renewalPrice: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
                 };
                 readonly durationMonths: {
                   readonly nativeType: 'int4';
@@ -3796,6 +3805,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
+              readonly renewalPrice: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
               readonly durationMonths: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
@@ -3865,6 +3878,7 @@ type ContractBase = Omit<
                 readonly slug: { readonly column: 'slug' };
                 readonly serviceType: { readonly column: 'serviceType' };
                 readonly price: { readonly column: 'price' };
+                readonly renewalPrice: { readonly column: 'renewalPrice' };
                 readonly durationMonths: { readonly column: 'durationMonths' };
                 readonly durationUnit: { readonly column: 'durationUnit' };
                 readonly durationLabel: { readonly column: 'durationLabel' };

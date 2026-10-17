@@ -99,6 +99,7 @@ export type PackageFormValues = {
   slug: string;
   serviceType: "IPTV" | "VIP";
   price: number | "";
+  renewalPrice: number | null;
   durationMonths: number;
   durationUnit: DurationUnit;
   durationLabel: string;
@@ -141,6 +142,8 @@ export function PackageForm({ initial, devices, slugLocked }: { initial: Package
       slug: text(form, "slug"),
       serviceType,
       price: priceValue(form.get("price")),
+      // Empty = renewals cost the normal price.
+      renewalPrice: text(form, "renewalPrice") === "" ? null : priceValue(form.get("renewalPrice")),
       ...(vip ? {} : { durationValue: priceValue(form.get("durationValue")), durationUnit: unit, durationLabel: text(form, "durationLabel") }),
       description: text(form, "description"),
       specifications: text(form, "specifications"),
@@ -201,8 +204,15 @@ export function PackageForm({ initial, devices, slugLocked }: { initial: Package
           <Field label={t("السعر (د.ع)", "Price (IQD)")} htmlFor="pkg-price" required hint={t("رقم صحيح بالدينار. الطلبات والاشتراكات السابقة تحتفظ بسعرها ومدتها.", "Whole dinars. Past orders and subscriptions keep their own price and duration.")}>
             <Input id="pkg-price" name="price" inputMode="numeric" dir="ltr" value={price} onChange={(event) => setPrice(event.target.value)} data-testid="package-price" />
           </Field>
+          <Field
+            label={t("سعر التجديد (د.ع)", "Renewal price (IQD)")}
+            htmlFor="pkg-renewal-price"
+            hint={vip ? t("سعر طلب تجديد VIP (بدون جهاز). فارغ = نفس السعر العادي.", "Price of a VIP renewal order (no device). Empty = the normal price.") : t("اختياري. فارغ = التجديد بنفس السعر العادي.", "Optional. Empty = renewals cost the normal price.")}
+          >
+            <Input id="pkg-renewal-price" name="renewalPrice" inputMode="numeric" dir="ltr" defaultValue={initial.renewalPrice ?? ""} data-testid="package-renewal-price" />
+          </Field>
           {vip ? (
-            <p className="rounded-xl bg-white/[0.03] px-3 py-3 text-sm text-ink-3 sm:col-span-2">{t("باقات VIP مدتها 3 أشهر دائمًا (قاعدة النظام الحالية).", "VIP packages always run 3 months (existing rule).")}</p>
+            <p className="rounded-xl bg-white/[0.03] px-3 py-3 text-sm text-ink-3 sm:col-span-2">{t("باقات VIP مدتها 3 أشهر دائمًا، والتجديد كذلك 3 أشهر.", "VIP packages always run 3 months, and so do VIP renewals.")}</p>
           ) : (
             <>
               <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">

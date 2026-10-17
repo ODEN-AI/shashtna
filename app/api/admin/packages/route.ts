@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { catalogueImageUrl, isValidPrice } from "@/src/lib/catalogue";
+import { catalogueImageUrl, isValidPrice, parseRenewalPrice } from "@/src/lib/catalogue";
 import { requireAdmin } from "@/src/lib/session";
 import { formatDurationAr, resolvePackageDuration } from "@/src/lib/subscription-duration";
 import { auditCatalogue } from "@/src/server/catalogue";
@@ -17,6 +17,7 @@ type PackageBody = {
   slug?: string;
   serviceType?: string;
   price?: number;
+  renewalPrice?: number | null;
   durationMonths?: number;
   durationValue?: number;
   durationUnit?: string;
@@ -108,6 +109,8 @@ export async function GET(request: Request) {
             pkg.durationMonths,
           durationUnit:
             pkg.durationUnit,
+          renewalPrice:
+            pkg.renewalPrice,
           durationLabel:
             pkg.durationLabel,
           description:
@@ -199,6 +202,21 @@ export async function POST(
           success: false,
           message:
             "السعر غير صحيح.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Optional: empty = renewals cost the normal price.
+    const renewalPrice =
+      parseRenewalPrice(body.renewalPrice);
+
+    if (!renewalPrice.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "سعر التجديد غير صحيح.",
         },
         { status: 400 }
       );
@@ -323,6 +341,7 @@ export async function POST(
           slug,
           serviceType,
           price,
+          renewalPrice: renewalPrice.value,
           durationMonths,
           durationUnit,
           durationLabel,

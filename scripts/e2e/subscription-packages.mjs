@@ -61,12 +61,15 @@ const today = (() => {
 
 const password = `Pw-${RUN}-ok`;
 const phones = { customer: `0793${RUN}`, staff: `0794${RUN}` };
+// Canonical IPTV packages after the migrations (12 / 24 months reuse the legacy rows).
 const SEEDED = [
   { slug: "iptv-3m", months: 3, price: 6000 },
   { slug: "iptv-6m", months: 6, price: 10000 },
-  { slug: "iptv-12m", months: 12, price: 15000 },
-  { slug: "iptv-24m", months: 24, price: 25000 },
+  { slug: "iptv-1y", months: 12, price: 15000 },
+  { slug: "iptv-2y", months: 24, price: 25000 },
 ];
+const VIP_RENEWAL_PRICE = 35000;
+let vipRenewalRestore = null;
 const testSlug = `e2e-${RUN}-9m`;
 let customer, staff, customerId, testPackageId;
 const orders = {};
@@ -90,11 +93,13 @@ try {
     customerId = Number(sql(`select id from "user" where phone='${phones.customer}'`));
   });
 
-  await check("seeded packages exist with the configured IQD prices and durations", async () => {
+  await check("one active IPTV package per canonical duration, at the configured IQD price", async () => {
     for (const pkg of SEEDED) {
-      const row = sql(`select price||'|'||"durationMonths"||'|'||"isActive" from package where slug='${pkg.slug}'`);
-      assert.equal(row, `${pkg.price}|${pkg.months}|true`, pkg.slug);
+      const row = sql(`select price||'|'||"durationMonths"||'|'||"isActive"||'|'||"serviceType"||'|'||coalesce("renewalPrice"::text,'-') from package where slug='${pkg.slug}'`);
+      assert.equal(row, `${pkg.price}|${pkg.months}|true|IPTV|-`, pkg.slug);
+      assert.equal(sql(`select count(*) from package where "serviceType"='IPTV' and "isActive" and "durationMonths"=${pkg.months}`), "1", `no duplicate ${pkg.months}-month IPTV package`);
     }
+    assert.equal(sql(`select "serviceType"||'|'||coalesce("renewalPrice"::text,'-') from package where slug='vip-3m'`), `VIP|${VIP_RENEWAL_PRICE}`, "VIP renewal price");
   });
 
   // ------------------------------------------------------------ admin API
@@ -204,11 +209,23 @@ try {
     assert.equal(r.status, 200, `PAID ${r.status} ${r.data?.message ?? ""}`);
   }
 
-  async function activate(orderId, { serviceName, price, bogusMonths }) {
-    const r = await call("POST", "/api/admin/subscriptions", {
-      token: staff,
-      body: { requestId: orderId, userId: customerId, serviceName, serviceType: "IPTV", username: `e2e${RUN}${orderId}`, password: `x${RUN}`, startDate: today, price, ...(bogusMonths ? { durationMonths: bogusMonths } : {}) },
-    });
+  function activationBody(orderId, { serviceName, price, months, serviceType = "IPTV" }) {
+    return {
+      requestId: orderId,
+      userId: customerId,
+      serviceName,
+      serviceType,
+      username: `e2e${RUN}${orderId}`,
+      password: `x${RUN}`,
+      ...(serviceType === "VIP" ? { deviceId: `SN-${RUN}-${orderId}` } : {}),
+      startDate: today,
+      price,
+      ...(months ? { durationMonths: months } : {}),
+    };
+  }
+
+  async function activate(orderId, { serviceName, price, bogusMonths, serviceType }) {
+    const r = await call("POST", "/api/admin/subscriptions", { token: staff, body: activationBody(orderId, { serviceName, price, months: bogusMonths, serviceType }) });
     assert.equal(r.status < 300, true, `activate ${r.status} ${r.data?.message ?? ""}`);
     return r.data;
   }
@@ -244,14 +261,105 @@ try {
   });
 
   await check("invalid renewal length is refused by the server", async () => {
-    const r = await call("POST", "/api/mobile/orders", { token: customer, body: { requestType: "RENEW", planSlug: "iptv-3m", subscriptionId: subscriptions["iptv-12m"] } });
+    const r = await call("POST", "/api/mobile/orders", { token: customer, body: { requestType: "RENEW", planSlug: "iptv-3m", subscriptionId: subscriptions["iptv-1y"] } });
     assert.equal(r.status, 201);
     const id = r.data.order.id;
     const bad = await call("POST", "/api/admin/subscriptions", { token: staff, body: { requestId: id, userId: customerId, serviceName: "IPTV 3 أشهر", serviceType: "IPTV", startDate: today, price: 6000, durationMonths: 61 } });
     assert.equal(bad.status, 400);
     assert.equal(sql(`select status from "subscriptionRequest" where id=${id}`), "SUBMITTED");
   });
+
+  // ------------------------------------------------------------ IPTV renewal price = normal price
+  await check("IPTV renewal of the annual package costs 15,000 (no renewal price set)", async () => {
+    const r = await call("POST", "/api/mobile/orders", { token: customer, body: { requestType: "RENEW", planSlug: "iptv-1y", subscriptionId: subscriptions["iptv-1y"], price: 1 } });
+    assert.equal(r.status, 201);
+    assert.equal(sql(`select price||'|'||"durationMonths" from "subscriptionRequest" where id=${r.data.order.id}`), "15000|12");
+  });
+
+  // ------------------------------------------------------------ VIP vs IPTV never mix
+  const vip = (() => {
+    const [price, id] = sql(`select price||'|'||id from package where slug='vip-3m'`).split("|").map(Number);
+    const [deviceId, devicePrice] = sql(`select d.id||'|'||d.price from device d join "packageDevice" pd on pd."deviceId"=d.id where pd."packageId"=${id} and d."isActive" order by d.id limit 1`).split("|").map(Number);
+    return { price, id, deviceId, devicePrice };
+  })();
+
+  await check("a VIP renewal can't target an IPTV subscription (order refused)", async () => {
+    const r = await call("POST", "/api/mobile/orders", { token: customer, body: { requestType: "RENEW", planSlug: "vip-3m", subscriptionId: subscriptions["iptv-3m"] } });
+    assert.equal(r.status, 400, `→ ${r.status}`);
+  });
+
+  await check("a VIP renewal without a VIP subscription never renews an IPTV one (activation refused)", async () => {
+    const r = await call("POST", "/api/mobile/orders", { token: customer, body: { requestType: "RENEW", planSlug: "vip-3m" } });
+    assert.equal(r.status, 201);
+    const id = r.data.order.id;
+    const before = sql(`select string_agg(id||':'||"expiryDate", ',' order by id) from subscription where "userId"=${customerId}`);
+    const bad = await call("POST", "/api/admin/subscriptions", { token: staff, body: activationBody(id, { serviceName: "VIP 3 أشهر", price: VIP_RENEWAL_PRICE, serviceType: "VIP" }) });
+    assert.equal(bad.status, 400, `→ ${bad.status}`);
+    assert.equal(sql(`select string_agg(id||':'||"expiryDate", ',' order by id) from subscription where "userId"=${customerId}`), before, "IPTV subscriptions unchanged");
+    assert.equal(sql(`select status from "subscriptionRequest" where id=${id}`), "SUBMITTED");
+    sql(`update "subscriptionRequest" set status='CANCELLED' where id=${id}`);
+  });
+
+  // ------------------------------------------------------------ VIP new + renewal
+  await check("VIP new subscription: package + device price, 3 months", async () => {
+    const r = await call("POST", "/api/mobile/orders", { token: customer, body: { requestType: "NEW", planSlug: "vip-3m", deviceId: vip.deviceId, price: 1 } });
+    assert.equal(r.status, 201, `${r.status} ${r.data?.error?.message ?? ""}`);
+    const id = r.data.order.id;
+    assert.equal(sql(`select price||'|'||"devicePrice"||'|'||"durationMonths" from "subscriptionRequest" where id=${id}`), `${vip.price + vip.devicePrice}|${vip.devicePrice}|3`);
+    await confirmPayment(id);
+    await activate(id, { serviceName: "VIP 3 أشهر", price: vip.price + vip.devicePrice, serviceType: "VIP" });
+    subscriptions.vip = Number(sql(`select "subscriptionId" from "subscriptionRequest" where id=${id}`));
+    assert.equal(sql(`select "serviceType"||'|'||to_char("expiryDate"::date,'YYYY-MM-DD') from subscription where id=${subscriptions.vip}`), `VIP|${addMonths(today, 3)}`);
+  });
+
+  await check("catalogue and checkout show the VIP renewal price (website + app)", async () => {
+    const catalog = await call("GET", "/api/mobile/catalog");
+    const byslug = Object.fromEntries(catalog.data.packages.map((p) => [p.slug, p]));
+    assert.equal(byslug["vip-3m"].renewalPrice, VIP_RENEWAL_PRICE);
+    assert.equal(byslug["vip-3m"].price, vip.price, "normal VIP price unchanged");
+    assert.equal(byslug["iptv-1y"].renewalPrice, 15000, "IPTV renews at its normal price");
+    const preview = await call("GET", `/api/mobile/checkout?renew=${subscriptions.vip}`, { token: customer });
+    assert.equal(preview.status, 200, `${preview.status}`);
+    assert.equal(preview.data.plan.slug, "vip-3m");
+    assert.equal(preview.data.plan.price, VIP_RENEWAL_PRICE);
+    assert.equal(preview.data.plan.normalPrice, vip.price);
+    const plans = await call("GET", "/plans");
+    assert.ok(plans.data.includes("compare-renewal-price"), "/plans shows the renewal price");
+  });
+
+  await check("VIP renewal: 35,000, no device, exactly 3 months from the current expiry", async () => {
+    const before = sql(`select to_char("expiryDate"::date,'YYYY-MM-DD') from subscription where id=${subscriptions.vip}`);
+    const r = await call("POST", "/api/mobile/orders", { token: customer, body: { requestType: "RENEW", planSlug: "vip-3m", subscriptionId: subscriptions.vip, deviceId: vip.deviceId, price: 1 } });
+    assert.equal(r.status, 201, `${r.status} ${r.data?.error?.message ?? ""}`);
+    const id = r.data.order.id;
+    orders.vipRenewal = id;
+    assert.equal(sql(`select price||'|'||coalesce("devicePrice"::text,'-')||'|'||"durationMonths" from "subscriptionRequest" where id=${id}`), `${VIP_RENEWAL_PRICE}|-|3`);
+    await confirmPayment(id);
+    const year = await call("POST", "/api/admin/subscriptions", { token: staff, body: activationBody(id, { serviceName: "VIP 3 أشهر", price: VIP_RENEWAL_PRICE, months: 12, serviceType: "VIP" }) });
+    assert.equal(year.status, 400, "a 12-month VIP renewal is refused");
+    await activate(id, { serviceName: "VIP 3 أشهر", price: VIP_RENEWAL_PRICE, serviceType: "VIP" });
+    assert.equal(sql(`select to_char("expiryDate"::date,'YYYY-MM-DD')||'|'||"serviceType" from subscription where id=${subscriptions.vip}`), `${addMonths(before, 3)}|VIP`);
+    assert.equal(sql(`select price||'|'||"durationMonths"||'|'||"serviceType" from receipt where "orderId"=${id}`), `${VIP_RENEWAL_PRICE}|3|VIP`);
+  });
+
+  await check("admin changes the VIP renewal price from the dashboard API; only new orders use it", async () => {
+    const invalid = await call("PATCH", `/api/admin/packages/${vip.id}`, { token: staff, body: { renewalPrice: -5 } });
+    assert.equal(invalid.status, 400);
+    vipRenewalRestore = VIP_RENEWAL_PRICE;
+    const r = await call("PATCH", `/api/admin/packages/${vip.id}`, { token: staff, body: { renewalPrice: 36000 } });
+    assert.equal(r.status, 200, r.data?.message);
+    assert.equal(sql(`select price||'|'||"renewalPrice" from package where id=${vip.id}`), `${vip.price}|36000`, "normal price untouched");
+    const order = await call("POST", "/api/mobile/orders", { token: customer, body: { requestType: "RENEW", planSlug: "vip-3m", subscriptionId: subscriptions.vip } });
+    assert.equal(order.status, 201);
+    assert.equal(sql(`select price from "subscriptionRequest" where id=${order.data.order.id}`), "36000");
+    assert.equal(sql(`select price from "subscriptionRequest" where id=${orders.vipRenewal}`), String(VIP_RENEWAL_PRICE), "earlier renewal keeps its price");
+    assert.equal(sql(`select price from receipt where "orderId"=${orders.vipRenewal}`), String(VIP_RENEWAL_PRICE));
+    assert.equal(sql(`select count(*) from "activityEvent" where "entityType"='PACKAGE' and "entityId"='${vip.id}' and action='PACKAGE_PRICE_CHANGED' and details like '%renewalPrice: 35000 → 36000%'`), "1", "audited");
+  });
 } finally {
+  if (vipRenewalRestore !== null) {
+    try { sql(`update package set "renewalPrice"=${vipRenewalRestore} where slug='vip-3m'`); } catch (error) { console.error("restore VIP renewal price failed:", String(error.message).split("\n")[0]); }
+  }
   // ------------------------------------------------------------ cleanup (local rows of this run only)
   try {
     const ids = sql(`select string_agg(id::text, ',') from "user" where phone in ('${phones.customer}','${phones.staff}')`);

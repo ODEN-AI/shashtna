@@ -131,31 +131,85 @@ test("prices are validated as non-negative whole dinars", () => {
   assert.ok(!catalogue.isValidPrice("6000"));
 });
 
-test("seed migration: the four IQD packages, insert-only, idempotent", () => {
-  const dir = new URL("../migrations/app/20261016T0559_package_duration_unit/", import.meta.url);
-  const ops = JSON.parse(readFileSync(new URL("ops.json", dir), "utf8")) as { id: string; operationClass: string; execute: { sql: string }[]; postcheck: { sql: string; params?: unknown[] }[] }[];
+type Op = { id: string; operationClass: string; execute: { sql: string }[]; postcheck: { sql: string; params?: unknown[] }[] };
+
+function readOps(dir: string): Op[] {
+  return JSON.parse(readFileSync(new URL(`../migrations/app/${dir}/ops.json`, import.meta.url), "utf8"));
+}
+
+test("IPTV seed: reuses iptv-1y / iptv-2y, adds missing durations, IPTV only, never deletes", () => {
+  const ops = readOps("20261016T0559_package_duration_unit");
 
   assert.deepEqual(
     ops.map((op) => [op.id, op.operationClass]),
     [
       ["column.public.package.durationUnit", "additive"],
-      ["data.public.package.seed_initial_subscription_packages", "data"],
+      ["data.public.package.canonical_iptv_packages", "data"],
     ],
   );
 
-  const seed = ops[1];
-  const sql = seed.execute.map((step) => step.sql).join("\n");
+  const steps = ops[1].execute.map((step) => step.sql);
+  const all = steps.join("\n");
 
-  assert.match(sql, /ON CONFLICT \("slug"\) DO NOTHING/, "existing slugs are left untouched");
-  assert.doesNotMatch(sql, /\b(UPDATE|DELETE|DROP|TRUNCATE)\b/i, "never changes or removes existing data");
-
-  for (const pkg of INITIAL) {
-    assert.match(sql, new RegExp(`'${pkg.slug}', 'IPTV', ${pkg.price}, ${pkg.months}, '(MONTH|YEAR)', '${pkg.ar}'`), pkg.slug);
+  for (const statement of steps) {
+    assert.match(statement, /"serviceType" = 'IPTV'|'IPTV'/, "every statement is limited to IPTV");
   }
+  assert.doesNotMatch(all, /VIP/, "VIP packages are never read or written");
+  assert.doesNotMatch(all, /\b(DELETE|DROP|TRUNCATE)\b/i, "nothing is removed");
+  assert.doesNotMatch(all, /"isActive"\s*=\s*false/i, "nothing is disabled");
 
-  assert.deepEqual(seed.postcheck[0].params, [INITIAL.map((pkg) => pkg.slug)]);
+  // 12 / 24 months: the existing rows are repriced, guarded by slug + service + duration.
+  assert.match(steps[0], /SET "price" = 15000, "durationUnit" = 'YEAR'.*WHERE "slug" = 'iptv-1y' AND "serviceType" = 'IPTV' AND "durationMonths" = 12/);
+  assert.match(steps[1], /SET "price" = 25000, "durationUnit" = 'YEAR'.*WHERE "slug" = 'iptv-2y' AND "serviceType" = 'IPTV' AND "durationMonths" = 24/);
+  for (const statement of steps.slice(0, 2)) assert.doesNotMatch(statement, /\bname\b|"name"|"slug" =\s*'iptv-(12|24)m'/, "slug and name are kept");
 
-  const migration = JSON.parse(readFileSync(new URL("migration.json", dir), "utf8"));
+  // Inserts: all four canonical prices, only when no active IPTV package of that duration exists.
+  const insert = steps[2];
+  for (const pkg of INITIAL) assert.match(insert, new RegExp(`'${pkg.slug}', ${pkg.price}, ${pkg.months}, '(MONTH|YEAR)', '${pkg.ar}'`), pkg.slug);
+  assert.match(insert, /NOT EXISTS \(\s*SELECT 1 FROM "public"\."package" p\s*WHERE p\."serviceType" = 'IPTV' AND p\."durationMonths" = v\.months AND p\."isActive"/);
+  assert.match(insert, /ON CONFLICT \("slug"\) DO NOTHING/);
+  assert.doesNotMatch(insert, /'IPTV سنة'|'IPTV سنتين'/, "fallback rows don't reuse legacy names (subscriptions match by name)");
+
+  assert.match(ops[1].postcheck[0].sql, /count\(DISTINCT "durationMonths"\)[\s\S]*IN \(3, 6, 12, 24\)\) = 4/);
+});
+
+test("VIP renewal price migration: nullable column, VIP 3 months = 35,000 only when unset", () => {
+  const ops = readOps("20261017T1832_package_renewal_price");
+
+  assert.deepEqual(
+    ops.map((op) => [op.id, op.operationClass]),
+    [
+      ["column.public.package.renewalPrice", "additive"],
+      ["data.public.package.vip_renewal_price", "data"],
+    ],
+  );
+
+  const update = ops[1].execute.map((step) => step.sql).join("\n");
+  assert.match(update, /SET "renewalPrice" = 35000/);
+  assert.match(update, /WHERE "serviceType" = 'VIP' AND "durationMonths" = 3 AND "renewalPrice" IS NULL/);
+  assert.doesNotMatch(update, /IPTV|"price" =/, "IPTV and the VIP normal price are untouched");
+
+  const migration = JSON.parse(readFileSync(new URL("../migrations/app/20261017T1832_package_renewal_price/migration.json", import.meta.url), "utf8"));
+  const previous = JSON.parse(readFileSync(new URL("../migrations/app/20261016T0559_package_duration_unit/migration.json", import.meta.url), "utf8"));
   const ref = JSON.parse(readFileSync(new URL("../migrations/app/refs/db.json", import.meta.url), "utf8"));
-  assert.equal(migration.to, ref.hash, "the db ref points at this migration's contract");
+  assert.equal(migration.from, previous.to, "chained after the IPTV seed");
+  assert.equal(migration.to, ref.hash, "the db ref points at the latest contract");
+});
+
+test("order price: renewals use the renewal price; VIP renewal has no device; client values are ignored", () => {
+  const vip = { price: 45000, renewalPrice: 35000 };
+  const iptv = { price: 15000, renewalPrice: null };
+
+  assert.equal(catalogue.planOrderPrice(vip, "NEW", 80000), 125000, "VIP new = plan + device");
+  assert.equal(catalogue.planOrderPrice(vip, "RENEW", 80000), 35000, "VIP renewal = renewal price, never the device");
+  assert.equal(catalogue.planOrderPrice(vip, "renew"), 35000);
+  assert.equal(catalogue.planOrderPrice(vip, "UPGRADE", 80000), 125000);
+  assert.equal(catalogue.planOrderPrice(iptv, "RENEW"), 15000, "no renewal price = normal price");
+  assert.equal(catalogue.planOrderPrice({ price: 6000 }, "RENEW"), 6000);
+  assert.equal(catalogue.planOrderPrice(iptv, "NEW"), 15000);
+
+  assert.deepEqual(catalogue.parseRenewalPrice(""), { ok: true, value: null });
+  assert.deepEqual(catalogue.parseRenewalPrice(null), { ok: true, value: null });
+  assert.deepEqual(catalogue.parseRenewalPrice(35000), { ok: true, value: 35000 });
+  for (const bad of [-1, 1.5, "35000", Number.NaN]) assert.equal(catalogue.parseRenewalPrice(bad).ok, false, String(bad));
 });

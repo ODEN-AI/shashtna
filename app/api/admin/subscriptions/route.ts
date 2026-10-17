@@ -977,15 +977,57 @@ export async function POST(
         );
       }
 
+      // VIP subscriptions renew for three months only (as they are sold).
+      if (
+        serviceType === "VIP" &&
+        renewalMonths !== 3
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "تجديد VIP متوفر لمدة 3 أشهر فقط.",
+          },
+          { status: 400 }
+        );
+      }
+
       const existingSubscriptions =
         await db.orm.public.Subscription.all();
 
+      // Only this customer's subscriptions of the order's service: a VIP
+      // renewal never extends an IPTV subscription, and vice versa.
       const customerSubscriptions =
         existingSubscriptions.filter(
           (subscription) =>
             subscription.userId ===
-            userId
+              userId &&
+            String(
+              subscription.serviceType ??
+                "IPTV"
+            )
+              .trim()
+              .toUpperCase() ===
+              serviceType
         );
+
+      if (
+        subscriptionRequest.subscriptionId &&
+        !customerSubscriptions.some(
+          (subscription) =>
+            subscription.id ===
+            subscriptionRequest.subscriptionId
+        )
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "الاشتراك المطلوب تجديده ليس من نفس نوع الخدمة أو لا يخص هذا العميل.",
+          },
+          { status: 400 }
+        );
+      }
 
       if (
         customerSubscriptions.length ===

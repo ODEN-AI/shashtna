@@ -66,8 +66,17 @@ const RENEWAL_MONTH_OPTIONS = [
 ];
 
 function renewalOptions(
-  orderedMonths: number | undefined
+  orderedMonths: number | undefined,
+  serviceType: string | undefined
 ) {
+  // VIP renews for three months only.
+  if (
+    String(serviceType ?? "")
+      .toUpperCase() === "VIP"
+  ) {
+    return [3];
+  }
+
   return [
     ...new Set([
       ...(orderedMonths &&
@@ -421,11 +430,13 @@ export default function AddSubscriptionPage({
           "RENEW"
         ) {
           setRenewalMonths(
-            isValidDurationMonths(
-              request.durationMonths
-            )
-              ? request.durationMonths
-              : 12
+            String(request.serviceType).toUpperCase() === "VIP"
+              ? 3
+              : isValidDurationMonths(
+                    request.durationMonths
+                  )
+                ? request.durationMonths
+                : 12
           );
 
           setBonusYears(
@@ -463,7 +474,15 @@ export default function AddSubscriptionPage({
                       subscription
                     ) =>
                       subscription.userId ===
-                      request.userId
+                        request.userId &&
+                      String(
+                        subscription.serviceType ??
+                          "IPTV"
+                      ).toUpperCase() ===
+                        String(
+                          request.serviceType ??
+                            "IPTV"
+                        ).toUpperCase()
                   )
                   .sort(
                     (
@@ -1124,7 +1143,8 @@ export default function AddSubscriptionPage({
                     className="w-full appearance-none rounded-2xl border border-blue-200 bg-blue-50 px-12 py-3.5 text-sm font-black text-blue-900 outline-none transition focus:border-blue-400 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-100"
                   >
                     {renewalOptions(
-                      requestData?.durationMonths
+                      requestData?.durationMonths,
+                      requestData?.serviceType
                     ).map(
                       (months) => (
                         <option

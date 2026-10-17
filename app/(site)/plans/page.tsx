@@ -170,7 +170,12 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
                         <th scope="row" className="px-4 py-3.5 text-start font-bold text-ink">{pkg.name}</th>
                         <td className="px-4 py-3.5 text-ink-2">{pkg.serviceType}</td>
                         <td className="nums px-4 py-3.5 text-ink-2" data-testid="compare-duration" data-months={pkg.durationMonths}>{formatDuration(pkg.durationMonths, lang)}</td>
-                        <td className="nums px-4 py-3.5 font-semibold text-ink" data-testid="compare-price">{formatPrice(pkg.price, lang)}</td>
+                        <td className="nums px-4 py-3.5 font-semibold text-ink" data-testid="compare-price">
+                          {formatPrice(pkg.price, lang)}
+                          {pkg.renewalPrice !== null && pkg.renewalPrice !== pkg.price ? (
+                            <span className="block text-xs font-normal text-ink-3" data-testid="compare-renewal-price">{t("التجديد: ", "Renewal: ")}{formatPrice(pkg.renewalPrice, lang)}</span>
+                          ) : null}
+                        </td>
                         <td className="nums px-4 py-3.5 text-ink-3">{formatPrice(monthlyPrice(pkg.price, pkg.durationMonths), lang)}</td>
                         <td className="px-4 py-3.5 text-ink-2">
                           {pkg.serviceType === "VIP" ? t("مطلوب — يُختار عند الطلب", "Required — chosen at checkout") : "—"}

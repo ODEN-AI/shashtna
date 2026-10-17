@@ -12,6 +12,7 @@ import {
 import { logActivity } from "@/src/server/activity";
 import { notify } from "@/src/server/notifications";
 import { normalizeServiceType } from "@/src/server/catalog";
+import { planOrderPrice } from "@/src/lib/catalogue";
 
 export const REQUEST_TYPES = ["NEW", "RENEW", "UPGRADE", "DEVICE_PURCHASE"] as const;
 export type RequestType = (typeof REQUEST_TYPES)[number];
@@ -97,6 +98,7 @@ function positiveInt(value: unknown) {
  * Business rules are the ones the site used before the redesign:
  * - VIP new subscriptions need a compatible, active VIP device; the price is
  *   plan + device.
+ * - Renewals cost the package's renewal price when set (VIP), else its price.
  * - Device purchases are orders of type DEVICE_PURCHASE.
  * - A repeated unpaid order for the same plan and type updates the existing
  *   order instead of creating a duplicate.
@@ -252,7 +254,7 @@ export async function createOrder(
     requestType,
     serviceType,
     serviceName: plan.name,
-    price: plan.price + (deviceFields.devicePrice ?? 0),
+    price: planOrderPrice(plan, requestType, deviceFields.devicePrice),
     durationMonths: plan.durationMonths,
     durationLabel: plan.durationLabel,
     subscriptionId,

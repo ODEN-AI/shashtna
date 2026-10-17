@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { catalogueImageUrl, describeChanges, describeLinks, isValidPrice } from "@/src/lib/catalogue";
+import { catalogueImageUrl, describeChanges, describeLinks, isValidPrice, parseRenewalPrice } from "@/src/lib/catalogue";
 import { requireAdmin } from "@/src/lib/session";
 import { durationValue, hasDurationFields, resolvePackageDuration } from "@/src/lib/subscription-duration";
 import { auditCatalogue, packageReferences } from "@/src/server/catalogue";
@@ -17,6 +17,7 @@ type PackageBody = {
   slug?: string;
   serviceType?: string;
   price?: number;
+  renewalPrice?: number | null;
   durationMonths?: number;
   durationValue?: number;
   durationUnit?: string;
@@ -241,6 +242,25 @@ export async function PATCH(
 
       updateData.price =
         body.price;
+    }
+
+    if (body.renewalPrice !== undefined) {
+      const renewalPrice =
+        parseRenewalPrice(body.renewalPrice);
+
+      if (!renewalPrice.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "سعر التجديد غير صحيح.",
+          },
+          { status: 400 }
+        );
+      }
+
+      updateData.renewalPrice =
+        renewalPrice.value;
     }
 
     // Duration is only touched when the request carries it (a status toggle
@@ -621,12 +641,12 @@ async function auditPackageUpdate(input: {
 }) {
   const { actor, packageId, name, before, after, links } = input;
   const events: { action: string; summary: string; changes: string[] }[] = [];
-  const price = describeChanges(before, after, ["price"]);
+  const price = describeChanges(before, after, ["price", "renewalPrice"]);
   const status = describeChanges(before, after, ["isActive"]);
   const media = describeChanges(before, after, ["imageUrl"]);
   const details = describeChanges(before, after, ["name", "slug", "serviceType", "durationMonths", "durationUnit", "durationLabel", "description", "specifications", "notes"]);
 
-  if (price.length) events.push({ action: "PACKAGE_PRICE_CHANGED", summary: `Price changed for ${name}: ${before.price} → ${after.price} IQD`, changes: price });
+  if (price.length) events.push({ action: "PACKAGE_PRICE_CHANGED", summary: `Price changed for ${name}: ${price.join("; ")} IQD`, changes: price });
   if (status.length) events.push({ action: after.isActive ? "PACKAGE_ACTIVATED" : "PACKAGE_DEACTIVATED", summary: `Package ${after.isActive ? "activated" : "deactivated"}: ${name}`, changes: status });
   if (media.length) events.push({ action: "PACKAGE_MEDIA_CHANGED", summary: `Image changed for ${name}`, changes: media });
   if (links?.changed) events.push({ action: "PACKAGE_COMPATIBILITY_CHANGED", summary: `Compatible devices changed for ${name}`, changes: [`added: ${links.added.join(", ") || "—"}`, `removed: ${links.removed.join(", ") || "—"}`] });

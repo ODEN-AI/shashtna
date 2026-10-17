@@ -1,3 +1,4 @@
+import { planOrderPrice } from "@/src/lib/catalogue";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -84,7 +85,8 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
                   slug: plan.slug,
                   name: plan.name,
                   serviceType: plan.serviceType,
-                  price: plan.price,
+                  // What this order will cost: renewals use the renewal price when set.
+                  price: planOrderPrice(plan, mode),
                   durationMonths: plan.durationMonths,
                   durationLabel: plan.durationLabel,
                   description: plan.description,

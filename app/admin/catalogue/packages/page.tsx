@@ -104,7 +104,12 @@ function PackagesTable({ rows, page: pageParam, t, lang, params }: { rows: Rows;
             ),
           },
           { key: "type", header: t("النوع", "Type"), cell: (row) => <TypeBadge type={row.serviceType} /> },
-          { key: "price", header: t("السعر", "Price"), cell: (row) => <span className="nums font-semibold" data-testid="catalogue-price">{formatPrice(row.price, lang)}</span> },
+          { key: "price", header: t("السعر", "Price"), cell: (row) => (
+              <span className="nums block" data-testid="catalogue-price">
+                <span className="font-semibold">{formatPrice(row.price, lang)}</span>
+                {typeof row.renewalPrice === "number" ? <span className="block text-xs text-ink-3" data-testid="catalogue-renewal-price">{t("التجديد: ", "Renewal: ")}{formatPrice(row.renewalPrice, lang)}</span> : null}
+              </span>
+            ) },
           { key: "duration", header: t("المدة", "Duration"), cell: (row) => <span className="nums text-sm" data-testid="catalogue-duration" data-months={row.durationMonths}>{formatDuration(row.durationMonths, lang)}</span> },
           { key: "monthly", header: t("شهريًا", "Per month"), hideOnMobile: true, cell: (row) => <span className="nums text-xs text-ink-3">{formatPrice(monthlyPrice(row.price, row.durationMonths), lang)}</span> },
           { key: "status", header: t("الحالة", "Status"), cell: (row) => <ActiveBadge active={row.isActive} t={t} /> },

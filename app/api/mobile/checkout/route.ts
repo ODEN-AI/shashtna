@@ -1,3 +1,4 @@
+import { planOrderPrice } from "@/src/lib/catalogue";
 import { resolveCheckoutSelection } from "@/src/server/checkout-selection";
 import { fail, ok, withMobileUser } from "@/src/server/mobile/http";
 import { absoluteUrl } from "@/src/server/mobile/shape";
@@ -41,7 +42,10 @@ export const GET = withMobileUser(async ({ request, user }) => {
           slug: selection.plan.slug,
           name: selection.plan.name,
           serviceType: selection.plan.serviceType,
-          price: selection.plan.price,
+          // The price this order will be charged (renewal price on renewals).
+          price: planOrderPrice(selection.plan, selection.mode),
+          normalPrice: selection.plan.price,
+          durationMonths: selection.plan.durationMonths,
           durationLabel: selection.plan.durationLabel,
           description: selection.plan.description,
           features: selection.plan.features.slice(0, 4),

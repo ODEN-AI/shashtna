@@ -19,6 +19,7 @@ export const GET = withPublic(async ({ request }) => {
       slug: pkg.slug,
       serviceType: pkg.serviceType,
       price: pkg.price,
+      renewalPrice: pkg.renewalPrice ?? pkg.price,
       durationMonths: pkg.durationMonths,
       durationLabel: pkg.durationLabel,
       description: pkg.description,

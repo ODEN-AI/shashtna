@@ -25,7 +25,7 @@ export default async function NewPackagePage() {
       <div className="max-w-4xl">
         {options?.ok ? (
           <PackageForm
-            initial={{ name: "", slug: "", serviceType: "IPTV", price: "", durationMonths: 12, durationLabel: "1 Year", description: "", specifications: "", notes: null, imageUrl: null, isActive: true, deviceIds: [] }}
+            initial={{ name: "", slug: "", serviceType: "IPTV", price: "", renewalPrice: null, durationMonths: 12, durationUnit: "YEAR", durationLabel: "", description: "", specifications: "", notes: null, imageUrl: null, isActive: true, deviceIds: [] }}
             devices={options.data.devices}
           />
         ) : (

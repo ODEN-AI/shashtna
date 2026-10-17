@@ -4,6 +4,7 @@ import { maskedPassword } from "@/src/server/credentials";
 import { isOpen } from "@/src/lib/order-status";
 import { logActivity } from "@/src/server/activity";
 import { completeOrderWithSubscription } from "@/src/server/orders";
+import { addMonthsClamped, formatDurationAr, isValidDurationMonths } from "@/src/lib/subscription-duration";
 import {
   db,
   ensureDatabaseConnection,
@@ -84,6 +85,11 @@ function normalizeDateOnly(
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Calendar months from a start date; a day missing from the target month is
+ * clamped to its last day (31 Aug + 6 months = end of Feb), never spilled
+ * into the following month.
+ */
 function calculateExpiryDate(
   startDateString: string,
   months: number
@@ -93,48 +99,12 @@ function calculateExpiryDate(
       startDateString
     );
 
-  if (
-    !normalizedStart ||
-    !Number.isInteger(
-      months
-    ) ||
-    months <= 0
-  ) {
-    return null;
-  }
-
-  const startDate =
-    new Date(
-      `${normalizedStart}T00:00:00`
-    );
-
-  if (
-    Number.isNaN(
-      startDate.getTime()
-    )
-  ) {
-    return null;
-  }
-
-  startDate.setMonth(
-    startDate.getMonth() +
-      months
-  );
-
-  const year =
-    startDate.getFullYear();
-
-  const month =
-    String(
-      startDate.getMonth() + 1
-    ).padStart(2, "0");
-
-  const day =
-    String(
-      startDate.getDate()
-    ).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+  return normalizedStart
+    ? addMonthsClamped(
+        normalizedStart,
+        months
+      )
+    : null;
 }
 
 function addMonthsToDate(
@@ -225,20 +195,6 @@ function generateReceiptNumber() {
     );
 
   return `SHASHTNA-${year}${month}${day}-${hours}${minutes}${seconds}-${random}`;
-}
-
-function getYearLabel(
-  years: number
-) {
-  if (years === 1) {
-    return "سنة واحدة";
-  }
-
-  if (years === 2) {
-    return "سنتين";
-  }
-
-  return `${years} سنوات`;
 }
 
 function getBonusLabel(
@@ -1000,53 +956,37 @@ export async function POST(
       requestType ===
       "RENEW"
     ) {
+      // The length the customer ordered (snapshotted on the order from the
+      // package), unless staff deliberately set another one: 1 month–5 years.
       const renewalMonths =
-        requestedDurationMonths;
+        requestedDurationMonths ??
+        subscriptionRequest.durationMonths;
 
       if (
-        !Number.isInteger(
+        !isValidDurationMonths(
           renewalMonths
-        ) ||
-        renewalMonths! <= 0
+        )
       ) {
         return NextResponse.json(
           {
             success: false,
             message:
-              "مدة التجديد غير صحيحة.",
+              "مدة التجديد يجب أن تكون بين شهر واحد وخمس سنوات.",
           },
           { status: 400 }
         );
       }
 
+      // VIP subscriptions renew for three months only (as they are sold).
       if (
-        renewalMonths! %
-          12 !==
-        0
+        serviceType === "VIP" &&
+        renewalMonths !== 3
       ) {
         return NextResponse.json(
           {
             success: false,
             message:
-              "مدة التجديد يجب أن تكون بعدد سنوات كامل.",
-          },
-          { status: 400 }
-        );
-      }
-
-      const requestedYears =
-        renewalMonths! /
-        12;
-
-      if (
-        requestedYears < 1 ||
-        requestedYears > 5
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            message:
-              "مدة التجديد يجب أن تكون بين سنة وخمس سنوات.",
+              "تجديد VIP متوفر لمدة 3 أشهر فقط.",
           },
           { status: 400 }
         );
@@ -1055,12 +995,39 @@ export async function POST(
       const existingSubscriptions =
         await db.orm.public.Subscription.all();
 
+      // Only this customer's subscriptions of the order's service: a VIP
+      // renewal never extends an IPTV subscription, and vice versa.
       const customerSubscriptions =
         existingSubscriptions.filter(
           (subscription) =>
             subscription.userId ===
-            userId
+              userId &&
+            String(
+              subscription.serviceType ??
+                "IPTV"
+            )
+              .trim()
+              .toUpperCase() ===
+              serviceType
         );
+
+      if (
+        subscriptionRequest.subscriptionId &&
+        !customerSubscriptions.some(
+          (subscription) =>
+            subscription.id ===
+            subscriptionRequest.subscriptionId
+        )
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "الاشتراك المطلوب تجديده ليس من نفس نوع الخدمة أو لا يخص هذا العميل.",
+          },
+          { status: 400 }
+        );
+      }
 
       if (
         customerSubscriptions.length ===
@@ -1193,7 +1160,7 @@ export async function POST(
       const renewalExpiryDate =
         addMonthsToDate(
           baseDate,
-          renewalMonths!
+          renewalMonths
         );
 
       if (
@@ -1268,10 +1235,12 @@ export async function POST(
 
       const durationLabel =
         requestedDurationLabel ||
-        getYearLabel(
-          requestedDurationMonths! /
-            12
-        );
+        (renewalMonths ===
+        subscriptionRequest.durationMonths
+          ? subscriptionRequest.durationLabel
+          : formatDurationAr(
+              renewalMonths
+            ));
 
       const receipt =
         await db.orm.public.Receipt.create(
@@ -1294,7 +1263,7 @@ export async function POST(
             price,
 
             durationMonths:
-              renewalMonths!,
+              renewalMonths,
 
             durationLabel,
 
@@ -1314,7 +1283,7 @@ export async function POST(
           {
             price,
             durationMonths:
-              renewalMonths!,
+              renewalMonths,
             durationLabel,
             bonusYears: 0,
           }

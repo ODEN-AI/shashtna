@@ -1,0 +1,78 @@
+[
+  {
+    "id": "column.public.package.durationUnit",
+    "label": "Add column \"durationUnit\" to \"package\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "durationUnit",
+        "table": "package"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"durationUnit\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "package",
+          "durationUnit"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"durationUnit\"",
+        "sql": "ALTER TABLE \"public\".\"package\" ADD COLUMN \"durationUnit\" text DEFAULT 'MONTH' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"durationUnit\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "package",
+          "durationUnit"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "data.public.package.canonical_iptv_packages",
+    "label": "Canonical IPTV packages: reprice iptv-1y / iptv-2y, add missing 3 / 6 / 12 / 24-month IPTV packages",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "package"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "reprice legacy IPTV package iptv-1y (12 months) to 15000 IQD",
+        "sql": "UPDATE \"public\".\"package\" SET \"price\" = 15000, \"durationUnit\" = 'YEAR', \"updatedAt\" = now() WHERE \"slug\" = 'iptv-1y' AND \"serviceType\" = 'IPTV' AND \"durationMonths\" = 12 AND (\"price\" <> 15000 OR \"durationUnit\" <> 'YEAR')"
+      },
+      {
+        "description": "reprice legacy IPTV package iptv-2y (24 months) to 25000 IQD",
+        "sql": "UPDATE \"public\".\"package\" SET \"price\" = 25000, \"durationUnit\" = 'YEAR', \"updatedAt\" = now() WHERE \"slug\" = 'iptv-2y' AND \"serviceType\" = 'IPTV' AND \"durationMonths\" = 24 AND (\"price\" <> 25000 OR \"durationUnit\" <> 'YEAR')"
+      },
+      {
+        "description": "insert IPTV packages for durations that have no active IPTV package",
+        "sql": "INSERT INTO \"public\".\"package\" (\"name\", \"slug\", \"serviceType\", \"price\", \"durationMonths\", \"durationUnit\", \"durationLabel\", \"description\", \"specifications\", \"isActive\", \"updatedAt\")\nSELECT v.name, v.slug, 'IPTV', v.price, v.months, v.unit, v.label, v.description, v.specifications, true, now()\nFROM (VALUES\n  ('IPTV 3 أشهر', 'iptv-3m', 6000, 3, 'MONTH', '3 أشهر', 'اشتراك IPTV لمدة 3 أشهر', 'اشتراك لمدة 3 أشهر'),\n  ('IPTV 6 أشهر', 'iptv-6m', 10000, 6, 'MONTH', '6 أشهر', 'اشتراك IPTV لمدة 6 أشهر', 'اشتراك لمدة 6 أشهر'),\n  ('IPTV 12 شهرًا', 'iptv-12m', 15000, 12, 'YEAR', 'سنة واحدة', 'اشتراك IPTV لمدة سنة واحدة', 'اشتراك لمدة 12 شهرًا'),\n  ('IPTV 24 شهرًا', 'iptv-24m', 25000, 24, 'YEAR', 'سنتان', 'اشتراك IPTV لمدة سنتين', 'اشتراك لمدة 24 شهرًا')\n) AS v(name, slug, price, months, unit, label, description, specifications)\nWHERE NOT EXISTS (\n  SELECT 1 FROM \"public\".\"package\" p\n  WHERE p.\"serviceType\" = 'IPTV' AND p.\"durationMonths\" = v.months AND p.\"isActive\"\n)\nON CONFLICT (\"slug\") DO NOTHING"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every canonical IPTV duration exists and the legacy rows carry the new prices",
+        "sql": "SELECT (SELECT count(DISTINCT \"durationMonths\") FROM \"public\".\"package\" WHERE \"serviceType\" = 'IPTV' AND \"durationMonths\" IN (3, 6, 12, 24)) = 4\n  AND NOT EXISTS (SELECT 1 FROM \"public\".\"package\" WHERE \"serviceType\" = 'IPTV' AND ((\"slug\" = 'iptv-1y' AND \"durationMonths\" = 12 AND \"price\" <> 15000) OR (\"slug\" = 'iptv-2y' AND \"durationMonths\" = 24 AND \"price\" <> 25000))) AS \"result\""
+      }
+    ]
+  }
+]

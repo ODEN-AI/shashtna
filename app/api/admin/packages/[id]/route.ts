@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { catalogueImageUrl, describeChanges, describeLinks, isValidPrice } from "@/src/lib/catalogue";
+import { catalogueImageUrl, describeChanges, describeLinks, isValidPrice, parseRenewalPrice } from "@/src/lib/catalogue";
 import { requireAdmin } from "@/src/lib/session";
+import { durationValue, hasDurationFields, resolvePackageDuration } from "@/src/lib/subscription-duration";
 import { auditCatalogue, packageReferences } from "@/src/server/catalogue";
 import {
   db,
@@ -16,7 +17,10 @@ type PackageBody = {
   slug?: string;
   serviceType?: string;
   price?: number;
+  renewalPrice?: number | null;
   durationMonths?: number;
+  durationValue?: number;
+  durationUnit?: string;
   durationLabel?: string;
   description?: string;
   specifications?: string;
@@ -240,47 +244,61 @@ export async function PATCH(
         body.price;
     }
 
+    if (body.renewalPrice !== undefined) {
+      const renewalPrice =
+        parseRenewalPrice(body.renewalPrice);
+
+      if (!renewalPrice.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "سعر التجديد غير صحيح.",
+          },
+          { status: 400 }
+        );
+      }
+
+      updateData.renewalPrice =
+        renewalPrice.value;
+    }
+
+    // Duration is only touched when the request carries it (a status toggle
+    // leaves it alone); VIP stays on its fixed three months.
     if (
-      serviceType === "VIP"
+      serviceType === "VIP" ||
+      hasDurationFields(body)
     ) {
+      const keepsLength =
+        body.durationValue === undefined &&
+        body.durationUnit === undefined &&
+        body.durationMonths === undefined;
+      const current =
+        durationValue(existing.durationMonths, existing.durationUnit);
+      const duration =
+        resolvePackageDuration(
+          keepsLength
+            ? { durationValue: current.value, durationUnit: current.unit, durationLabel: body.durationLabel }
+            : body,
+          serviceType
+        );
+
+      if (!duration.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: duration.error,
+          },
+          { status: 400 }
+        );
+      }
+
       updateData.durationMonths =
-        3;
-
+        duration.durationMonths;
+      updateData.durationUnit =
+        duration.durationUnit;
       updateData.durationLabel =
-        "3 Months";
-    } else {
-      if (
-        typeof body.durationMonths ===
-        "number"
-      ) {
-        if (
-          !Number.isInteger(
-            body.durationMonths
-          ) ||
-          body.durationMonths <=
-            0
-        ) {
-          return NextResponse.json(
-            {
-              success: false,
-              message:
-                "مدة الاشتراك غير صحيحة.",
-            },
-            { status: 400 }
-          );
-        }
-
-        updateData.durationMonths =
-          body.durationMonths;
-      }
-
-      if (
-        typeof body.durationLabel ===
-        "string"
-      ) {
-        updateData.durationLabel =
-          body.durationLabel.trim();
-      }
+        duration.durationLabel;
     }
 
     if (
@@ -623,12 +641,12 @@ async function auditPackageUpdate(input: {
 }) {
   const { actor, packageId, name, before, after, links } = input;
   const events: { action: string; summary: string; changes: string[] }[] = [];
-  const price = describeChanges(before, after, ["price"]);
+  const price = describeChanges(before, after, ["price", "renewalPrice"]);
   const status = describeChanges(before, after, ["isActive"]);
   const media = describeChanges(before, after, ["imageUrl"]);
-  const details = describeChanges(before, after, ["name", "slug", "serviceType", "durationMonths", "durationLabel", "description", "specifications", "notes"]);
+  const details = describeChanges(before, after, ["name", "slug", "serviceType", "durationMonths", "durationUnit", "durationLabel", "description", "specifications", "notes"]);
 
-  if (price.length) events.push({ action: "PACKAGE_PRICE_CHANGED", summary: `Price changed for ${name}: ${before.price} → ${after.price} IQD`, changes: price });
+  if (price.length) events.push({ action: "PACKAGE_PRICE_CHANGED", summary: `Price changed for ${name}: ${price.join("; ")} IQD`, changes: price });
   if (status.length) events.push({ action: after.isActive ? "PACKAGE_ACTIVATED" : "PACKAGE_DEACTIVATED", summary: `Package ${after.isActive ? "activated" : "deactivated"}: ${name}`, changes: status });
   if (media.length) events.push({ action: "PACKAGE_MEDIA_CHANGED", summary: `Image changed for ${name}`, changes: media });
   if (links?.changed) events.push({ action: "PACKAGE_COMPATIBILITY_CHANGED", summary: `Compatible devices changed for ${name}`, changes: [`added: ${links.added.join(", ") || "—"}`, `removed: ${links.removed.join(", ") || "—"}`] });

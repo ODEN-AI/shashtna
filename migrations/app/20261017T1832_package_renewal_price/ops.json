@@ -1,0 +1,70 @@
+[
+  {
+    "id": "column.public.package.renewalPrice",
+    "label": "Add column \"renewalPrice\" to \"package\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "renewalPrice",
+        "table": "package"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"renewalPrice\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "package",
+          "renewalPrice"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"renewalPrice\"",
+        "sql": "ALTER TABLE \"public\".\"package\" ADD COLUMN \"renewalPrice\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"renewalPrice\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "package",
+          "renewalPrice"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "data.public.package.vip_renewal_price",
+    "label": "Set the initial VIP renewal price (35,000 IQD, 3 months)",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "package"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "VIP 3-month packages without a renewal price renew at 35,000 IQD",
+        "sql": "UPDATE \"public\".\"package\" SET \"renewalPrice\" = 35000, \"updatedAt\" = now() WHERE \"serviceType\" = 'VIP' AND \"durationMonths\" = 3 AND \"renewalPrice\" IS NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no VIP 3-month package is left without a renewal price, and no IPTV package has one",
+        "sql": "SELECT NOT EXISTS (SELECT 1 FROM \"public\".\"package\" WHERE (\"serviceType\" = 'VIP' AND \"durationMonths\" = 3 AND \"renewalPrice\" IS NULL) OR (\"serviceType\" = 'IPTV' AND \"renewalPrice\" IS NOT NULL)) AS \"result\""
+      }
+    ]
+  }
+]

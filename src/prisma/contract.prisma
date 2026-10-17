@@ -43,7 +43,11 @@ model Package {
   slug            String   @unique
   serviceType     String   @default("IPTV")
   price           Int
+  /// Price of a renewal order (null = same as price). Set from the dashboard.
+  renewalPrice    Int?
   durationMonths  Int
+  /// How the admin entered the duration: MONTH or YEAR. durationMonths stays canonical.
+  durationUnit    String   @default("MONTH")
   durationLabel   String
   description     String
   specifications  String

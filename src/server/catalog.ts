@@ -7,6 +7,8 @@ export type CatalogPackage = {
   slug: string;
   serviceType: "IPTV" | "VIP";
   price: number;
+  /** Price of a renewal order; null = same as price. */
+  renewalPrice: number | null;
   durationMonths: number;
   durationLabel: string;
   description: string;
@@ -82,6 +84,7 @@ export async function getActivePackages(): Promise<CatalogPackage[]> {
     slug: pkg.slug,
     serviceType: normalizeServiceType(pkg.serviceType),
     price: pkg.price,
+    renewalPrice: pkg.renewalPrice ?? null,
     durationMonths: pkg.durationMonths,
     durationLabel: pkg.durationLabel,
     description: pkg.description,
@@ -108,7 +111,8 @@ export async function getActivePackages(): Promise<CatalogPackage[]> {
       ? a.serviceType === "IPTV"
         ? -1
         : 1
-      : a.price - b.price || a.id - b.id,
+      : // Shortest to longest, so durations and prices read side by side.
+        a.durationMonths - b.durationMonths || a.price - b.price || a.id - b.id,
   );
 }
 

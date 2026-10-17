@@ -12,6 +12,8 @@ import { cn } from "@/app/ui/cn";
 import { Dialog } from "@/app/ui/Dialog";
 import { Checkbox, Field, Input, Select, Textarea } from "@/app/ui/Field";
 import { useToast } from "@/app/ui/Toast";
+import { formatPrice } from "@/src/lib/i18n";
+import { durationValue, formatDuration, monthlyPrice, parseDuration, type DurationUnit } from "@/src/lib/subscription-duration";
 
 /**
  * Catalogue editors. Every write goes through the existing catalogue APIs
@@ -97,7 +99,9 @@ export type PackageFormValues = {
   slug: string;
   serviceType: "IPTV" | "VIP";
   price: number | "";
+  renewalPrice: number | null;
   durationMonths: number;
+  durationUnit: DurationUnit;
   durationLabel: string;
   description: string;
   specifications: string;
@@ -107,15 +111,28 @@ export type PackageFormValues = {
   deviceIds: number[];
 };
 
+/** A stored label that is just the generated text is shown as empty, so changing the duration regenerates it. */
+function customLabel(label: string, months: number) {
+  const generated = [formatDuration(months, "ar"), formatDuration(months, "en"), `${months} Months`, months === 12 ? "1 Year" : ""];
+  return generated.includes(label.trim()) ? "" : label;
+}
+
 export function PackageForm({ initial, devices, slugLocked }: { initial: PackageFormValues; devices: (Option & { serviceType: string })[]; slugLocked?: boolean }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const toast = useToast();
   const router = useRouter();
   const [serviceType, setServiceType] = useState(initial.serviceType);
+  const startDuration = durationValue(initial.durationMonths, initial.durationUnit);
+  const [amount, setAmount] = useState(String(startDuration.value));
+  const [unit, setUnit] = useState<DurationUnit>(startDuration.unit);
+  const [price, setPrice] = useState(String(initial.price));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const editing = initial.id !== undefined;
   const vip = serviceType === "VIP";
+  // Live preview with the same rules the server applies.
+  const preview = parseDuration(/^\d+$/.test(amount.trim()) ? Number(amount.trim()) : amount, unit);
+  const previewPrice = /^\d+$/.test(price.trim()) ? Number(price.trim()) : null;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -125,8 +142,9 @@ export function PackageForm({ initial, devices, slugLocked }: { initial: Package
       slug: text(form, "slug"),
       serviceType,
       price: priceValue(form.get("price")),
-      durationMonths: vip ? 3 : priceValue(form.get("durationMonths")),
-      durationLabel: vip ? "3 Months" : text(form, "durationLabel"),
+      // Empty = renewals cost the normal price.
+      renewalPrice: text(form, "renewalPrice") === "" ? null : priceValue(form.get("renewalPrice")),
+      ...(vip ? {} : { durationValue: priceValue(form.get("durationValue")), durationUnit: unit, durationLabel: text(form, "durationLabel") }),
       description: text(form, "description"),
       specifications: text(form, "specifications"),
       notes: text(form, "notes") || null,
@@ -183,19 +201,42 @@ export function PackageForm({ initial, devices, slugLocked }: { initial: Package
               <option value="VIP">VIP</option>
             </Select>
           </Field>
-          <Field label={t("السعر (د.ع)", "Price (IQD)")} htmlFor="pkg-price" required hint={t("رقم صحيح بالدينار. الطلبات السابقة تحتفظ بسعرها.", "Whole dinars. Past orders keep their own price.")}>
-            <Input id="pkg-price" name="price" inputMode="numeric" dir="ltr" defaultValue={initial.price} data-testid="package-price" />
+          <Field label={t("السعر (د.ع)", "Price (IQD)")} htmlFor="pkg-price" required hint={t("رقم صحيح بالدينار. الطلبات والاشتراكات السابقة تحتفظ بسعرها ومدتها.", "Whole dinars. Past orders and subscriptions keep their own price and duration.")}>
+            <Input id="pkg-price" name="price" inputMode="numeric" dir="ltr" value={price} onChange={(event) => setPrice(event.target.value)} data-testid="package-price" />
+          </Field>
+          <Field
+            label={t("سعر التجديد (د.ع)", "Renewal price (IQD)")}
+            htmlFor="pkg-renewal-price"
+            hint={vip ? t("سعر طلب تجديد VIP (بدون جهاز). فارغ = نفس السعر العادي.", "Price of a VIP renewal order (no device). Empty = the normal price.") : t("اختياري. فارغ = التجديد بنفس السعر العادي.", "Optional. Empty = renewals cost the normal price.")}
+          >
+            <Input id="pkg-renewal-price" name="renewalPrice" inputMode="numeric" dir="ltr" defaultValue={initial.renewalPrice ?? ""} data-testid="package-renewal-price" />
           </Field>
           {vip ? (
-            <p className="rounded-xl bg-white/[0.03] px-3 py-3 text-sm text-ink-3 sm:col-span-2">{t("باقات VIP مدتها 3 أشهر دائمًا (قاعدة النظام الحالية).", "VIP packages always run 3 months (existing rule).")}</p>
+            <p className="rounded-xl bg-white/[0.03] px-3 py-3 text-sm text-ink-3 sm:col-span-2">{t("باقات VIP مدتها 3 أشهر دائمًا، والتجديد كذلك 3 أشهر.", "VIP packages always run 3 months, and so do VIP renewals.")}</p>
           ) : (
             <>
-              <Field label={t("المدة بالأشهر", "Duration (months)")} htmlFor="pkg-months" required>
-                <Input id="pkg-months" name="durationMonths" inputMode="numeric" dir="ltr" defaultValue={initial.durationMonths} />
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
+                <Field label={t("المدة", "Duration")} htmlFor="pkg-duration" required>
+                  <Input id="pkg-duration" name="durationValue" inputMode="numeric" dir="ltr" value={amount} onChange={(event) => setAmount(event.target.value)} data-testid="package-duration" />
+                </Field>
+                <Field label={t("الوحدة", "Unit")} htmlFor="pkg-unit">
+                  <Select id="pkg-unit" value={unit} onChange={(event) => setUnit(event.target.value === "YEAR" ? "YEAR" : "MONTH")} data-testid="package-duration-unit">
+                    <option value="MONTH">{t("أشهر", "Months")}</option>
+                    <option value="YEAR">{t("سنوات", "Years")}</option>
+                  </Select>
+                </Field>
+              </div>
+              <Field label={t("تسمية المدة (اختياري)", "Duration label (optional)")} htmlFor="pkg-label" hint={t("فارغ = تسمية تلقائية مثل «6 أشهر» أو «سنتان».", "Empty = automatic, e.g. “6 أشهر” or “سنتان”.")}>
+                <Input id="pkg-label" name="durationLabel" defaultValue={customLabel(initial.durationLabel, initial.durationMonths)} placeholder={preview.ok ? formatDuration(preview.months, "ar") : ""} maxLength={40} />
               </Field>
-              <Field label={t("تسمية المدة", "Duration label")} htmlFor="pkg-label" hint={t("مثل: 1 Year", "e.g. 1 Year")}>
-                <Input id="pkg-label" name="durationLabel" dir="ltr" defaultValue={initial.durationLabel} maxLength={40} />
-              </Field>
+              <p className={cn("rounded-xl px-3 py-2.5 text-sm sm:col-span-2", preview.ok ? "bg-white/[0.03] text-ink-2" : "bg-danger/10 font-semibold text-danger")} data-testid="package-duration-preview" aria-live="polite">
+                {preview.ok
+                  ? t(
+                      `يشتري العميل ${formatDuration(preview.months, "ar")} (${preview.months} شهر)${previewPrice !== null ? ` بسعر ${formatPrice(previewPrice, language)} — حوالي ${formatPrice(monthlyPrice(previewPrice, preview.months), language)} شهريًا` : ""}.`,
+                      `Customers buy ${formatDuration(preview.months, "en")} (${preview.months} months)${previewPrice !== null ? ` for ${formatPrice(previewPrice, language)} — about ${formatPrice(monthlyPrice(previewPrice, preview.months), language)} a month` : ""}.`,
+                    )
+                  : preview.error}
+              </p>
             </>
           )}
         </div>

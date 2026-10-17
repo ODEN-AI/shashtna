@@ -7,6 +7,7 @@ import { Container, Eyebrow, SectionHeading } from "@/app/ui/Page";
 import { EmptyState, ErrorState, Notice } from "@/app/ui/States";
 import { FAQ } from "@/src/content/help";
 import { formatPrice } from "@/src/lib/i18n";
+import { formatDuration, monthlyPrice } from "@/src/lib/subscription-duration";
 import { getActivePackages, type CatalogPackage } from "@/src/server/catalog";
 import { getI18n } from "@/src/server/i18n";
 
@@ -151,13 +152,14 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
                 title={<span id="compare-heading">{t("كل الباقات جنب بعض", "All plans side by side")}</span>}
               />
               <div className="surface mt-8 overflow-x-auto rounded-card">
-                <table className="w-full min-w-[640px] text-sm">
+                <table className="w-full min-w-[720px] text-sm">
                   <thead>
                     <tr className="border-b border-line text-xs text-ink-3">
                       <th scope="col" className="px-4 py-3 text-start font-semibold">{t("الباقة", "Plan")}</th>
                       <th scope="col" className="px-4 py-3 text-start font-semibold">{t("النوع", "Type")}</th>
                       <th scope="col" className="px-4 py-3 text-start font-semibold">{t("المدة", "Duration")}</th>
                       <th scope="col" className="px-4 py-3 text-start font-semibold">{t("السعر", "Price")}</th>
+                      <th scope="col" className="px-4 py-3 text-start font-semibold">{t("يعادل شهريًا", "Per month")}</th>
                       <th scope="col" className="px-4 py-3 text-start font-semibold">{t("جهاز VIP", "VIP device")}</th>
                       <th scope="col" className="px-4 py-3" />
                     </tr>
@@ -167,8 +169,14 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
                       <tr key={pkg.id} className="border-b border-line/70 last:border-0">
                         <th scope="row" className="px-4 py-3.5 text-start font-bold text-ink">{pkg.name}</th>
                         <td className="px-4 py-3.5 text-ink-2">{pkg.serviceType}</td>
-                        <td className="px-4 py-3.5 text-ink-2">{pkg.durationLabel}</td>
-                        <td className="nums px-4 py-3.5 font-semibold text-ink">{formatPrice(pkg.price, lang)}</td>
+                        <td className="nums px-4 py-3.5 text-ink-2" data-testid="compare-duration" data-months={pkg.durationMonths}>{formatDuration(pkg.durationMonths, lang)}</td>
+                        <td className="nums px-4 py-3.5 font-semibold text-ink" data-testid="compare-price">
+                          {formatPrice(pkg.price, lang)}
+                          {pkg.renewalPrice !== null && pkg.renewalPrice !== pkg.price ? (
+                            <span className="block text-xs font-normal text-ink-3" data-testid="compare-renewal-price">{t("التجديد: ", "Renewal: ")}{formatPrice(pkg.renewalPrice, lang)}</span>
+                          ) : null}
+                        </td>
+                        <td className="nums px-4 py-3.5 text-ink-3">{formatPrice(monthlyPrice(pkg.price, pkg.durationMonths), lang)}</td>
                         <td className="px-4 py-3.5 text-ink-2">
                           {pkg.serviceType === "VIP" ? t("مطلوب — يُختار عند الطلب", "Required — chosen at checkout") : "—"}
                         </td>

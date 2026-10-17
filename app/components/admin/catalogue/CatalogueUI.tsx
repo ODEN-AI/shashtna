@@ -14,7 +14,7 @@ export type CatalogueSection = "overview" | "packages" | "devices" | "compatibil
 export function CatalogueHeader({ active, t, title, description, actions }: { active: CatalogueSection; t: Translate; title: ReactNode; description?: ReactNode; actions?: ReactNode }) {
   const tabs = [
     { key: "overview", href: "/admin/catalogue", label: <><LayoutGrid size={14} aria-hidden /> {t("نظرة عامة", "Overview")}</> },
-    { key: "packages", href: "/admin/catalogue/packages", label: <><Package size={14} aria-hidden /> {t("الباقات", "Packages")}</> },
+    { key: "packages", href: "/admin/catalogue/packages", label: <><Package size={14} aria-hidden /> {t("باقات الاشتراك", "Subscription packages")}</> },
     { key: "devices", href: "/admin/catalogue/devices", label: <><Cpu size={14} aria-hidden /> {t("الأجهزة", "Devices")}</> },
     { key: "compatibility", href: "/admin/catalogue/compatibility", label: <><Link2 size={14} aria-hidden /> {t("التوافق", "Compatibility")}</> },
   ];

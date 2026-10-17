@@ -89,3 +89,22 @@ export function matchesText(q: string, ...fields: (string | null | undefined)[])
 
   return fields.some((field) => String(field ?? "").toLowerCase().includes(needle));
 }
+
+/**
+ * What a plan order costs. Renewals use the package's renewal price when one
+ * is set (e.g. VIP renewals), otherwise the normal price; new subscriptions
+ * and upgrades use the normal price plus any device. Always computed on the
+ * server from the catalogue, never from the client.
+ */
+export function planOrderPrice(plan: { price: number; renewalPrice?: number | null }, requestType: string, devicePrice: number | null = null) {
+  const renewal = String(requestType).toUpperCase() === "RENEW";
+  const base = renewal && typeof plan.renewalPrice === "number" ? plan.renewalPrice : plan.price;
+
+  return base + (renewal ? 0 : (devicePrice ?? 0));
+}
+
+/** A renewal price is optional: empty means "same as the normal price". */
+export function parseRenewalPrice(value: unknown): { ok: true; value: number | null } | { ok: false } {
+  if (value === null || value === undefined || value === "") return { ok: true, value: null };
+  return isValidPrice(value) ? { ok: true, value } : { ok: false };
+}

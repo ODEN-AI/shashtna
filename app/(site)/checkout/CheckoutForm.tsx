@@ -8,6 +8,7 @@ import { useLanguage } from "@/app/components/LanguageProvider";
 import { Badge, serviceTone } from "@/app/ui/Badge";
 import { FacebookIcon, TelegramIcon, WhatsAppIcon } from "@/app/ui/BrandIcons";
 import { buttonClass } from "@/app/ui/Button";
+import { distinctHighlights, repeatsDuration } from "@/app/ui/catalogue-text";
 import { cn } from "@/app/ui/cn";
 import { Field, Textarea } from "@/app/ui/Field";
 import { Notice } from "@/app/ui/States";
@@ -105,6 +106,10 @@ export function CheckoutForm({
     PHONE: { label: t("اتصال هاتفي", "Phone call"), icon: <Phone size={18} aria-hidden />, hint: t("نتصل بيك على رقمك", "We'll call your number") },
   };
 
+  // The duration is already on the card; drop catalogue lines that only repeat it.
+  const description = plan ? (repeatsDuration(plan.description, plan) ? null : plan.description) : fixedDevice?.description || null;
+  const features = plan ? distinctHighlights(plan, 4) : [];
+
   const totalText = ready ? formatPrice(total, language) : "—";
   const confirmLabel = ready ? t("تأكيد الطلب", "Confirm order") : t("اختار الجهاز أولًا", "Choose a device first");
 
@@ -148,12 +153,12 @@ export function CheckoutForm({
               </div>
               <p className="nums text-2xl font-black">{formatPrice(plan ? plan.price : fixedDevice?.price ?? 0, language)}</p>
             </div>
-            {(plan?.description || fixedDevice?.description) ? (
-              <p dir="auto" className={cn("mt-3 text-sm leading-6", isVip ? "text-vip-text" : "text-iptv-ink")}>{plan ? plan.description : fixedDevice?.description}</p>
+            {description ? (
+              <p dir="auto" className={cn("mt-3 text-sm leading-6", isVip ? "text-vip-text" : "text-iptv-ink")}>{description}</p>
             ) : null}
-            {plan?.features.length ? (
+            {features.length ? (
               <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
-                {plan.features.map((feature) => (
+                {features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2 text-sm leading-6">
                     <Check size={15} className="mt-1 shrink-0" aria-hidden />
                     <span dir="auto">{feature}</span>

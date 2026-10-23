@@ -5,8 +5,9 @@ import { formatPrice, type Lang } from "@/src/lib/i18n";
 import { formatDuration } from "@/src/lib/subscription-duration";
 import type { CatalogPackage } from "@/src/server/catalog";
 
+import { distinctHighlights, repeatsDuration } from "./catalogue-text";
 import { cn } from "./cn";
-import { monthlyEquivalent, packageHighlights } from "./PackageCard";
+import { monthlyEquivalent } from "./PackageCard";
 
 /**
  * A price board: one row per package, so every duration of a service can be
@@ -36,7 +37,10 @@ export function PlanBoard({
       {packages.map((pkg) => {
         const monthly = monthlyEquivalent(pkg.price, pkg.durationMonths);
         const deviceFrom = devicesFrom?.get(pkg.id);
-        const note = isVip ? packageHighlights(pkg, 1)[0] ?? pkg.description : null;
+        const note = isVip ? distinctHighlights(pkg, 1)[0] ?? (repeatsDuration(pkg.description, pkg) ? null : pkg.description) : null;
+        // IPTV rows lead with the duration; the name only adds a line when it
+        // says more than the duration (e.g. not "IPTV 3 أشهر").
+        const subtitle = isVip ? formatDuration(pkg.durationMonths, lang) : repeatsDuration(pkg.name, pkg) ? null : pkg.name;
 
         return (
           <li key={pkg.id} className="py-5 sm:py-6" data-testid="package-card">
@@ -52,10 +56,12 @@ export function PlanBoard({
                     </span>
                   ) : null}
                 </p>
-                <p className={cn("mt-1 text-sm", isVip ? "text-vip-text" : "text-iptv-ink")}>
-                  {isVip ? formatDuration(pkg.durationMonths, lang) : <bdi>{pkg.name}</bdi>}
-                  {note ? <span className="hidden sm:inline"> · <bdi>{note}</bdi></span> : null}
-                </p>
+                {subtitle ? (
+                  <p className={cn("mt-1 text-sm", isVip ? "text-vip-text" : "text-iptv-ink")}>
+                    <bdi>{subtitle}</bdi>
+                    {note ? <span className="hidden sm:inline"> · <bdi>{note}</bdi></span> : null}
+                  </p>
+                ) : null}
               </div>
 
               <p className={cn("nums order-3 col-span-2 text-sm md:order-none md:col-span-1", isVip ? "text-vip-text" : "text-iptv-ink")}>

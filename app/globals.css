@@ -74,8 +74,12 @@
   /* Type scale (Arabic-first): five sizes far apart, nothing under 13px. */
   --text-xs: 0.8125rem;
   --text-xs--line-height: 1.35rem;
-  --text-display: clamp(2.5rem, 1.6rem + 4.2vw, 4.75rem);
-  --text-display--line-height: 1.1;
+  /* Display: long hero sentences (home, entry promotion). Short page
+     titles that should read larger use --text-poster. */
+  --text-display: clamp(2.25rem, 1.55rem + 3vw, 3.6rem);
+  --text-display--line-height: 1.16;
+  --text-poster: clamp(2.5rem, 1.6rem + 4.2vw, 4.75rem);
+  --text-poster--line-height: 1.1;
   --text-h1: clamp(2rem, 1.5rem + 2vw, 3rem);
   --text-h1--line-height: 1.18;
   --text-h2: clamp(1.5rem, 1.25rem + 1.1vw, 2.125rem);

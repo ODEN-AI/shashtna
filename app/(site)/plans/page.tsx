@@ -65,7 +65,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <Container className="pb-10 pt-10 sm:pb-14 sm:pt-16">
-        <h1 className="max-w-3xl text-balance text-display font-black text-ink">{t("اختار خدمتك أولًا", "Pick your service first")}</h1>
+        <h1 className="max-w-3xl text-balance text-poster font-black text-ink">{t("اختار خدمتك أولًا", "Pick your service first")}</h1>
         <p className="mt-5 max-w-2xl text-lead text-ink-2">
           {t(
             "عدنا خدمتين منفصلتين: IPTV تشتغل على جهازك الحالي، وVIP تجي ويا جهاز مخصص. كل الأسعار بالدينار العراقي، والسعر اللي تشوفه هو اللي تحوّله.",

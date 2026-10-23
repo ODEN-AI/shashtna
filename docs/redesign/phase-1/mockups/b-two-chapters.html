@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>اتجاه ب: فصلين</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@dawod/thmanyah-font-web/index.css">
+<style>
+  /* Direction B: two colour chapters. IPTV lives in a flat cobalt field, VIP in deep ink with champagne.
+     The two services can never be confused because they never share a room. */
+  :root {
+    --cobalt: #1544d6; --cobalt-deep: #0f35ad; --on-cobalt: #ffffff; --on-cobalt-2: #d6e2ff;
+    --ink: #0d0d14; --ink-2: #17171f; --champagne: #e8d4a2; --on-ink: #f4f1ea; --on-ink-2: #b7b2a6;
+    --paper: #f6f7fb; --paper-ink: #0b1230; --paper-ink-2: #4a5272;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Thmanyah Sans", sans-serif; background: var(--paper); color: var(--paper-ink); }
+  .nums { font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+  .display { font-family: "Thmanyah Serif Display", serif; font-weight: 700; }
+  header { height: 60px; display: flex; align-items: center; justify-content: space-between; }
+  header b { font-weight: 900; font-size: 20px; }
+  header nav { display: flex; gap: 8px; }
+  header nav a { font-size: 14px; font-weight: 700; color: var(--paper-ink); text-decoration: none; padding: 10px 14px; border-radius: 10px; background: #e7eaf3; }
+  .intro { padding: 36px 0 44px; }
+  .intro h1 { font-size: clamp(38px, 7vw, 80px); line-height: 1.15; }
+  .intro p { color: var(--paper-ink-2); font-size: 17px; line-height: 1.9; margin-top: 12px; max-width: 36em; }
+  .jump { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+  .jump a { text-decoration: none; font-weight: 700; padding: 12px 18px; border-radius: 12px; min-height: 44px; display: inline-flex; align-items: center; }
+  .jump .j1 { background: var(--cobalt); color: #fff; } .jump .j2 { background: var(--ink); color: var(--champagne); }
+  .chapter { padding: 56px 0 64px; }
+  .iptv { background: var(--cobalt); color: var(--on-cobalt); }
+  .vip { background: var(--ink); color: var(--on-ink); }
+  .chapter h2 { font-size: clamp(44px, 9vw, 112px); line-height: 1; }
+  .chapter .sub { font-size: 16px; line-height: 1.9; margin-top: 14px; max-width: 34em; }
+  .iptv .sub { color: var(--on-cobalt-2); } .vip .sub { color: var(--on-ink-2); }
+  .board { margin-top: 34px; display: grid; gap: 0; }
+  .row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "d p" "m a"; gap: 4px 12px; align-items: center; padding: 18px 0; }
+  .iptv .row + .row { border-top: 1px solid rgb(255 255 255 / .22); } .vip .row + .row { border-top: 1px solid rgb(232 212 162 / .2); }
+  @media (min-width: 900px) { .row { grid-template-columns: 1fr 1fr 1fr auto; grid-template-areas: "d m p a"; padding: 22px 0; } }
+  .row .d { grid-area: d; font-size: 26px; font-weight: 700; } .row .m { grid-area: m; font-size: 14px; opacity: .8; }
+  .row .p { grid-area: p; font-size: 28px; font-weight: 900; text-align: end; } .row .p small { font-size: 14px; font-weight: 500; margin-inline-start: 4px; }
+  .row .a { grid-area: a; justify-self: end; }
+  .btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 15px; }
+  .iptv .btn { background: #fff; color: var(--cobalt-deep); } .vip .btn { background: var(--champagne); color: var(--ink); }
+  .tag { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #fff; color: var(--cobalt-deep); margin-inline-start: 8px; vertical-align: middle; }
+  .devices { margin-top: 26px; padding: 18px; border-radius: 16px; background: var(--ink-2); color: var(--on-ink-2); font-size: 14px; line-height: 1.8; }
+  .devices b { color: var(--on-ink); }
+  .sample { color: var(--paper-ink-2); font-size: 12px; padding: 24px 0 40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><b>شاشتنا</b><nav><a href="#">حسابي</a></nav></header>
+  <section class="intro">
+    <h1 class="display">اختار خدمتك أولًا.</h1>
+    <p>عدنا خدمتين منفصلتين: IPTV على جهازك الحالي، وVIP مع جهاز مخصص. كل وحدة إلها باقاتها وسعرها.</p>
+    <div class="jump"><a class="j1" href="#iptv">IPTV على جهازك</a><a class="j2" href="#vip">VIP مع جهاز</a></div>
+  </section>
+</div>
+
+<section class="chapter iptv" id="iptv"><div class="wrap">
+  <h2 class="display">IPTV</h2>
+  <p class="sub">قنوات وأفلام ومسلسلات على التلفزيون أو الموبايل اللي عندك. بعد التفعيل تستلم اسم مستخدم وكلمة مرور بحسابك.</p>
+  <div class="board">
+    <div class="row"><span class="d nums">3 أشهر</span><span class="m nums">≈ 2,000 د.ع بالشهر</span><span class="p nums">6,000<small>د.ع</small></span><a class="btn a" href="#">اطلب</a></div>
+    <div class="row"><span class="d nums">6 أشهر</span><span class="m nums">≈ 1,750 د.ع بالشهر</span><span class="p nums">10,000<small>د.ع</small></span><a class="btn a" href="#">اطلب</a></div>
+    <div class="row"><span class="d nums">سنة <span class="tag">الأكثر طلبًا</span></span><span class="m nums">≈ 1,250 د.ع بالشهر</span><span class="p nums">15,000<small>د.ع</small></span><a class="btn a" href="#">اطلب</a></div>
+    <div class="row"><span class="d nums">سنتين</span><span class="m nums">≈ 1,000 د.ع بالشهر</span><span class="p nums">25,000<small>د.ع</small></span><a class="btn a" href="#">اطلب</a></div>
+  </div>
+</div></section>
+
+<section class="chapter vip" id="vip"><div class="wrap">
+  <h2 class="display" style="color:var(--champagne)">VIP</h2>
+  <p class="sub">باقة 3 أشهر مع جهاز VIP تختاره عند الطلب. السعر يشمل الباقة والجهاز.</p>
+  <div class="board">
+    <div class="row"><span class="d">VIP بريميوم</span><span class="m">قنوات رياضية وأفلام بجودة 4K</span><span class="p nums">45,000<small>د.ع</small></span><a class="btn a" href="#">اختار الجهاز</a></div>
+    <div class="row"><span class="d">VIP عائلي</span><span class="m">حتى 3 شاشات للعائلة</span><span class="p nums">55,000<small>د.ع</small></span><a class="btn a" href="#">اختار الجهاز</a></div>
+  </div>
+  <div class="devices"><b>الأجهزة:</b> VIP Stick بـ 12,000 د.ع، وVIP Box 4K بـ 20,000 د.ع. التجديد بعد 3 أشهر بدون جهاز: 35,000 د.ع.</div>
+</div></section>
+
+<div class="wrap"><p class="sample">نموذج تصميمي. الأسعار هنا من قاعدة التطوير المحلية فقط، وبالموقع تُقرأ من قاعدة البيانات.</p></div>
+</body>
+</html>

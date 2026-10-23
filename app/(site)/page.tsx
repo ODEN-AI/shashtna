@@ -5,7 +5,7 @@ import { HomeCustomerStrip } from "@/app/components/home/HomeCustomerStrip";
 import { HomeDevices } from "@/app/components/home/HomeDevices";
 import { HomeFaq } from "@/app/components/home/HomeFaq";
 import { HomeFinalCta } from "@/app/components/home/HomeFinalCta";
-import { HomeHero } from "@/app/components/home/HomeHero";
+import { HomeHero, type HeroServices } from "@/app/components/home/HomeHero";
 import { HomeHowItWorks } from "@/app/components/home/HomeHowItWorks";
 import { HomePlans } from "@/app/components/home/HomePlans";
 import { HomePlayer } from "@/app/components/home/HomePlayer";
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
 
 /**
  * Homepage — the web counterpart of Shashtna Mobile's home:
- * customer strip → hero (animated product showcase + editorial board) → popular plans → Player → watch
+ * customer strip → hero (services, product showcase + editorial board) → popular plans → Player → watch
  * everywhere → VIP devices → how it works → latest announcements → FAQ →
  * final CTA. Every section renders real data (or nothing).
  */
@@ -55,17 +55,29 @@ export default async function HomePage() {
     getSettings(),
   ]);
 
-  const cheapest = packages.length ? Math.min(...packages.map((pkg) => pkg.price)) : null;
   const hours = isAr ? settings["support.hours"] : settings["support.hoursEn"];
+
+  // Lowest live prices per service for the hero (never written in code).
+  const lowest = (prices: number[]) => (prices.length ? Math.min(...prices) : null);
+  const vipIds = new Set(packages.filter((pkg) => pkg.serviceType === "VIP").map((pkg) => pkg.id));
+  const services: HeroServices = {
+    iptvFrom: lowest(packages.filter((pkg) => pkg.serviceType === "IPTV").map((pkg) => pkg.price)),
+    vipFrom: lowest(packages.filter((pkg) => pkg.serviceType === "VIP").map((pkg) => pkg.price)),
+    vipDeviceFrom: lowest(devices.filter((device) => device.packageIds.some((id) => vipIds.has(id))).map((device) => device.price)),
+  };
 
   const viewer = await getViewer(user);
   const scenes = buildShowcaseScenes({ packages, devices, apps, lang });
+  // Each package scene's own duration, so the showcase can skip lines that only repeat it.
+  const durations = Object.fromEntries(
+    packages.map((pkg) => [`package:${pkg.slug}`, { durationMonths: pkg.durationMonths, durationLabel: pkg.durationLabel }]),
+  );
   const editorial = editorialItems(announcements, viewer);
   const latest: HomeAnnouncement[] = latestItems(announcements, viewer, new Set(editorial.map((item) => item.id)));
 
   return (
     <>
-      <HomeHero lang={lang} cheapest={cheapest} hours={hours} scenes={scenes} editorial={editorial}>
+      <HomeHero lang={lang} services={services} scenes={scenes} durations={durations} editorial={editorial}>
         {user ? <HomeCustomerStrip user={user} /> : null}
       </HomeHero>
       <HomePlans lang={lang} packages={packages} />

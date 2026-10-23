@@ -77,3 +77,48 @@ export function repeatsDuration(text: string | null | undefined, pkg: DurationSo
 export function distinctHighlights(pkg: DurationSource & { features: string[] }, max: number) {
   return pkg.features.filter((feature) => feature && !repeatsDuration(feature, pkg)).slice(0, max);
 }
+
+function meaningfulWords(text: string | null | undefined) {
+  return normalise(String(text ?? "")).split(" ").filter((word) => word && !FILLER.has(word));
+}
+
+/**
+ * True when every meaningful word of the text is already in the title, so the
+ * line says nothing new ("اشتراك IPTV لمدة 3 أشهر" under "IPTV 3 أشهر").
+ * Lines made only of general words, or with any word of their own, stay.
+ */
+export function repeatsTitle(text: string | null | undefined, title: string) {
+  const words = meaningfulWords(text);
+
+  if (!words.length) {
+    return false;
+  }
+
+  const inTitle = new Set(meaningfulWords(title));
+
+  return words.every((word) => inTitle.has(word));
+}
+
+/**
+ * Keeps the lines that add something: drops a line that repeats the title,
+ * repeats the package's own duration (when known), or repeats a line already
+ * kept. Order is preserved.
+ */
+export function distinctLines(lines: (string | null | undefined)[], title: string, duration?: DurationSource) {
+  const kept: string[] = [];
+  const seen = new Set<string>();
+
+  for (const line of lines) {
+    const text = String(line ?? "").trim();
+    const key = normalise(text);
+
+    if (!text || seen.has(key) || repeatsTitle(text, title) || (duration && repeatsDuration(text, duration))) {
+      continue;
+    }
+
+    seen.add(key);
+    kept.push(text);
+  }
+
+  return kept;
+}

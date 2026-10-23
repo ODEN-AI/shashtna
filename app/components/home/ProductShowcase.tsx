@@ -1,70 +1,60 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Pause, Play } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 
+import { distinctLines, repeatsDuration } from "@/app/ui/catalogue-text";
 import { cn } from "@/app/ui/cn";
-import { LogoMark } from "@/app/ui/Logo";
 import { ProductEmblem } from "@/app/ui/product/Product";
 import type { ShowcaseScene } from "@/src/server/promotions";
 
-const SCENE_MS = 6500;
 const OUT_MS = 950;
 
+// Flat service fields: IPTV cobalt, VIP and its devices warm black, the
+// player on the deep brand blue. No glows or orbs.
 const BACKDROP: Record<ShowcaseScene["kind"], string> = {
-  iptv: "bg-[radial-gradient(90%_70%_at_20%_0%,rgb(25_81_252/0.55),transparent_60%),linear-gradient(160deg,var(--color-brand-strong)_0%,var(--color-navy)_45%,var(--color-canvas)_100%)]",
-  vip: "bg-[radial-gradient(90%_70%_at_20%_0%,rgb(75_79_224/0.6),transparent_60%),linear-gradient(160deg,var(--color-vip-2)_0%,var(--color-vip-1)_45%,var(--color-canvas)_100%)]",
-  device: "bg-[radial-gradient(80%_70%_at_80%_10%,rgb(43_47_168/0.6),transparent_60%),linear-gradient(200deg,var(--color-vip-1)_0%,var(--color-navy)_50%,var(--color-canvas)_100%)]",
-  player: "bg-[radial-gradient(90%_70%_at_25%_10%,rgb(55_129_252/0.5),transparent_60%),linear-gradient(180deg,var(--color-navy)_0%,#04123f_50%,var(--color-canvas)_100%)]",
+  iptv: "bg-iptv",
+  vip: "bg-vip-field",
+  device: "bg-vip-soft",
+  player: "bg-iptv-deep",
 };
 
-const ORBS: Record<ShowcaseScene["kind"], [string, string]> = {
-  iptv: ["top-[-12%] end-[-8%] h-72 w-72 bg-[radial-gradient(closest-side,rgb(55_129_252/0.55),transparent)]", "bottom-[-18%] start-[10%] h-80 w-80 bg-[radial-gradient(closest-side,rgb(203_233_253/0.18),transparent)]"],
-  vip: ["top-[5%] start-[-10%] h-80 w-80 bg-[radial-gradient(closest-side,rgb(75_79_224/0.6),transparent)]", "bottom-[-20%] end-[5%] h-72 w-72 bg-[radial-gradient(closest-side,rgb(255_194_71/0.16),transparent)]"],
-  device: ["top-[-15%] start-[20%] h-72 w-72 bg-[radial-gradient(closest-side,rgb(43_47_168/0.65),transparent)]", "bottom-[-10%] end-[-10%] h-96 w-96 bg-[radial-gradient(closest-side,rgb(55_129_252/0.3),transparent)]"],
-  player: ["top-[10%] end-[-15%] h-96 w-96 bg-[radial-gradient(closest-side,rgb(25_81_252/0.5),transparent)]", "bottom-[-15%] start-[-5%] h-72 w-72 bg-[radial-gradient(closest-side,rgb(203_233_253/0.2),transparent)]"],
-};
-
-// Where each floating chip starts from (x is mirrored for RTL by --sx-dir).
-const FLOAT_PATHS: CSSProperties[] = [
-  { "--fx": "-60px", "--fy": "-30px" } as CSSProperties,
-  { "--fx": "70px", "--fy": "40px" } as CSSProperties,
-  { "--fx": "-40px", "--fy": "60px" } as CSSProperties,
-];
+const IS_VIP: Record<ShowcaseScene["kind"], boolean> = { iptv: false, vip: true, device: true, player: false };
 
 type State = "in" | "out" | "idle";
 
+export type SceneDuration = { durationMonths: number; durationLabel: string };
+
 /**
- * Shashtna Animated Product Showcase — hero board 1.
+ * Shashtna Product Showcase — hero board 1.
  *
- * Not a slider: each scene is a layered composition (backdrop, orbit ring,
- * light orbs, product visual, floating chips, kinetic headline, facts,
- * price, CTA). Changing scene plays an exit choreography on every layer of
- * the old scene while the new scene's layers enter on their own paths and
- * delays (see .sx-* in globals.css). Scenes come from live catalogue data.
+ * Each scene is a layered composition (backdrop, product visual, headline,
+ * facts, price, CTA); changing scene plays an exit choreography on the old
+ * scene while the new one enters (see .sx-* in globals.css). Scenes come from
+ * live catalogue data.
  *
- * Auto-advance follows the progress bar, pauses on hover/focus, off-screen
- * and in background tabs, and is off entirely under reduced motion (scenes
- * then change only on request, without animation).
+ * Scenes never change on their own: the visitor moves between them with the
+ * previous / next buttons or the scene buttons. Lines that only repeat the
+ * scene's title or the package's duration are not shown twice.
  */
 export function ProductShowcase({
   scenes,
+  durations,
   labels,
 }: {
   scenes: ShowcaseScene[];
-  labels: { region: string; pause: string; play: string; scene: string; currency: string };
+  /** Package scenes' own duration, keyed by scene key (to drop lines that only repeat it). */
+  durations?: Record<string, SceneDuration>;
+  labels: { region: string; previous: string; next: string; currency: string };
 }) {
   const rootRef = useRef<HTMLElement>(null);
   const videoRefs = useRef(new Map<string, HTMLVideoElement>());
   const [index, setIndex] = useState(0);
   const [previous, setPrevious] = useState<number | null>(null);
   const [reduced, setReduced] = useState(false);
-  const [userPaused, setUserPaused] = useState(false);
-  const [hover, setHover] = useState(false);
   const [visible, setVisible] = useState(true);
   const count = scenes.length;
-  const running = count > 1 && !reduced && !userPaused && !hover && visible;
 
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -76,7 +66,7 @@ export function ProductShowcase({
     return () => query.removeEventListener("change", apply);
   }, []);
 
-  // Pause off-screen and in background tabs (saves CPU and battery).
+  // The player scene's video only plays on screen and in the foreground tab.
   useEffect(() => {
     const node = rootRef.current;
     let onScreen = true;
@@ -145,18 +135,27 @@ export function ProductShowcase({
       aria-label={labels.region}
       data-testid="product-showcase"
       data-scene={scenes[index].key}
-      className={cn(
-        "relative isolate h-[640px] overflow-hidden rounded-[2rem] border border-white/10 bg-canvas shadow-float sm:h-[560px] lg:h-full lg:min-h-[540px]",
-        !running && "sx-paused",
-      )}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onFocusCapture={() => setHover(true)}
-      onBlurCapture={() => setHover(false)}
+      className="relative isolate h-[560px] overflow-hidden rounded-[2rem] border border-white/10 bg-canvas sm:h-[540px] lg:h-full lg:min-h-[520px]"
+      onKeyDown={(event) => {
+        if (count < 2 || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
+        // Arrow keys follow the reading direction: in RTL, left is "next".
+        const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+        go(index + ((event.key === "ArrowLeft") === rtl ? 1 : -1));
+      }}
     >
       {scenes.map((scene, sceneIndex) => {
         const state = stateOf(sceneIndex);
         const words = scene.title.split(/\s+/).filter(Boolean);
+        const vip = IS_VIP[scene.kind];
+        // A line that only repeats the duration is dropped only when the title
+        // already shows that duration ("IPTV 12 شهرًا"); for "VIP بريميوم" the
+        // duration line is the only place it appears, so it stays.
+        const duration = durations?.[scene.key];
+        const titleShowsDuration = duration ? repeatsDuration(scene.title, duration) : false;
+        const kept = new Set(distinctLines([scene.subtitle, ...scene.facts, ...scene.chips], scene.title, titleShowsDuration ? duration : undefined));
+        const subtitle = scene.subtitle && kept.has(scene.subtitle.trim()) ? scene.subtitle : null;
+        const facts = scene.facts.filter((fact) => kept.has(fact.trim())).slice(0, 3);
+        const chips = scene.chips.filter((chip) => kept.has(chip.trim()) && !facts.includes(chip)).slice(0, 2);
 
         return (
           <div
@@ -169,62 +168,44 @@ export function ProductShowcase({
             aria-roledescription="slide"
             aria-label={`${sceneIndex + 1} / ${count}: ${scene.title}`}
           >
-            {/* Backdrop, orbs and orbit ring */}
             <div className={cn("sx-layer sx-bg absolute inset-0", BACKDROP[scene.kind])} />
-            {ORBS[scene.kind].map((orb, orbIndex) => (
-              <div key={orbIndex} aria-hidden className={cn("sx-layer sx-orb absolute rounded-full", orb)} />
-            ))}
-            <div
-              aria-hidden
-              className="sx-layer sx-ring absolute start-auto end-[-18%] top-[4%] h-[62%] w-[62%] rounded-full border border-glow/15 max-lg:end-[-20%] max-lg:top-[-6%] lg:end-[-6%] lg:top-[12%] lg:h-[78%] lg:w-[58%]"
-            >
-              <span className="absolute inset-[12%] rounded-full border border-glow/10" />
-              <span className="absolute start-[8%] top-[18%] h-2.5 w-2.5 rounded-full bg-glow shadow-[0_0_18px_rgb(203_233_253/0.9)]" />
-            </div>
 
-            <div className="relative grid h-full grid-rows-[46%_1fr] lg:grid-cols-[1fr_1.05fr] lg:grid-rows-1">
+            <div className="relative grid h-full grid-rows-[42%_1fr] lg:grid-cols-[1fr_1.05fr] lg:grid-rows-1">
               {/* Product visual (end side on desktop, top on phones) */}
               <div className="relative flex items-center justify-center p-6 lg:order-2 lg:p-10">
                 <div className="sx-layer sx-visual relative flex h-full w-full items-center justify-center">
-                  <div className="sx-drift relative flex h-full w-full items-center justify-center">
-                    <SceneVisual
-                      scene={scene}
-                      registerVideo={(node) => {
-                        if (node) videoRefs.current.set(scene.key, node);
-                        else videoRefs.current.delete(scene.key);
-                      }}
-                    />
-                  </div>
+                  <SceneVisual
+                    scene={scene}
+                    registerVideo={(node) => {
+                      if (node) videoRefs.current.set(scene.key, node);
+                      else videoRefs.current.delete(scene.key);
+                    }}
+                  />
                 </div>
-                {[...scene.chips.slice(0, 2), ...(scene.kind === "player" ? [] : ["__mark"])].map((chip, chipIndex) => (
+                {chips.map((chip, chipIndex) => (
                   <span
                     key={chip}
                     className={cn(
-                      "sx-layer sx-float glass-soft absolute flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold text-white shadow-card",
-                      chipIndex === 0 && "end-[8%] top-[12%] lg:end-[10%] lg:top-[16%]",
-                      chipIndex === 1 && "bottom-[10%] start-[8%] lg:bottom-[18%] lg:start-[4%]",
-                      chipIndex === 2 && "bottom-[16%] end-[10%] lg:bottom-[12%] lg:end-[14%]",
+                      "sx-layer sx-rise glass-soft absolute flex items-center rounded-full px-3 py-1.5 text-xs font-bold",
+                      vip ? "text-vip" : "text-white",
+                      chipIndex === 0 ? "end-[8%] top-[10%] lg:end-[10%] lg:top-[14%]" : "bottom-[8%] start-[8%] lg:bottom-[16%] lg:start-[4%]",
                     )}
-                    style={{ ...FLOAT_PATHS[chipIndex], "--i": chipIndex } as CSSProperties}
+                    style={{ "--i": chipIndex } as CSSProperties}
                   >
-                    {chip === "__mark" ? (
-                      <>
-                        <LogoMark className="h-5 w-5" />
-                        {labels.scene}
-                      </>
-                    ) : (
-                      <span className="max-w-40 truncate">{chip}</span>
-                    )}
+                    <bdi className="max-w-40 truncate">{chip}</bdi>
                   </span>
                 ))}
               </div>
 
               {/* Copy */}
-              <div className="relative flex flex-col justify-end gap-4 px-6 pb-16 pt-2 sm:px-8 lg:order-1 lg:justify-center lg:pb-20 lg:ps-10 lg:pt-10">
-                <p className="sx-layer sx-rise w-fit rounded-full bg-white px-3 py-1 text-xs font-bold text-navy" style={{ "--i": -3 } as CSSProperties}>
+              <div className="relative flex flex-col justify-end gap-4 px-6 pb-20 pt-2 sm:px-8 lg:order-1 lg:justify-center lg:pb-20 lg:ps-10 lg:pt-10">
+                <p
+                  className={cn("sx-layer sx-rise w-fit rounded-full px-3 py-1 text-xs font-bold", vip ? "bg-vip text-vip-ink" : "bg-white text-iptv-deep")}
+                  style={{ "--i": -3 } as CSSProperties}
+                >
                   {scene.eyebrow}
                 </p>
-                <h3 className="text-balance text-3xl font-bold leading-[1.2] text-white sm:text-4xl lg:text-[2.3rem]">
+                <h3 dir="auto" className={cn("text-balance text-3xl font-bold leading-[1.2] sm:text-4xl lg:text-[2.3rem]", vip ? "text-vip" : "text-white")}>
                   {words.map((word, wordIndex) => (
                     <Fragment key={`${word}-${wordIndex}`}>
                       <span className="sx-mask">
@@ -236,17 +217,22 @@ export function ProductShowcase({
                     </Fragment>
                   ))}
                 </h3>
-                {scene.subtitle ? (
-                  <p className="sx-layer sx-rise line-clamp-2 max-w-md text-sm leading-7 text-glow/90 sm:text-[15px]" style={{ "--i": -1 } as CSSProperties}>
-                    {scene.subtitle}
+                {subtitle ? (
+                  <p
+                    dir="auto"
+                    className={cn("sx-layer sx-rise line-clamp-2 max-w-md text-sm leading-7 sm:text-[15px]", vip ? "text-vip-text" : "text-iptv-ink")}
+                    style={{ "--i": -1 } as CSSProperties}
+                  >
+                    {subtitle}
                   </p>
                 ) : null}
-                {scene.facts.length ? (
+                {facts.length ? (
                   <ul className="flex flex-wrap gap-2">
-                    {scene.facts.slice(0, 3).map((fact, factIndex) => (
+                    {facts.map((fact, factIndex) => (
                       <li
                         key={fact}
-                        className="sx-layer sx-rise glass-soft rounded-xl px-3 py-2 text-xs font-semibold text-white"
+                        dir="auto"
+                        className={cn("sx-layer sx-rise glass-soft rounded-xl px-3 py-2 text-xs font-semibold", vip ? "text-vip" : "text-white")}
                         style={{ "--i": factIndex } as CSSProperties}
                       >
                         {fact}
@@ -257,22 +243,25 @@ export function ProductShowcase({
                 <div className="sx-layer sx-rise flex flex-wrap items-center gap-4 pt-1" style={{ "--i": 3.5 } as CSSProperties}>
                   {scene.price !== null ? (
                     <div>
-                      <p className="flex items-baseline gap-1.5 text-white">
+                      <p className={cn("flex items-baseline gap-1.5", vip ? "text-vip" : "text-white")}>
                         <span className="nums text-3xl font-bold tracking-tight" dir="ltr">
                           {new Intl.NumberFormat("en-US").format(scene.price)}
                         </span>
-                        <span className="text-xs font-semibold text-glow/80">{labels.currency}</span>
+                        <span className={cn("text-xs font-semibold", vip ? "text-vip-text" : "text-iptv-ink")}>{labels.currency}</span>
                       </p>
-                      {scene.priceNote ? <p className="nums text-xs text-glow/75">{scene.priceNote}</p> : null}
+                      {scene.priceNote ? <p className={cn("nums text-xs", vip ? "text-vip-text" : "text-iptv-ink")}>{scene.priceNote}</p> : null}
                     </div>
                   ) : null}
                   <Link
                     href={scene.cta.href}
                     data-testid="showcase-cta"
-                    className="group/cta inline-flex h-12 items-center gap-3 whitespace-nowrap rounded-2xl bg-white pe-1.5 ps-5 text-sm font-bold text-navy shadow-glow transition hover:bg-glow"
+                    className={cn(
+                      "group/cta inline-flex h-12 items-center gap-3 whitespace-nowrap rounded-2xl pe-1.5 ps-5 text-sm font-bold transition-colors",
+                      vip ? "bg-vip text-vip-ink hover:brightness-105" : "bg-white text-iptv-deep hover:bg-iptv-ink",
+                    )}
                   >
                     {scene.cta.label}
-                    <span aria-hidden className="flex h-9 w-9 items-center justify-center rounded-xl bg-navy text-white">
+                    <span aria-hidden className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white", vip ? "bg-vip-field" : "bg-iptv-deep")}>
                       <ArrowLeft size={16} className="ltr:rotate-180" />
                     </span>
                   </Link>
@@ -283,9 +272,18 @@ export function ProductShowcase({
         );
       })}
 
-      {/* Scene timeline + pause (persistent layer) */}
+      {/* Scene buttons + previous / next (persistent layer) */}
       {count > 1 ? (
         <div className="absolute inset-x-5 bottom-5 z-10 flex items-center gap-3 sm:inset-x-8 lg:ps-2">
+          <button
+            type="button"
+            onClick={() => go(index - 1)}
+            aria-label={labels.previous}
+            data-testid="showcase-previous"
+            className="glass-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white transition-colors hover:bg-white/15"
+          >
+            <ChevronRight size={18} className="ltr:rotate-180" aria-hidden />
+          </button>
           <div className="flex flex-1 gap-1.5" role="group" aria-label={labels.region}>
             {scenes.map((scene, sceneIndex) => (
               <button
@@ -294,33 +292,26 @@ export function ProductShowcase({
                 onClick={() => go(sceneIndex)}
                 aria-label={`${sceneIndex + 1} / ${count}: ${scene.title}`}
                 aria-current={sceneIndex === index}
-                className="group/seg relative h-6 flex-1"
+                data-testid="showcase-scene-button"
+                className="group/seg relative h-10 flex-1"
               >
-                <span className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-white/20 transition group-hover/seg:bg-white/35">
-                  {sceneIndex < index ? <span className="absolute inset-0 bg-white/70" /> : null}
-                  {sceneIndex === index ? (
-                    reduced ? (
-                      <span className="absolute inset-0 bg-white" />
-                    ) : (
-                      <span
-                        key={index}
-                        className="sx-progress absolute inset-0 bg-white"
-                        style={{ "--sx-duration": `${SCENE_MS}ms` } as CSSProperties}
-                        onAnimationEnd={() => go(index + 1)}
-                      />
-                    )
-                  ) : null}
-                </span>
+                <span
+                  className={cn(
+                    "absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full transition-colors",
+                    sceneIndex === index ? "bg-white" : "bg-white/25 group-hover/seg:bg-white/45",
+                  )}
+                />
               </button>
             ))}
           </div>
           <button
             type="button"
-            onClick={() => setUserPaused((value) => !value)}
-            aria-label={userPaused ? labels.play : labels.pause}
-            className="glass-soft flex h-9 w-9 items-center justify-center rounded-full text-white transition hover:bg-white/15"
+            onClick={() => go(index + 1)}
+            aria-label={labels.next}
+            data-testid="showcase-next"
+            className="glass-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white transition-colors hover:bg-white/15"
           >
-            {userPaused ? <Play size={14} aria-hidden /> : <Pause size={14} aria-hidden />}
+            <ChevronLeft size={18} className="ltr:rotate-180" aria-hidden />
           </button>
         </div>
       ) : null}
@@ -332,7 +323,7 @@ function SceneVisual({ scene, registerVideo }: { scene: ShowcaseScene; registerV
   if (scene.video) {
     return (
       <div className="relative w-full max-w-[26rem]">
-        <div className="rounded-[1.4rem] border border-white/15 bg-canvas/80 p-1.5 shadow-[0_30px_80px_-30px_rgb(25_81_252/0.8)]">
+        <div className="rounded-[1.4rem] border border-white/15 bg-canvas/80 p-1.5">
           <video
             ref={registerVideo}
             className="block aspect-video w-full rounded-[1.05rem] object-cover"
@@ -354,15 +345,9 @@ function SceneVisual({ scene, registerVideo }: { scene: ShowcaseScene; registerV
   if (scene.imageUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={scene.imageUrl}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className="max-h-full max-w-full rounded-[1.6rem] object-contain drop-shadow-[0_30px_50px_rgb(1_5_22/0.6)]"
-      />
+      <img src={scene.imageUrl} alt="" loading="lazy" decoding="async" className="max-h-full max-w-full rounded-[1.6rem] object-contain" />
     );
   }
 
-  return <ProductEmblem kind={scene.kind} className="w-40 sm:w-48 lg:w-56" />;
+  return <ProductEmblem kind={scene.kind} className="w-32 sm:w-40 lg:w-48" />;
 }

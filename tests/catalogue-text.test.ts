@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-const { distinctHighlights, repeatsDuration } = await import("@/app/ui/catalogue-text");
+const { distinctHighlights, distinctLines, repeatsDuration, repeatsTitle } = await import("@/app/ui/catalogue-text");
 
 const threeMonths = { durationMonths: 3, durationLabel: "3 أشهر" };
 const sixMonths = { durationMonths: 6, durationLabel: "6 أشهر" };
@@ -62,4 +62,32 @@ test("distinctHighlights drops only own-duration lines and keeps order and limit
   assert.deepEqual(distinctHighlights(pkg, 10), ["4K", "3 أشهر مجانًا", "VIP", "حتى 3 شاشات", "دعم فني"]);
   assert.deepEqual(distinctHighlights(pkg, 2), ["4K", "3 أشهر مجانًا"]);
   assert.deepEqual(distinctHighlights({ ...threeMonths, features: ["", "4K"] }, 5), ["4K"]);
+});
+
+test("repeatsTitle: a line whose words are all in the title adds nothing", () => {
+  assert.ok(repeatsTitle("اشتراك IPTV لمدة 3 أشهر", "IPTV 3 أشهر"));
+  assert.ok(repeatsTitle("3 أشهر", "IPTV 3 أشهر"));
+  assert.ok(repeatsTitle("اشتراك لمدة 12 شهرًا", "IPTV 12 شهرًا"));
+  assert.ok(!repeatsTitle("قنوات رياضية وأفلام بجودة 4K", "VIP بريميوم"), "own words stay");
+  assert.ok(!repeatsTitle("3 أشهر", "VIP بريميوم"), "a duration not in the title stays");
+  assert.ok(!repeatsTitle("VIP", "VIP بريميوم"), "general words alone stay");
+  assert.ok(!repeatsTitle("3 أشهر مجانًا", "IPTV 3 أشهر"), "an extra word keeps the line");
+});
+
+test("distinctLines drops title repeats, own-duration repeats and duplicates, in order", () => {
+  const year = { durationMonths: 12, durationLabel: "سنة واحدة" };
+
+  // An IPTV scene as the catalogue builds it: subtitle, facts, chips.
+  assert.deepEqual(distinctLines(["اشتراك IPTV لمدة سنة واحدة", "سنة واحدة", "اشتراك لمدة 12 شهرًا"], "IPTV 12 شهرًا", year), []);
+  // A VIP scene ("VIP بريميوم" does not show the duration, so no duration is passed):
+  // the duration line, the description and the real features stay; only the duplicate "4K" goes.
+  assert.deepEqual(
+    distinctLines(["قنوات رياضية وأفلام بجودة 4K", "3 أشهر", "4K", "بدون تقطيع", "4K", "دعم فني"], "VIP بريميوم"),
+    ["قنوات رياضية وأفلام بجودة 4K", "3 أشهر", "4K", "بدون تقطيع", "دعم فني"],
+  );
+  // The showcase only passes a duration when the title already shows it.
+  assert.ok(repeatsDuration("IPTV 12 شهرًا", year));
+  assert.ok(!repeatsDuration("VIP بريميوم", { durationMonths: 3, durationLabel: "3 أشهر" }));
+  // Without a known duration, only title repeats and duplicates go.
+  assert.deepEqual(distinctLines(["HDMI", "Wi-Fi", "HDMI", null, ""], "جهاز VIP Stick"), ["HDMI", "Wi-Fi"]);
 });

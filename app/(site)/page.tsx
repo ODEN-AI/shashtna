@@ -80,7 +80,7 @@ export default async function HomePage() {
       <HomeHero lang={lang} services={services} scenes={scenes} durations={durations} editorial={editorial}>
         {user ? <HomeCustomerStrip user={user} /> : null}
       </HomeHero>
-      <HomePlans lang={lang} packages={packages} />
+      <HomePlans lang={lang} packages={packages} devices={devices} />
       <HomePlayer lang={lang} hasPlayerApp={apps.some((app) => app.isPlayer)} />
       <HomeWatchEverywhere
         lang={lang}

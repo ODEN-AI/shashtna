@@ -312,12 +312,12 @@ function EntryOverlay({ plan, onClose }: { plan: Plan; onClose: () => void }) {
                         onClick={onClose}
                         className="glass-soft flex h-full flex-col gap-1 rounded-2xl p-4 transition hover:bg-white/10"
                       >
-                        <span className="text-[11px] font-bold text-glow/80">{other.eyebrow}</span>
+                        <span className="text-xs font-bold text-glow/80">{other.eyebrow}</span>
                         <span className="line-clamp-2 text-sm font-bold leading-6 text-white">{other.title}</span>
                       </Link>
                     ) : (
                       <div className="glass-soft flex h-full flex-col gap-1 rounded-2xl p-4">
-                        <span className="text-[11px] font-bold text-glow/80">{other.eyebrow}</span>
+                        <span className="text-xs font-bold text-glow/80">{other.eyebrow}</span>
                         <span className="line-clamp-2 text-sm font-bold leading-6 text-white">{other.title}</span>
                       </div>
                     )}

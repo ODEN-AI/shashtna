@@ -76,13 +76,13 @@ function PlayerIllustration({ lang }: { lang: Lang }) {
           <div className="border-e border-white/5 bg-canvas-deep p-3">
             <div className="flex items-center gap-2">
               <LogoMark className="h-6 w-6" />
-              <span className="text-[11px] font-bold text-white/80">Player</span>
+              <span className="text-xs font-bold text-white/80">Player</span>
             </div>
             <ul className="mt-4 space-y-1.5">
               {categories.map((category, index) => (
                 <li
                   key={category}
-                  className={`rounded-md px-2 py-1.5 text-[10px] font-semibold ${index === 0 ? "bg-brand/30 text-white" : "text-white/45"}`}
+                  className={`rounded-md px-2 py-1.5 text-xs font-semibold ${index === 0 ? "bg-brand/30 text-white" : "text-white/45"}`}
                 >
                   {category}
                 </li>

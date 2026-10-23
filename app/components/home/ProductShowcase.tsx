@@ -200,7 +200,7 @@ export function ProductShowcase({
                   <span
                     key={chip}
                     className={cn(
-                      "sx-layer sx-float glass-soft absolute flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-bold text-white shadow-card",
+                      "sx-layer sx-float glass-soft absolute flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold text-white shadow-card",
                       chipIndex === 0 && "end-[8%] top-[12%] lg:end-[10%] lg:top-[16%]",
                       chipIndex === 1 && "bottom-[10%] start-[8%] lg:bottom-[18%] lg:start-[4%]",
                       chipIndex === 2 && "bottom-[16%] end-[10%] lg:bottom-[12%] lg:end-[14%]",

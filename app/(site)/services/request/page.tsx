@@ -139,7 +139,7 @@ ${details || "Not provided yet"}`;
 
           <div className="mt-10 grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div className="pt-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-blue-50/70 px-4 py-2 text-[11px] font-black tracking-[0.18em] text-blue-700 shadow-sm backdrop-blur-xl dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-blue-50/70 px-4 py-2 text-xs font-black tracking-[0.18em] text-blue-700 shadow-sm backdrop-blur-xl dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
                 <Sparkles size={14} />
                 {isArabic ? "شاشتنا للحلول الرقمية" : "SHASHTNA DIGITAL SOLUTIONS"}
               </div>

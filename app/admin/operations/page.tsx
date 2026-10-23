@@ -257,7 +257,7 @@ function Overview({ ops, lang, href }: { ops: Operations; lang: Lang; href: (nex
                 <span className={cn("nums block text-3xl font-extrabold", lane.failed ? "text-base text-danger" : lane.count ? (lane.urgent ? "text-warning" : "text-ink") : "text-ink-3")} data-testid="ops-kpi-value">
                   {lane.failed ? t("تعذر التحميل", "Unavailable") : lane.count}
                 </span>
-                <span className={cn("mt-1 block text-[11px] font-semibold", lane.failed ? "text-danger" : lane.count ? "text-warning" : "text-success")}>
+                <span className={cn("mt-1 block text-xs font-semibold", lane.failed ? "text-danger" : lane.count ? "text-warning" : "text-success")}>
                   {lane.failed ? t("تعذر تحميل البيانات", "Couldn't load") : lane.count ? t("يحتاج إجراء", "Action needed") : t("لا شيء معلّق", "Nothing pending")}
                 </span>
               </span>
@@ -293,7 +293,7 @@ function Overview({ ops, lang, href }: { ops: Operations; lang: Lang; href: (nex
               ) : (
                 <EmptyLine>{t("ماكو شي هنا حاليًا.", "Nothing here right now.")}</EmptyLine>
               )}
-              <p className="mt-3 text-[11px] text-ink-3">{lane.hint}</p>
+              <p className="mt-3 text-xs text-ink-3">{lane.hint}</p>
             </SectionCard>
           ))}
         </div>

@@ -22,7 +22,7 @@ export function BarChart({
       <div className="flex h-56 items-end gap-[2px] border-b border-line" dir="ltr">
         {data.map((item) => (
           <div key={item.key} className="group relative flex h-full flex-1 flex-col justify-end" tabIndex={0} aria-label={`${item.label}: ${formatValue(item.value)}`}>
-            <span className="nums pointer-events-none absolute -top-7 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-surface-3 px-2 py-1 text-[11px] font-semibold text-ink shadow-card group-hover:block group-focus:block">
+            <span className="nums pointer-events-none absolute -top-7 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-surface-3 px-2 py-1 text-xs font-semibold text-ink shadow-card group-hover:block group-focus:block">
               {formatValue(item.value)}
             </span>
             <div
@@ -34,7 +34,7 @@ export function BarChart({
       </div>
       <div className="mt-2 flex gap-[2px]" dir="ltr">
         {data.map((item, index) => (
-          <span key={item.key} className={`nums flex-1 text-center text-[10px] text-ink-3${tickEvery > 1 ? " overflow-visible whitespace-nowrap" : ""}`}>
+          <span key={item.key} className={`nums flex-1 text-center text-xs text-ink-3${tickEvery > 1 ? " overflow-visible whitespace-nowrap" : ""}`}>
             {index % tickEvery === 0 ? item.label : ""}
           </span>
         ))}

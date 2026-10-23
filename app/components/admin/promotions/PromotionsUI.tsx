@@ -90,12 +90,12 @@ export function SurfaceList({ surfaces, t }: { surfaces: { website: string[]; pl
   return (
     <span className="flex flex-wrap gap-1.5" data-testid="promo-surfaces">
       {surfaces.website.map((place) => (
-        <span key={place} className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-ink-2" dir="ltr">
+        <span key={place} className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2 py-0.5 text-xs font-semibold text-ink-2" dir="ltr">
           <Globe size={11} aria-hidden /> {place}
         </span>
       ))}
       {surfaces.player ? (
-        <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-ink-2">
+        <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2 py-0.5 text-xs font-semibold text-ink-2">
           <Tv size={11} aria-hidden /> Shashtna Player
         </span>
       ) : null}

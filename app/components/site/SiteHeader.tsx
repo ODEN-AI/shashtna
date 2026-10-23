@@ -211,7 +211,7 @@ function NotificationsBell({ unread }: { unread: number }) {
     >
       <Bell size={18} aria-hidden />
       {unread ? (
-        <span className="nums absolute -end-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white ring-2 ring-canvas">
+        <span className="nums absolute -end-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-xs font-bold text-white ring-2 ring-canvas">
           {unread > 9 ? "9+" : unread}
         </span>
       ) : null}

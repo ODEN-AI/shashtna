@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { LinkButton } from "@/app/ui/Button";
 import { Container, PageHeader } from "@/app/ui/Page";
 import { EmptyState } from "@/app/ui/States";
-import { requireCustomer } from "@/src/server/auth";
+import { getSessionUser, requireCustomer } from "@/src/server/auth";
 import { resolveCheckoutSelection, type CheckoutMode } from "@/src/server/checkout-selection";
 import { getI18n } from "@/src/server/i18n";
 
@@ -21,23 +21,33 @@ export const metadata: Metadata = {
 
 type Params = { plan?: string; device?: string; renew?: string; upgrade?: string; type?: string };
 
+// Stand-in for a visitor without a session. resolveCheckoutSelection only
+// reads the user for renewals and upgrades (an existing subscription), and
+// visitors are sent to sign in before those, so the id is never used.
+const VISITOR = { id: 0, preferredContact: null };
+
 /**
  * Confirms ONE order the customer already chose on the Packages page (or on
  * a device / renewal link). Nothing to pick here except, for VIP plans, the
  * compatible device. Without a valid selection the customer goes back to
  * choose. Payment happens after the order exists, from the account. The
  * selection rules live in resolveCheckoutSelection (shared with the mobile app).
+ *
+ * Visitors see the same review and total before signing in; confirming
+ * sends them to sign in or register and straight back here. Creating the
+ * order still requires a session (placeOrderAction → assertCustomer).
  */
 export default async function CheckoutPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
   const query = new URLSearchParams(
     Object.entries(params).filter(([, value]) => typeof value === "string") as [string, string][],
   ).toString();
+  const returnTo = `/checkout${query ? `?${query}` : ""}`;
 
-  // Visitors without a session sign in (or register) and come straight back
-  // here with the same selection.
-  const user = await requireCustomer(`/checkout${query ? `?${query}` : ""}`);
-  const [{ t }, selection] = await Promise.all([getI18n(), resolveCheckoutSelection(user, params)]);
+  const sessionUser = await getSessionUser();
+  // Renewals and upgrades act on the customer's own subscription: sign in first.
+  const user = sessionUser ?? (params.renew || params.upgrade ? await requireCustomer(returnTo) : null);
+  const [{ t }, selection] = await Promise.all([getI18n(), resolveCheckoutSelection(user ?? VISITOR, params)]);
 
   if (!selection.ok && selection.reason === "SUBSCRIPTION_NOT_FOUND") {
     return (
@@ -56,6 +66,14 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   }
 
   const { mode, plan, device, devices: compatibleDevices, initialDeviceId, subscription, contactOptions, initialContact, choosePath } = selection;
+  // With several compatible devices, start on the cheapest so the total is
+  // known from the first look; the customer can switch. The server prices
+  // the order from the chosen device either way.
+  const cheapestDevice = compatibleDevices.reduce<(typeof compatibleDevices)[number] | null>(
+    (best, item) => (!best || item.price < best.price ? item : best),
+    null,
+  );
+  const initialDevice = initialDeviceId ?? cheapestDevice?.id ?? null;
 
   const titles: Record<CheckoutMode, [string, string]> = {
     NEW: [t("تأكيد الطلب", "Confirm your order"), t("راجع باقتك وأكّد الطلب.", "Review your plan and confirm the order.")],
@@ -97,10 +115,11 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
           }
           device={device ? { id: device.id, name: device.name, price: device.price, description: device.description } : null}
           devices={compatibleDevices.map((item) => ({ id: item.id, name: item.name, price: item.price, description: item.description }))}
-          initialDevice={initialDeviceId}
+          initialDevice={initialDevice}
           subscriptionId={subscription?.id ?? null}
           changeHref={choosePath}
-          user={{ name: user.name, phone: user.phone, email: user.email }}
+          user={user ? { name: user.name, phone: user.phone, email: user.email } : null}
+          returnQuery={query}
           contactOptions={contactOptions}
           initialContact={initialContact}
         />

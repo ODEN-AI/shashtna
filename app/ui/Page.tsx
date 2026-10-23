@@ -8,7 +8,7 @@ export function Container({ children, className }: { children: ReactNode; classN
 
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <p className={cn("text-xs font-bold uppercase tracking-[0.18em] text-brand-ink", className)}>
+    <p className={cn("text-sm font-semibold text-ink-3", className)}>
       {children}
     </p>
   );

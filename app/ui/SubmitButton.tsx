@@ -21,7 +21,7 @@ export function SubmitButton({
 }: {
   children: ReactNode;
   pendingLabel?: ReactNode;
-  variant?: "primary" | "secondary" | "ghost" | "danger" | "glow";
+  variant?: "primary" | "secondary" | "ghost" | "danger" | "glow" | "vip";
   size?: "sm" | "md" | "lg";
   className?: string;
   disabled?: boolean;

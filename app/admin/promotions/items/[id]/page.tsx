@@ -105,7 +105,7 @@ export default async function ContentItemPage({ params }: { params: Promise<{ id
                 {media.type === "VIDEO" ? <Badge tone="glow" className="absolute start-3 top-3">{t("فيديو", "Video")}</Badge> : null}
               </div>
               <div className="space-y-2 p-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-ink">{labels.kind[item.kind] ?? item.kind}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-ink">{labels.kind[item.kind] ?? item.kind}</p>
                 <p className="text-lg font-bold leading-7 text-ink">{item.title}</p>
                 {item.highlight ? <p className="nums text-sm font-bold text-glow">{item.highlight}</p> : null}
                 {item.description ? <p className="text-sm leading-6 text-ink-2">{item.description}</p> : null}

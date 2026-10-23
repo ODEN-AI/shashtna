@@ -996,7 +996,7 @@ export default function AdminSubscriptionsPage() {
               <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50/70 p-5 dark:border-blue-900/30 dark:bg-blue-950/20">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.14em] text-blue-500 dark:text-blue-400">
+                    <div className="text-xs font-black uppercase tracking-[0.14em] text-blue-500 dark:text-blue-400">
                       العميل
                     </div>
 
@@ -1008,7 +1008,7 @@ export default function AdminSubscriptionsPage() {
                   </div>
 
                   <div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.14em] text-blue-500 dark:text-blue-400">
+                    <div className="text-xs font-black uppercase tracking-[0.14em] text-blue-500 dark:text-blue-400">
                       الخدمة
                     </div>
 
@@ -1179,7 +1179,7 @@ export default function AdminSubscriptionsPage() {
                     </button>
                   </div>
 
-                  <p className="mt-2 text-[11px] font-bold leading-5 text-slate-400">
+                  <p className="mt-2 text-xs font-bold leading-5 text-slate-400">
                     زر + سنة يضيف سنة كاملة إلى تاريخ الانتهاء الحالي.
                   </p>
                 </div>
@@ -1204,7 +1204,7 @@ export default function AdminSubscriptionsPage() {
               <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800/40">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+                    <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
                       الانتهاء الحالي
                     </div>
 
@@ -1218,7 +1218,7 @@ export default function AdminSubscriptionsPage() {
                   </div>
 
                   <div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+                    <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
                       الانتهاء الجديد
                     </div>
 

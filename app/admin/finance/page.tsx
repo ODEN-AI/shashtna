@@ -131,15 +131,15 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="glass-soft rounded-2xl p-3">
-              <p className="text-[11px] font-semibold text-white/70">{t("مبيعات مكتملة", "Completed sales")}</p>
+              <p className="text-xs font-semibold text-white/70">{t("مبيعات مكتملة", "Completed sales")}</p>
               <p className="nums mt-1 text-xl font-bold text-white">{snapshot.revenue.sales}</p>
             </div>
             <div className="glass-soft rounded-2xl p-3">
-              <p className="text-[11px] font-semibold text-white/70">{t("الفترة السابقة", "Previous period")}</p>
+              <p className="text-xs font-semibold text-white/70">{t("الفترة السابقة", "Previous period")}</p>
               <p className="nums mt-1 text-xl font-bold text-white">{money(snapshot.revenue.previous, lang)}</p>
             </div>
             <div className="glass-soft col-span-2 rounded-2xl p-3 sm:col-span-1">
-              <p className="text-[11px] font-semibold text-white/70">{t("متوسط قيمة الطلب", "Average order value")}</p>
+              <p className="text-xs font-semibold text-white/70">{t("متوسط قيمة الطلب", "Average order value")}</p>
               <p className="nums mt-1 text-xl font-bold text-white">{snapshot.orders.averageOrderValue === null ? "—" : money(snapshot.orders.averageOrderValue, lang)}</p>
             </div>
           </div>
@@ -227,7 +227,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
                       {copy.title}
                     </p>
                     <p className={cn("nums leading-8 text-ink", snapshot.insights.length === 1 ? "text-xl font-bold" : "text-sm leading-6")}>{copy.body}</p>
-                    <p className="text-[11px] text-ink-3">{compare}</p>
+                    <p className="text-xs text-ink-3">{compare}</p>
                   </GlassTile>
                 );
               })}
@@ -306,8 +306,8 @@ function ProductSection({ snapshot, lang }: { snapshot: FinanceSnapshot; lang: L
             <p className="mt-5 text-2xl font-bold leading-snug text-white">{leader.name}</p>
             <p className="nums mt-3 text-4xl font-bold text-white">{leader.units}<span className="ms-2 text-sm font-semibold text-white/70">{t("عملية شراء", "purchases")}</span></p>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="glass-soft rounded-2xl p-3"><p className="text-[11px] text-white/70">{t("الإيرادات", "Revenue")}</p><p className="nums mt-1 font-bold text-white">{money(leader.revenue, lang)}</p></div>
-              <div className="glass-soft rounded-2xl p-3"><p className="text-[11px] text-white/70">{t("من الإيرادات", "Of revenue")}</p><p className="nums mt-1 font-bold text-white">{percent(leader.share)}</p></div>
+              <div className="glass-soft rounded-2xl p-3"><p className="text-xs text-white/70">{t("الإيرادات", "Revenue")}</p><p className="nums mt-1 font-bold text-white">{money(leader.revenue, lang)}</p></div>
+              <div className="glass-soft rounded-2xl p-3"><p className="text-xs text-white/70">{t("من الإيرادات", "Of revenue")}</p><p className="nums mt-1 font-bold text-white">{percent(leader.share)}</p></div>
             </div>
           </>
         ) : (
@@ -327,9 +327,9 @@ function ProductSection({ snapshot, lang }: { snapshot: FinanceSnapshot; lang: L
                 <li key={row.product} data-testid="product-row">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <p className="flex items-center gap-2 font-bold text-ink">
-                      <span className="nums flex h-6 w-6 items-center justify-center rounded-lg bg-surface-3 text-[11px] text-ink-2">{index + 1}</span>
+                      <span className="nums flex h-6 w-6 items-center justify-center rounded-lg bg-surface-3 text-xs text-ink-2">{index + 1}</span>
                       {row.name}
-                      <span className="rounded-full border border-line px-2 py-0.5 text-[10px] font-semibold text-ink-3">{row.kind === "device" ? t("جهاز", "Device") : row.serviceType}</span>
+                      <span className="rounded-full border border-line px-2 py-0.5 text-xs font-semibold text-ink-3">{row.kind === "device" ? t("جهاز", "Device") : row.serviceType}</span>
                     </p>
                     <p className="nums text-sm font-bold text-ink">{money(row.revenue, lang)}</p>
                   </div>
@@ -362,7 +362,7 @@ function OperationsSection({ snapshot, lang }: { snapshot: FinanceSnapshot; lang
     <div className="rounded-2xl border border-line bg-surface-2/60 p-4" data-testid={testId}>
       <p className="text-xs font-semibold text-ink-3">{label}</p>
       <p className="nums mt-1.5 text-2xl font-bold text-ink">{value}</p>
-      {previous !== undefined ? <p className="nums mt-1 text-[11px] text-ink-3">{t("السابقة", "Previous")}: {previous}</p> : null}
+      {previous !== undefined ? <p className="nums mt-1 text-xs text-ink-3">{t("السابقة", "Previous")}: {previous}</p> : null}
     </div>
   );
 
@@ -381,7 +381,7 @@ function OperationsSection({ snapshot, lang }: { snapshot: FinanceSnapshot; lang
           {tile(t("متوسط قيمة الطلب", "Average order value"), o.averageOrderValue === null ? "—" : money(o.averageOrderValue, lang), o.previousAverageOrderValue === null ? "—" : money(o.previousAverageOrderValue, lang))}
           {tile(t("إثباتات بانتظار المراجعة", "Proofs awaiting review"), snapshot.proofs.awaitingReview)}
         </div>
-        <p className="mt-3 text-[11px] leading-5 text-ink-3">{t("نسبة التحويل = من الطلبات المنشأة بالفترة، كم وحدة تم دفعها لحد الآن.", "Conversion = of the orders created in the period, the share paid so far.")}</p>
+        <p className="mt-3 text-xs leading-5 text-ink-3">{t("نسبة التحويل = من الطلبات المنشأة بالفترة، كم وحدة تم دفعها لحد الآن.", "Conversion = of the orders created in the period, the share paid so far.")}</p>
       </GlassTile>
       <GlassTile testId="customers-section">
         <TileLabel icon={<Users size={14} aria-hidden />}>{t("العملاء والاشتراكات", "Customers & subscriptions")}</TileLabel>
@@ -396,7 +396,7 @@ function OperationsSection({ snapshot, lang }: { snapshot: FinanceSnapshot; lang
           {tile(t("متوسط قيمة العميل (كل الوقت)", "Avg customer value (all time)"), c.averageCustomerValue === null ? "—" : money(c.averageCustomerValue, lang))}
           {tile(t("معدل الشراء لكل عميل", "Purchases per customer"), c.purchaseFrequency === null ? "—" : c.purchaseFrequency.toFixed(2))}
         </div>
-        <p className="mt-3 text-[11px] leading-5 text-ink-3">{t("أرقام مجمّعة فقط — بدون بيانات شخصية.", "Aggregates only — no personal data.")}</p>
+        <p className="mt-3 text-xs leading-5 text-ink-3">{t("أرقام مجمّعة فقط — بدون بيانات شخصية.", "Aggregates only — no personal data.")}</p>
       </GlassTile>
     </div>
   );

@@ -51,7 +51,7 @@ export function CustomerBottomNav() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold transition",
+                  "flex h-16 flex-col items-center justify-center gap-1 text-xs font-semibold transition",
                   active ? "text-ink" : "text-ink-3 hover:text-ink-2",
                 )}
               >

@@ -43,11 +43,11 @@ export function StatementItem({ statement, lang }: { statement: Statement; lang:
 
   return (
     <li className="flex items-start gap-3" data-testid="analyst-statement" data-kind={statement.kind}>
-      <span className={cn("mt-0.5 shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold", KIND_STYLE[statement.kind])}>{kindLabel(statement.kind, lang)}</span>
+      <span className={cn("mt-0.5 shrink-0 rounded-md px-2 py-0.5 text-xs font-bold", KIND_STYLE[statement.kind])}>{kindLabel(statement.kind, lang)}</span>
       <p className="text-sm leading-7 text-ink">
         {statement.text}
         {unverified ? (
-          <span className="ms-2 inline-flex items-center gap-1 rounded-md bg-warning/12 px-1.5 py-0.5 align-middle text-[11px] font-semibold text-warning" data-testid="analyst-unverified">
+          <span className="ms-2 inline-flex items-center gap-1 rounded-md bg-warning/12 px-1.5 py-0.5 align-middle text-xs font-semibold text-warning" data-testid="analyst-unverified">
             <AlertTriangle size={11} aria-hidden />
             {t("رقم غير مطابق للبيانات — تجاهله", "Number not found in the data — disregard")}
           </span>
@@ -75,7 +75,7 @@ export function AnalystPanel({ lang, report, period, from, to }: { lang: Lang; r
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-glow">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-glow">
             <Sparkles size={14} aria-hidden />
             Shashtna AI Analyst
           </p>

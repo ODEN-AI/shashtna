@@ -49,7 +49,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <Link href="/admin/finance" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-ink hover:text-ink">
           <ArrowRight size={14} className="ltr:rotate-180" aria-hidden /> {t("المالية والأداء", "Finance & performance")}
         </Link>
-        <p className="mt-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-glow">
+        <p className="mt-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-glow">
           <Sparkles size={14} aria-hidden /> Shashtna AI Analyst
         </p>
         <h1 className="mt-1 text-h1 font-bold text-ink">{t("تقارير محلل الأعمال", "Business analyst reports")}</h1>

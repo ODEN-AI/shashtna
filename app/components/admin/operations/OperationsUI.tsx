@@ -90,7 +90,7 @@ export function PaymentCard({ item, lang }: { item: PaymentItem; lang: Lang }) {
         <p className="text-xs text-ink-3">
           {t("مرجع الدفع", "Payment reference")}: <span className="nums text-ink-2" dir="ltr">{item.paymentReference ?? "—"}</span> · {t("رُفع الإثبات", "Proof uploaded")} <Waiting since={item.since} lang={lang} />
         </p>
-        <p className="text-[11px] leading-5 text-ink-3">{t("تأكد من وصول المبلغ فعلًا قبل التأكيد.", "Confirm only after checking the money actually arrived.")}</p>
+        <p className="text-xs leading-5 text-ink-3">{t("تأكد من وصول المبلغ فعلًا قبل التأكيد.", "Confirm only after checking the money actually arrived.")}</p>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {canConfirm ? (
             <OpsActionForm action={updateOrderStatusAction}>

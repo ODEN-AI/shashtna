@@ -38,7 +38,7 @@ export default async function SystemRolesPage() {
             <p className="mt-1 text-sm text-ink-2">{descriptions[row.role]}</p>
             <ul className="mt-3 flex flex-wrap gap-1.5">
               {PERMISSIONS.filter((permission) => row.permissions[permission]).map((permission) => (
-                <li key={permission} className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-ink-2" data-testid="role-permission" data-permission={permission}>{permissions[permission]}</li>
+                <li key={permission} className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-semibold text-ink-2" data-testid="role-permission" data-permission={permission}>{permissions[permission]}</li>
               ))}
             </ul>
           </article>

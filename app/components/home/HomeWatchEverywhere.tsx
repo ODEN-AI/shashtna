@@ -30,7 +30,7 @@ export function HomeWatchEverywhere({
   const count = (n: number) => (isAr ? (n === 1 ? "تطبيق واحد" : n === 2 ? "تطبيقان" : `${n} تطبيقات`) : `${n} app${n === 1 ? "" : "s"}`);
 
   return (
-    <section className="py-14 sm:py-20" aria-labelledby="home-watch-heading">
+    <section className="py-12 sm:py-20" aria-labelledby="home-watch-heading">
       <Container>
         <h2 id="home-watch-heading" className="text-balance text-h2 font-bold text-ink">
           {t("شاهد على أجهزتك", "Watch on your devices")}

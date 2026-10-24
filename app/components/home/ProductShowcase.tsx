@@ -135,7 +135,7 @@ export function ProductShowcase({
       aria-label={labels.region}
       data-testid="product-showcase"
       data-scene={scenes[index].key}
-      className="relative isolate h-[560px] overflow-hidden rounded-[2rem] border border-white/10 bg-canvas sm:h-[540px] lg:h-full lg:min-h-[520px]"
+      className="relative isolate h-[520px] overflow-hidden rounded-[2rem] border border-white/10 bg-canvas sm:h-[540px] lg:h-full lg:min-h-[520px]"
       onKeyDown={(event) => {
         if (count < 2 || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
         // Arrow keys follow the reading direction: in RTL, left is "next".
@@ -170,9 +170,9 @@ export function ProductShowcase({
           >
             <div className={cn("sx-layer sx-bg absolute inset-0", BACKDROP[scene.kind])} />
 
-            <div className="relative grid h-full grid-rows-[42%_1fr] lg:grid-cols-[1fr_1.05fr] lg:grid-rows-1">
+            <div className="relative grid h-full grid-rows-[minmax(0,1fr)_auto] sm:grid-rows-[42%_1fr] lg:grid-cols-[1fr_1.05fr] lg:grid-rows-1">
               {/* Product visual (end side on desktop, top on phones) */}
-              <div className="relative flex items-center justify-center p-6 lg:order-2 lg:p-10">
+              <div className="relative flex items-center justify-center p-4 sm:p-6 lg:order-2 lg:p-10">
                 <div className="sx-layer sx-visual relative flex h-full w-full items-center justify-center">
                   <SceneVisual
                     scene={scene}
@@ -198,7 +198,7 @@ export function ProductShowcase({
               </div>
 
               {/* Copy */}
-              <div className="relative flex flex-col justify-end gap-4 px-6 pb-20 pt-2 sm:px-8 lg:order-1 lg:justify-center lg:pb-20 lg:ps-10 lg:pt-10">
+              <div className="relative flex flex-col justify-end gap-3 px-5 pb-[4.5rem] pt-1 sm:gap-4 sm:px-8 sm:pb-20 sm:pt-2 lg:order-1 lg:justify-center lg:pb-20 lg:ps-10 lg:pt-10">
                 <p
                   className={cn("sx-layer sx-rise w-fit rounded-full px-3 py-1 text-xs font-bold", vip ? "bg-vip text-vip-ink" : "bg-white text-iptv-deep")}
                   style={{ "--i": -3 } as CSSProperties}
@@ -349,5 +349,5 @@ function SceneVisual({ scene, registerVideo }: { scene: ShowcaseScene; registerV
     );
   }
 
-  return <ProductEmblem kind={scene.kind} className="w-32 sm:w-40 lg:w-48" />;
+  return <ProductEmblem kind={scene.kind} className="w-24 sm:w-40 lg:w-48" />;
 }

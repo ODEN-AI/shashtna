@@ -44,7 +44,7 @@ export function HomeHero({
     <section className="bg-cinema relative -mt-16 overflow-hidden pt-16">
       {/* Signed-in customer strip sits at the top of the hero. */}
       {children}
-      <Container className="pb-14 pt-8 lg:pb-20 lg:pt-14">
+      <Container className="pb-10 pt-6 sm:pb-14 sm:pt-8 lg:pb-20 lg:pt-14">
         <div className="grid items-end gap-6 lg:grid-cols-[1.2fr_1fr] lg:gap-10">
           <div className="animate-fade-up">
             <h1 className="text-balance text-display font-bold text-ink">{t("قنواتك وأفلامك باشتراك واحد", "Your channels and films, one subscription")}</h1>
@@ -110,7 +110,7 @@ export function HomeHero({
         {/* Media row: the two boards share height and frame language. */}
         <div
           data-testid="hero-boards"
-          className={cn("mt-10 grid gap-5 animate-fade-up [animation-delay:160ms]", editorial.length ? "lg:grid-cols-[1.45fr_1fr]" : "")}
+          className={cn("mt-6 grid gap-5 animate-fade-up [animation-delay:160ms] sm:mt-10", editorial.length ? "lg:grid-cols-[1.45fr_1fr]" : "")}
         >
           <ProductShowcase
             scenes={scenes}

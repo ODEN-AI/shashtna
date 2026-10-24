@@ -13,7 +13,7 @@ export function HomeFinalCta({ lang }: { lang: Lang }) {
   const t = translator(lang);
 
   return (
-    <section className="py-14 sm:py-20">
+    <section className="py-10 sm:py-20">
       <Container>
         <div
           className="flex flex-col gap-5 rounded-panel border border-line bg-surface-2 px-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-10"

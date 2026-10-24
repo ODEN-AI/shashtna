@@ -32,14 +32,14 @@ export function HomeDevices({ lang, devices, packages }: { lang: Lang; devices: 
   const deviceFrom = Math.min(...devices.map((device) => device.price));
 
   return (
-    <section className="bg-vip-field py-16 sm:py-24" aria-labelledby="home-vip-heading" data-testid="home-vip">
+    <section className="bg-vip-field py-12 sm:py-24" aria-labelledby="home-vip-heading" data-testid="home-vip">
       <Container>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
           <div className="max-w-2xl">
             <h2 id="home-vip-heading" className="text-balance text-h2 font-bold text-vip">
               {t("أجهزة VIP جاهزة للمشاهدة", "VIP devices, ready to watch")}
             </h2>
-            <p className="mt-3 text-pretty text-base leading-8 text-vip-text">
+            <p className="mt-2 text-pretty text-base leading-8 text-vip-text sm:mt-3">
               {t(
                 "جهاز مخصص مرتبط باشتراك VIP. اطلبه مع باقة أو لوحده.",
                 "A dedicated device linked to a VIP plan. Order it with a plan or on its own.",
@@ -55,11 +55,11 @@ export function HomeDevices({ lang, devices, packages }: { lang: Lang; devices: 
           </Link>
         </div>
 
-        <div className={cn("mt-10 grid gap-5", withPanel && shown.length === 1 ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3")}>
+        <div className={cn("mt-6 grid gap-3 md:mt-10 md:gap-5", withPanel && shown.length === 1 ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3")}>
           {withPanel ? (
-            <aside className="flex flex-col rounded-panel border border-vip-line bg-vip-soft p-6 sm:p-8" data-testid="home-vip-plans">
+            <aside className="flex flex-col rounded-panel border border-vip-line bg-vip-soft p-5 sm:p-8" data-testid="home-vip-plans">
               <h3 className="text-xl font-bold text-vip">{t("باقات VIP", "VIP plans")}</h3>
-              <ul className="mt-4 space-y-2.5 text-sm text-vip-text">
+              <ul className="mt-3 space-y-2 text-sm text-vip-text sm:mt-4 sm:space-y-2.5">
                 {[
                   t("جهاز VIP ضمن الطلب", "VIP device included in the order"),
                   t("الدخول مرتبط برقم الجهاز", "Sign-in linked to the device ID"),
@@ -70,9 +70,9 @@ export function HomeDevices({ lang, devices, packages }: { lang: Lang; devices: 
                   </li>
                 ))}
               </ul>
-              <dl className="mt-6 divide-y divide-vip-line border-y border-vip-line">
+              <dl className="mt-4 divide-y divide-vip-line border-y border-vip-line sm:mt-6">
                 {vip.slice(0, 3).map((pkg) => (
-                  <div key={pkg.id} className="flex items-center justify-between gap-4 py-3" data-testid="home-vip-plan-row">
+                  <div key={pkg.id} className="flex items-center justify-between gap-4 py-2.5 sm:py-3" data-testid="home-vip-plan-row">
                     <dt className="min-w-0">
                       <bdi className="block truncate font-bold text-vip">{pkg.name}</bdi>
                       <span className="nums text-xs text-vip-text">{formatDuration(pkg.durationMonths, lang)}</span>
@@ -81,7 +81,7 @@ export function HomeDevices({ lang, devices, packages }: { lang: Lang; devices: 
                   </div>
                 ))}
               </dl>
-              <div className="mt-auto pt-6">
+              <div className="mt-auto pt-4 sm:pt-6">
                 <Link href="/plans#vip" className={buttonClass("vip", "md", "w-full")}>
                   {t("شوف باقات VIP", "See VIP plans")}
                 </Link>
@@ -113,7 +113,7 @@ function HomeDeviceCard({ device, plans, lang }: { device: CatalogDevice; plans:
         // eslint-disable-next-line @next/next/no-img-element
         <img src={device.imageUrl} alt={device.name} loading="lazy" decoding="async" className="aspect-[16/10] w-full bg-vip-field object-contain p-6" />
       ) : null}
-      <div className="flex flex-1 flex-col gap-4 p-6">
+      <div className="flex flex-1 flex-col gap-3 p-5 md:gap-4 md:p-6">
         <div className="flex items-start gap-3">
           {device.imageUrl ? null : (
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-vip-line text-vip" aria-hidden>
@@ -154,25 +154,30 @@ function HomeDeviceCard({ device, plans, lang }: { device: CatalogDevice; plans:
           </p>
         ) : null}
 
-        <div className="mt-auto border-t border-vip-line pt-4">
-          <p className="flex items-baseline gap-1.5">
+        <div className="mt-auto border-t border-vip-line pt-3 md:pt-4">
+          <p className="flex flex-wrap items-baseline gap-x-1.5">
             <span className="nums text-[28px] font-black leading-none text-vip" data-testid="home-device-price">
               {new Intl.NumberFormat("en-US").format(device.price)}
             </span>
             <span className="text-sm font-semibold text-vip-text">{t("د.ع", "IQD")}</span>
+            {/* Phones: the label sits on the price line; wider screens keep it below. */}
+            <span className="ms-1 text-sm text-vip-text md:hidden">· {t("سعر الجهاز", "Device price")}</span>
           </p>
-          <p className="mt-1 text-sm text-vip-text">{t("سعر الجهاز", "Device price")}</p>
+          <p className="mt-1 hidden text-sm text-vip-text md:block">{t("سعر الجهاز", "Device price")}</p>
         </div>
-        <div className="grid gap-2">
+        <div className="grid gap-1 md:gap-2">
           {firstPlan ? (
-            <Link href={`/checkout?plan=${encodeURIComponent(firstPlan.slug)}&device=${device.id}`} className={buttonClass("vip", "lg", "w-full")}>
+            <Link
+              href={`/checkout?plan=${encodeURIComponent(firstPlan.slug)}&device=${device.id}`}
+              className={buttonClass("vip", "md", "w-full md:h-13 md:px-7 md:text-base")}
+            >
               {t("اطلبه مع باقة VIP", "Order with a VIP plan")}
               <ArrowLeft size={17} className="ltr:rotate-180" aria-hidden />
             </Link>
           ) : null}
           <Link
             href={`/checkout?device=${device.id}`}
-            className="inline-flex h-11 items-center justify-center rounded-xl text-sm font-semibold text-vip-text transition-colors hover:bg-vip-field hover:text-vip"
+            className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-semibold text-vip-text transition-colors hover:bg-vip-field hover:text-vip md:h-11"
           >
             {t("شراء الجهاز فقط", "Buy the device only")}
           </Link>

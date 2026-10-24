@@ -38,7 +38,7 @@ export function HomePlans({ lang, packages, devices }: { lang: Lang; packages: C
   };
 
   return (
-    <section id="plans" className="scroll-mt-20 py-16 sm:py-20">
+    <section id="plans" className="scroll-mt-20 py-12 sm:py-20">
       <Container>
         <SectionHeading
           title={t("الباقات الأكثر طلبًا", "The most requested plans")}
@@ -55,7 +55,7 @@ export function HomePlans({ lang, packages, devices }: { lang: Lang; packages: C
         />
 
         {shown.length ? (
-          <ul className="mt-8 grid gap-5 md:grid-cols-3" data-testid="home-plans">
+          <ul className="mt-6 grid gap-3 md:mt-8 md:grid-cols-3 md:gap-5" data-testid="home-plans">
             {shown.map((pkg, index) => (
               <li key={pkg.id}>
                 <HomePlanCard
@@ -124,7 +124,7 @@ function HomePlanCard({
         isVip ? "border-vip-line" : featured || pkg.isPopular ? "border-brand" : "border-line",
       )}
     >
-      <div className={cn("px-5 pb-5 pt-4", isVip ? "bg-vip-field text-vip" : "bg-iptv text-white")}>
+      <div className={cn("px-4 pb-3 pt-3 md:px-5 md:pb-5 md:pt-4", isVip ? "bg-vip-field text-vip" : "bg-iptv text-white")}>
         <div className="flex items-center justify-between gap-2">
           <span className={cn("text-sm font-bold", isVip ? "text-vip-text" : "text-iptv-ink")}>{pkg.serviceType}</span>
           {pkg.isPopular ? (
@@ -133,7 +133,7 @@ function HomePlanCard({
             </span>
           ) : null}
         </div>
-        <h3 dir="auto" className="mt-4 text-2xl font-black leading-tight" data-testid="home-plan-name">
+        <h3 dir="auto" className="mt-2 text-xl font-black leading-tight md:mt-4 md:text-2xl" data-testid="home-plan-name">
           {headline}
         </h3>
         {nameIsDuration ? null : (
@@ -143,7 +143,11 @@ function HomePlanCard({
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 p-5">
+      <div className="flex flex-1 flex-col gap-3 p-4 md:gap-4 md:p-5">
+        {/* Phones: an IPTV card puts its price and its order button on one row
+            (wrapping on very narrow screens). From md up, and for VIP, the
+            row dissolves and the card keeps its column layout. */}
+        <div className={cn(isVip ? "contents" : "flex flex-wrap items-center justify-between gap-3 md:contents")}>
         <div>
           <p className="flex items-baseline gap-1.5">
             <span className="nums text-[28px] font-black leading-none text-ink" data-testid="home-plan-price">
@@ -162,6 +166,18 @@ function HomePlanCard({
           ) : null}
         </div>
 
+        <Link
+          href={planHref(pkg)}
+          className={cn(
+            "inline-flex items-center gap-3 rounded-xl px-4 text-sm font-bold transition-[background-color,transform] duration-150 active:scale-[0.97] md:order-last md:mt-auto md:h-12 md:w-full md:justify-between",
+            isVip ? "order-last mt-auto h-12 w-full justify-between bg-vip text-vip-ink hover:brightness-105" : "h-11 justify-center bg-brand text-white hover:bg-brand-strong",
+          )}
+        >
+          <span>{isVip ? t("اختار الجهاز واطلب", "Pick a device and order") : t("اطلب هذي الباقة", "Order this plan")}</span>
+          <ArrowLeft size={17} className="ltr:rotate-180" aria-hidden />
+        </Link>
+        </div>
+
         {description ? <p dir="auto" className="text-sm leading-6 text-ink-2">{description}</p> : null}
         {highlights.length ? (
           <ul className="flex flex-wrap gap-2">
@@ -172,17 +188,6 @@ function HomePlanCard({
             ))}
           </ul>
         ) : null}
-
-        <Link
-          href={planHref(pkg)}
-          className={cn(
-            "mt-auto inline-flex h-12 items-center justify-between gap-3 rounded-xl px-4 text-sm font-bold transition-[background-color,transform] duration-150 active:scale-[0.97]",
-            isVip ? "bg-vip text-vip-ink hover:brightness-105" : "bg-brand text-white hover:bg-brand-strong",
-          )}
-        >
-          <span>{isVip ? t("اختار الجهاز واطلب", "Pick a device and order") : t("اطلب هذي الباقة", "Order this plan")}</span>
-          <ArrowLeft size={17} className="ltr:rotate-180" aria-hidden />
-        </Link>
       </div>
     </article>
   );

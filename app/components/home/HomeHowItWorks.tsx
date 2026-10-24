@@ -44,7 +44,7 @@ export function HomeHowItWorks({ lang }: { lang: Lang }) {
   ];
 
   return (
-    <section className="border-y border-line bg-surface/40 py-14 sm:py-20">
+    <section className="border-y border-line bg-surface/40 py-12 sm:py-20">
       <Container>
         <SectionHeading
           title={t("من الاختيار للتفعيل بأربع خطوات", "From choosing to activation in four steps")}

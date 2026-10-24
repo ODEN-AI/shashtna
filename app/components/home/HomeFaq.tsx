@@ -14,11 +14,11 @@ export function HomeFaq({ lang, settings, hours }: { lang: Lang; settings: Setti
   const t = translator(lang);
 
   return (
-    <section className="py-16 sm:py-24">
-      <Container className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
+    <section className="py-12 sm:py-24">
+      <Container className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:gap-10">
         <div>
-          <SectionHeading eyebrow={t("أسئلة شائعة", "FAQ")} title={t("قبل ما تشترك", "Before you subscribe")} />
-          <div className="mt-8 space-y-3">
+          <SectionHeading title={t("قبل ما تشترك", "Before you subscribe")} />
+          <div className="mt-6 space-y-2.5 sm:mt-8 sm:space-y-3">
             {FAQ.slice(0, 5).map((item) => (
               <details key={item.id} className="surface group rounded-2xl px-5 py-1 open:pb-4">
                 <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 text-[15px] font-bold text-ink [&::-webkit-details-marker]:hidden">
@@ -34,7 +34,7 @@ export function HomeFaq({ lang, settings, hours }: { lang: Lang; settings: Setti
               </details>
             ))}
           </div>
-          <LinkButton href="/help#faq" variant="ghost" className="mt-5">
+          <LinkButton href="/help#faq" variant="ghost" className="mt-3 sm:mt-5">
             <CircleHelp size={16} aria-hidden />
             {t("كل الأسئلة", "All questions")}
           </LinkButton>
@@ -67,30 +67,34 @@ function SupportCard({ lang, settings, hours }: { lang: Lang; settings: Settings
   ].filter(Boolean) as { href: string; label: string; icon: React.ReactNode }[];
 
   return (
-    <aside className="surface-raised edge-light h-fit rounded-panel p-6 sm:p-8">
-      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/20 text-glow">
-        <Headphones size={22} aria-hidden />
-      </span>
-      <h2 className="mt-5 text-xl font-bold text-ink">{t("نحتاج نساعدك؟", "Need a hand?")}</h2>
+    <aside className="surface-raised h-fit rounded-panel p-5 sm:p-8" data-testid="home-support">
+      <h2 className="flex items-center gap-2 text-xl font-bold text-ink">
+        <Headphones size={20} className="shrink-0 text-brand-ink" aria-hidden />
+        {t("نحتاج نساعدك؟", "Need a hand?")}
+      </h2>
       <p className="mt-2 text-sm leading-7 text-ink-2">
         {t("مركز المساعدة بيه حلول لأكثر المشاكل شيوعًا، وفريقنا موجود إذا احتجت.", "The help centre covers the most common issues, and our team is here if you need them.")}
       </p>
       {hours ? (
-        <p className="mt-4 inline-flex items-center gap-2 rounded-xl border border-line bg-surface-3 px-3 py-2 text-xs font-semibold text-ink-2">
-          <Clock3 size={14} aria-hidden />
+        <p className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-ink-2">
+          <Clock3 size={14} className="shrink-0" aria-hidden />
           {hours}
         </p>
       ) : null}
-      <div className="mt-6 grid gap-2">
+      <div className="mt-4 grid gap-2 sm:mt-6">
         <LinkButton href="/help" variant="primary">
           {t("مركز المساعدة", "Help centre")}
         </LinkButton>
-        {channels.map((channel) => (
-          <LinkButton key={channel.label} href={channel.href} external variant="secondary">
-            {channel.icon}
-            {channel.label}
-          </LinkButton>
-        ))}
+        {channels.length ? (
+          <div className="flex flex-wrap gap-2">
+            {channels.map((channel) => (
+              <LinkButton key={channel.label} href={channel.href} external variant="secondary" className="flex-1 basis-28">
+                {channel.icon}
+                {channel.label}
+              </LinkButton>
+            ))}
+          </div>
+        ) : null}
       </div>
     </aside>
   );

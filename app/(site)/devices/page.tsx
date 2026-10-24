@@ -1,9 +1,13 @@
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
+import { VipDeviceCard } from "@/app/components/devices/VipDeviceCard";
 import { LinkButton } from "@/app/ui/Button";
-import { DeviceCard } from "@/app/ui/DeviceCard";
-import { Container, Eyebrow } from "@/app/ui/Page";
+import { cn } from "@/app/ui/cn";
+import { Container } from "@/app/ui/Page";
 import { EmptyState, ErrorState } from "@/app/ui/States";
+import { formatPrice } from "@/src/lib/i18n";
 import {
   getActiveDevices,
   getActivePackages,
@@ -32,24 +36,36 @@ export default async function DevicesPage() {
     console.error("DEVICES_PAGE_ERROR:", error);
   }
 
+  const devices = data?.devices ?? [];
+  // Two devices or fewer sit in a narrower frame, so no empty column is left on wide screens.
+  const narrow = devices.length > 0 && devices.length < 3;
+  const deviceFrom = devices.length ? Math.min(...devices.map((device) => device.price)) : null;
+
+  // The whole page is the VIP chapter: warm black with champagne, as on /plans and the homepage.
   return (
-    <>
-      <section className="bg-cinema border-b border-line">
-        <Container className="py-14 sm:py-20">
-          <Eyebrow>{t("شاهد على", "Watch on")}</Eyebrow>
-          <h1 className="mt-4 text-balance text-4xl font-bold leading-tight text-ink sm:text-5xl">
-            {t("أجهزة VIP", "VIP devices")}
-          </h1>
-          <p className="mt-5 max-w-2xl text-[15px] leading-8 text-ink-2">
+    <div className="bg-vip-field">
+      <section className="border-b border-vip-line">
+        <Container className={cn("py-10 sm:py-16", narrow && "max-w-5xl")}>
+          <h1 className="text-balance text-display font-bold text-vip">{t("أجهزة VIP", "VIP devices")}</h1>
+          <p className="mt-4 max-w-2xl text-pretty text-base leading-8 text-vip-text">
             {t(
               "أجهزة مخصصة لباقات VIP. اطلب الجهاز ويا باقة VIP متوافقة، أو اشتريه لوحده.",
               "Dedicated devices for VIP plans. Order one with a compatible VIP plan, or buy it on its own.",
-            )}
+            )}{" "}
+            {deviceFrom !== null ? (
+              <span className="nums font-bold text-vip" data-testid="devices-from">
+                {t(`الأجهزة تبدأ من ${formatPrice(deviceFrom, lang)}.`, `Devices from ${formatPrice(deviceFrom, lang)}.`)}
+              </span>
+            ) : null}
           </p>
+          <Link href="/plans#vip" className="mt-2 inline-flex h-11 items-center gap-2 text-sm font-bold text-vip transition-colors hover:text-white">
+            {t("باقات VIP", "VIP plans")}
+            <ArrowLeft size={16} className="ltr:rotate-180" aria-hidden />
+          </Link>
         </Container>
       </section>
 
-      <Container className="py-14">
+      <Container className={cn("py-10 sm:py-14", narrow && "max-w-5xl")}>
         {data === null ? (
           <ErrorState
             title={t("تعذر تحميل الأجهزة", "Devices couldn't be loaded")}
@@ -62,13 +78,13 @@ export default async function DevicesPage() {
             action={<LinkButton href="/help/contact" variant="secondary">{t("تواصل ويانا", "Contact us")}</LinkButton>}
           />
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className={cn("grid gap-4 md:grid-cols-2 md:gap-5", !narrow && "lg:grid-cols-3")}>
             {data.devices.map((device) => (
-              <DeviceCard key={device.id} device={device} plans={data.plans} lang={lang} />
+              <VipDeviceCard key={device.id} device={device} plans={data.plans} lang={lang} />
             ))}
           </div>
         )}
       </Container>
-    </>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { NextResponse } from "next/server";
+import { BLOB_STORES, blobStoreName } from "@/src/lib/blob-stores";
 import { shouldUseBlobStorage as isBlobStorage } from "@/src/lib/runtime";
 import { requireAdmin } from "@/src/lib/session";
 import { mkdir, writeFile } from "fs/promises";
@@ -15,7 +16,7 @@ const allowedTypes: Record<string, string> = {
   "image/gif": "gif",
 };
 
-const BLOB_STORE_NAME = "shashtna-package-images";
+const BLOB_STORE_NAME = BLOB_STORES.packageImages;
 
 export async function POST(request: Request) {
   try {
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
       isBlobStorage();
 
     if (isProduction) {
-      const store = getStore(BLOB_STORE_NAME);
+      const store = getStore(blobStoreName(BLOB_STORE_NAME));
 
       await store.set(filename, bytes, {
         metadata: {

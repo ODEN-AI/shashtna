@@ -10,7 +10,9 @@ import { cn } from "@/app/ui/cn";
 /**
  * Bottom navigation for signed-in customers on phones: a floating glass bar
  * in the style of Shashtna Mobile. Five tabs only — Orders are reached from
- * Home and Notifications from the header bell.
+ * Home and Notifications from the header bell. It steps aside while the
+ * header's phone menu is open (the header sets data-menu-open on <body>).
+ * Labels are short enough to fit five across a 320px screen in both languages.
  */
 export function CustomerBottomNav() {
   const pathname = usePathname();
@@ -18,7 +20,7 @@ export function CustomerBottomNav() {
 
   const items = [
     { href: "/dashboard", label: t("الرئيسية", "Home"), icon: House, match: ["/dashboard", "/orders", "/receipts", "/notifications"] },
-    { href: "/subscriptions", label: t("اشتراكي", "Subscription"), icon: Tv, match: ["/subscriptions"] },
+    { href: "/subscriptions", label: t("اشتراكي", "My plan"), icon: Tv, match: ["/subscriptions"] },
     { href: "/account/devices", label: t("الأجهزة", "Devices"), icon: AppWindow, match: ["/account/devices"] },
     { href: "/support", label: t("الدعم", "Support"), icon: Headphones, match: ["/support"] },
     { href: "/account", label: t("الحساب", "Account"), icon: CircleUserRound, match: ["/account"] },
@@ -38,7 +40,7 @@ export function CustomerBottomNav() {
   return (
     <nav
       aria-label={t("تنقل الحساب", "Account navigation")}
-      className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.625rem)] z-40 mx-auto max-w-md rounded-[1.4rem] glass-strong lg:hidden"
+      className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.625rem)] z-40 mx-auto max-w-md rounded-[1.4rem] glass-strong lg:hidden [body[data-menu-open]_&]:hidden"
     >
       <ul className="grid grid-cols-5">
         {items.map((item) => {
@@ -51,7 +53,7 @@ export function CustomerBottomNav() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-16 flex-col items-center justify-center gap-1 text-xs font-semibold transition",
+                  "flex h-16 flex-col items-center justify-center gap-1 px-0.5 font-semibold transition",
                   active ? "text-ink" : "text-ink-3 hover:text-ink-2",
                 )}
               >
@@ -63,7 +65,8 @@ export function CustomerBottomNav() {
                 >
                   <Icon size={20} aria-hidden />
                 </span>
-                {item.label}
+                {/* Sized on the label: globals.css resets the font of every link. */}
+                <span className="max-w-full truncate text-[12px] font-semibold leading-tight">{item.label}</span>
               </Link>
             </li>
           );

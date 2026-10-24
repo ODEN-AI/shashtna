@@ -1,116 +1,121 @@
 import Link from "next/link";
-import { ArrowLeft, Crown, MonitorPlay, Smartphone, Tv } from "lucide-react";
+import { ArrowLeft, Check, Crown, Smartphone, Tv } from "lucide-react";
 
-import { LinkButton } from "@/app/ui/Button";
-import { Container, SectionHeading } from "@/app/ui/Page";
+import { buttonClass } from "@/app/ui/Button";
+import { LogoMark } from "@/app/ui/Logo";
+import { Container } from "@/app/ui/Page";
 import { translator, type Lang } from "@/src/lib/i18n";
 import type { CatalogApp } from "@/src/server/catalog";
 
 /**
- * The ecosystem: Shashtna Player at the centre, the TV and phone platforms
- * it runs on, the other platforms that have a published app (Admin → Apps),
- * and VIP devices. Links go to the existing Watch On pages.
+ * Where to watch, in one section: Shashtna Player (what it is, what it gives
+ * you, and the download link), then the other platforms that have a
+ * published app (Admin → Apps) and the VIP devices. There is no picture of
+ * the app in the project, so the Player is shown by the brand mark and its
+ * real facts instead of a drawn screen. Links go to the existing Watch On pages.
  */
 export function HomeWatchEverywhere({
   lang,
   platforms,
   hasVip,
+  hasPlayerApp,
 }: {
   lang: Lang;
   platforms: { platform: string; apps: CatalogApp[] }[];
   hasVip: boolean;
+  hasPlayerApp: boolean;
 }) {
   const t = translator(lang);
   const isAr = lang === "ar";
-  const count = (n: number) => (isAr ? `${n} ${n === 1 ? "تطبيق" : "تطبيقات"}` : `${n} app${n === 1 ? "" : "s"}`);
+  const count = (n: number) => (isAr ? (n === 1 ? "تطبيق واحد" : n === 2 ? "تطبيقان" : `${n} تطبيقات`) : `${n} app${n === 1 ? "" : "s"}`);
 
   return (
-    <section className="relative overflow-hidden border-y border-line bg-surface/40 py-16 sm:py-20">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(60%_100%_at_50%_0%,rgb(25_81_252/0.16),transparent)]" />
-      <Container className="relative">
-        <SectionHeading
-          eyebrow={t("شاهد على كل مكان", "Watch everywhere")}
-          title={t("اشتراك واحد، على شاشاتك كلها", "One subscription, on all your screens")}
-          description={t(
-            "Shashtna Player على التلفزيون والموبايل، وتطبيقات مدعومة للمنصات الثانية، وأجهزة VIP جاهزة.",
-            "Shashtna Player on your TV and phone, supported apps for other platforms, and ready-made VIP devices.",
+    <section className="py-14 sm:py-20" aria-labelledby="home-watch-heading">
+      <Container>
+        <h2 id="home-watch-heading" className="text-balance text-h2 font-bold text-ink">
+          {t("شاهد على أجهزتك", "Watch on your devices")}
+        </h2>
+        <p className="mt-3 max-w-2xl text-pretty text-base leading-8 text-ink-2">
+          {t(
+            "نفس الاشتراك ونفس الحساب على التلفزيون والموبايل، عن طريق Shashtna Player أو التطبيقات المدعومة.",
+            "The same plan and the same account on your TV and phone, with Shashtna Player or a supported app.",
           )}
-          action={
-            <LinkButton href="/watch" variant="ghost">
-              {t("الأجهزة المدعومة", "Supported devices")}
-              <ArrowLeft size={16} className="ltr:rotate-180" aria-hidden />
-            </LinkButton>
-          }
-        />
+        </p>
 
-        <div className="mt-10 grid gap-4 lg:grid-cols-[1.15fr_1fr]">
-          {/* The hub */}
-          <Link
-            href="/watch/player"
-            className="surface-raised edge-light group flex flex-col justify-between overflow-hidden rounded-panel p-6 transition hover:border-brand/50 sm:p-8"
-          >
-            <div className="relative">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand text-white shadow-brand">
-                <MonitorPlay size={22} aria-hidden />
-              </span>
-              <h3 className="mt-5 text-xl font-bold text-ink">Shashtna Player</h3>
-              <p className="mt-2 max-w-sm text-sm leading-7 text-ink-2">
-                {t("نفس الاشتراك ونفس الحساب على كل أجهزتك.", "The same plan and the same account on all your devices.")}
-              </p>
+        <div className="mt-8 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+          {/* Shashtna Player: brand mark and real facts, no drawn screen */}
+          <div className="rounded-panel border border-line bg-surface p-5 sm:p-7" data-testid="home-player">
+            <div className="flex items-center gap-4">
+              <LogoMark className="h-14 w-14" />
+              <div>
+                <h3 className="text-xl font-bold text-ink">Shashtna Player</h3>
+                <p className="mt-0.5 text-sm text-ink-3" dir="ltr">
+                  Android TV · Google TV · Android
+                </p>
+              </div>
             </div>
-            <ul className="relative mt-6 flex flex-wrap gap-2">
+            <ul className="mt-5 space-y-2.5 text-sm leading-6 text-ink-2">
               {[
-                { label: "Android TV", icon: <Tv size={14} aria-hidden /> },
-                { label: "Google TV", icon: <Tv size={14} aria-hidden /> },
-                { label: "Android", icon: <Smartphone size={14} aria-hidden /> },
+                t("بيانات اشتراكك موجودة بحسابك وجاهزة للنسخ", "Your subscription details are in your account, ready to copy"),
+                t("روابط تحميل وخطوات إعداد واضحة", "Clear download links and setup steps"),
+                t("دعم فني مرتبط باشتراكك عند الحاجة", "Support linked to your subscription when you need it"),
               ].map((item) => (
-                <li key={item.label} className="glass-soft inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-ink">
-                  <span className="text-glow">{item.icon}</span>
-                  <span dir="ltr">{item.label}</span>
+                <li key={item} className="flex items-start gap-2.5">
+                  <Check size={16} className="mt-1 shrink-0 text-brand-ink" aria-hidden />
+                  {item}
                 </li>
               ))}
             </ul>
-          </Link>
+            <Link href="/watch/player" className={buttonClass("primary", "md", "mt-6")}>
+              {hasPlayerApp ? t("تحميل Shashtna Player", "Get Shashtna Player") : t("عن Shashtna Player", "About Shashtna Player")}
+              <ArrowLeft size={16} className="ltr:rotate-180" aria-hidden />
+            </Link>
+          </div>
 
-          {/* The rest of the ecosystem */}
-          <ul className="grid grid-cols-2 gap-4">
-            {platforms.slice(0, hasVip ? 3 : 4).map(({ platform, apps }) => (
-              <li key={platform}>
-                <Link
-                  href={`/watch#${encodeURIComponent(platform)}`}
-                  className="surface group flex h-full flex-col rounded-card p-5 transition hover:-translate-y-0.5 hover:border-brand/50"
-                >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface-3 text-brand-ink transition group-hover:text-glow">
-                    {/tv|تلفز/i.test(platform) ? <Tv size={18} aria-hidden /> : <Smartphone size={18} aria-hidden />}
-                  </span>
-                  <span className="mt-4 text-[15px] font-bold text-ink">{platform}</span>
-                  <span className="mt-1 text-xs text-ink-3">{count(apps.length)}</span>
-                </Link>
-              </li>
-            ))}
-            {hasVip ? (
-              <li>
-                <Link
-                  href="/devices"
-                  className="surface group flex h-full flex-col rounded-card p-5 transition hover:-translate-y-0.5 hover:border-brand/50"
-                >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface-3 text-glow">
-                    <Crown size={18} aria-hidden />
-                  </span>
-                  <span className="mt-4 text-[15px] font-bold text-ink">{t("أجهزة VIP", "VIP devices")}</span>
-                  <span className="mt-1 text-xs text-ink-3">{t("جاهزة لباقات VIP", "Ready for VIP plans")}</span>
-                </Link>
-              </li>
-            ) : null}
-            {!platforms.length && !hasVip ? (
-              <li className="col-span-2">
-                <Link href="/apps" className="surface flex h-full items-center justify-between rounded-card p-5 text-sm font-semibold text-ink-2 hover:text-ink">
-                  {t("التطبيقات وروابط التحميل", "Apps and download links")}
-                  <ArrowLeft size={16} className="ltr:rotate-180" aria-hidden />
-                </Link>
-              </li>
-            ) : null}
-          </ul>
+          {/* The other platforms with a published app, and the VIP devices */}
+          <div className="flex flex-col">
+            <ul className="divide-y divide-line overflow-hidden rounded-panel border border-line bg-surface">
+              {platforms.slice(0, 4).map(({ platform, apps }) => (
+                <li key={platform}>
+                  <Link
+                    href={`/watch#${encodeURIComponent(platform)}`}
+                    className="flex min-h-14 items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2"
+                  >
+                    <span className="text-brand-ink" aria-hidden>
+                      {/tv|تلفز/i.test(platform) ? <Tv size={18} /> : <Smartphone size={18} />}
+                    </span>
+                    <span className="flex-1 font-bold text-ink" dir="auto">
+                      {platform}
+                    </span>
+                    <span className="text-sm text-ink-3">{count(apps.length)}</span>
+                    <ArrowLeft size={15} className="text-ink-3 ltr:rotate-180" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+              {hasVip ? (
+                <li>
+                  <Link href="/devices" className="flex min-h-14 items-center gap-3 bg-vip-field px-5 py-3 transition-colors hover:bg-vip-soft">
+                    <Crown size={18} className="text-vip" aria-hidden />
+                    <span className="flex-1 font-bold text-vip">{t("أجهزة VIP", "VIP devices")}</span>
+                    <span className="text-sm text-vip-text">{t("جاهزة لباقات VIP", "Ready for VIP plans")}</span>
+                    <ArrowLeft size={15} className="text-vip-text ltr:rotate-180" aria-hidden />
+                  </Link>
+                </li>
+              ) : null}
+              {!platforms.length && !hasVip ? (
+                <li>
+                  <Link href="/apps" className="flex min-h-14 items-center justify-between px-5 py-3 text-sm font-semibold text-ink-2 hover:text-ink">
+                    {t("التطبيقات وروابط التحميل", "Apps and download links")}
+                    <ArrowLeft size={16} className="ltr:rotate-180" aria-hidden />
+                  </Link>
+                </li>
+              ) : null}
+            </ul>
+            <Link href="/watch" className="mt-3 inline-flex h-11 items-center gap-2 self-start text-sm font-semibold text-ink-2 transition-colors hover:text-ink">
+              {t("كل الأجهزة المدعومة وطريقة الإعداد", "All supported devices and setup")}
+              <ArrowLeft size={15} className="ltr:rotate-180" aria-hidden />
+            </Link>
+          </div>
         </div>
       </Container>
     </section>

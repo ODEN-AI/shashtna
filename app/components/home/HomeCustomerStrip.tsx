@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { StatusBadge } from "@/app/ui/Badge";
 import { buttonClass } from "@/app/ui/Button";
+import { daysLeftAr, daysLeftEn } from "@/app/ui/days-text";
 import { formatDate } from "@/src/lib/i18n";
 import { ORDER_STATUS_LABELS, orderRef } from "@/src/lib/order-status";
 import type { SessionUser } from "@/src/server/auth";
@@ -27,8 +28,8 @@ export async function HomeCustomerStrip({ user }: { user: SessionUser }) {
   if ((state === "ACTIVE" || state === "EXPIRING") && primary) {
     status = { key: state, label: state === "ACTIVE" ? t("نشط", "Active") : t("ينتهي قريبًا", "Expiring") };
     message = isAr
-      ? `اشتراكك «${primary.packageName}» — باقي ${primary.daysRemaining} ${primary.daysRemaining === 1 ? "يوم" : "يوم"}`
-      : `${primary.packageName} — ${primary.daysRemaining} day${primary.daysRemaining === 1 ? "" : "s"} left`;
+      ? `اشتراكك «${primary.packageName}» — ${daysLeftAr(primary.daysRemaining)}`
+      : `${primary.packageName} — ${daysLeftEn(primary.daysRemaining)}`;
     context = t(`ينتهي في ${formatDate(primary.expiryDate, lang)}`, `Ends ${formatDate(primary.expiryDate, lang)}`);
     action = state === "EXPIRING"
       ? { href: `/checkout?renew=${primary.id}`, label: t("جدّد الآن", "Renew now"), urgent: true }

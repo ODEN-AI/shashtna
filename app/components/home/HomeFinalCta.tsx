@@ -1,38 +1,34 @@
-import { MonitorPlay } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { LinkButton } from "@/app/ui/Button";
-import { LogoMark } from "@/app/ui/Logo";
 import { Container } from "@/app/ui/Page";
 import { translator, type Lang } from "@/src/lib/i18n";
 
-export function HomeFinalCta({ lang, signedIn }: { lang: Lang; signedIn: boolean }) {
+/**
+ * The last word on the homepage: one line and one action. The Player and
+ * the account each have their own place higher up (and sign-up happens at
+ * checkout), so they are not offered again here.
+ */
+export function HomeFinalCta({ lang }: { lang: Lang }) {
   const t = translator(lang);
 
   return (
-    <section className="pb-20">
+    <section className="py-14 sm:py-20">
       <Container>
-        <div className="bg-brand-band edge-light relative overflow-hidden rounded-panel border border-white/10 px-6 py-12 text-center shadow-float sm:px-12 sm:py-16">
-          <LogoMark className="mx-auto h-12 w-12" />
-          <h2 className="mx-auto mt-5 max-w-2xl text-balance text-h2 font-bold text-white">
-            {t("جاهز تبدأ المشاهدة؟", "Ready to start watching?")}
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-8 text-white/80">
-            {t("اختار باقتك، وتابع طلبك واشتراكك من حسابك.", "Pick your plan, then follow your order and subscription from your account.")}
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <LinkButton href="/plans" variant="glow" size="lg">
-              {t("اختر باقتك", "Choose a plan")}
-            </LinkButton>
-            <LinkButton href="/watch/player" variant="glass" size="lg">
-              <MonitorPlay size={18} aria-hidden />
-              {t("اكتشف Shashtna Player", "Explore Shashtna Player")}
-            </LinkButton>
-            {!signedIn ? (
-              <LinkButton href="/register" variant="glass" size="lg">
-                {t("إنشاء حساب", "Create account")}
-              </LinkButton>
-            ) : null}
+        <div
+          className="flex flex-col gap-5 rounded-panel border border-line bg-surface-2 px-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-10"
+          data-testid="home-final-cta"
+        >
+          <div>
+            <h2 className="text-balance text-h2 font-bold text-ink">{t("جاهز تبدأ المشاهدة؟", "Ready to start watching?")}</h2>
+            <p className="mt-2 text-base leading-7 text-ink-2">
+              {t("اختار باقتك، وتابع طلبك واشتراكك من حسابك.", "Pick your plan, then follow your order and subscription from your account.")}
+            </p>
           </div>
+          <LinkButton href="/plans" size="lg" className="shrink-0">
+            {t("اختار باقتك", "Choose your plan")}
+            <ArrowLeft size={18} className="ltr:rotate-180" aria-hidden />
+          </LinkButton>
         </div>
       </Container>
     </section>

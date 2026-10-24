@@ -8,7 +8,6 @@ import { HomeFinalCta } from "@/app/components/home/HomeFinalCta";
 import { HomeHero, type HeroServices } from "@/app/components/home/HomeHero";
 import { HomeHowItWorks } from "@/app/components/home/HomeHowItWorks";
 import { HomePlans } from "@/app/components/home/HomePlans";
-import { HomePlayer } from "@/app/components/home/HomePlayer";
 import { HomeWatchEverywhere } from "@/app/components/home/HomeWatchEverywhere";
 import { getSessionUser } from "@/src/server/auth";
 import {
@@ -40,8 +39,8 @@ export const metadata: Metadata = {
 
 /**
  * Homepage — the web counterpart of Shashtna Mobile's home:
- * customer strip → hero (services, product showcase + editorial board) → popular plans → Player → watch
- * everywhere → VIP devices → how it works → latest announcements → FAQ →
+ * customer strip → hero (services, product showcase + editorial board) → popular plans → where to
+ * watch (Shashtna Player + platforms) → VIP devices → how it works → latest announcements → FAQ →
  * final CTA. Every section renders real data (or nothing).
  */
 export default async function HomePage() {
@@ -81,17 +80,17 @@ export default async function HomePage() {
         {user ? <HomeCustomerStrip user={user} /> : null}
       </HomeHero>
       <HomePlans lang={lang} packages={packages} devices={devices} />
-      <HomePlayer lang={lang} hasPlayerApp={apps.some((app) => app.isPlayer)} />
       <HomeWatchEverywhere
         lang={lang}
         platforms={platformsOf(apps)}
         hasVip={packages.some((pkg) => pkg.serviceType === "VIP") || devices.length > 0}
+        hasPlayerApp={apps.some((app) => app.isPlayer)}
       />
       <HomeDevices lang={lang} devices={devices} packages={packages} />
       <HomeHowItWorks lang={lang} />
       <HomeAnnouncements lang={lang} items={latest} />
       <HomeFaq lang={lang} settings={settings} hours={hours} />
-      <HomeFinalCta lang={lang} signedIn={Boolean(user)} />
+      <HomeFinalCta lang={lang} />
     </>
   );
 }

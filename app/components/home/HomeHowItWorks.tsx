@@ -9,6 +9,9 @@ import { JOURNEY_STEPS, type JourneyStepKey } from "@/src/lib/order-journey";
  * then sees on their order in the dashboard (src/lib/order-journey.ts).
  * Activation is done by the team after reviewing the transfer; nothing here
  * promises instant or automatic activation.
+ *
+ * Laid out as one ordered track (the order is the list order, no decorative
+ * numbers): a line of steps on wide screens, a compact list on phones.
  */
 export function HomeHowItWorks({ lang }: { lang: Lang }) {
   const t = translator(lang);
@@ -16,19 +19,19 @@ export function HomeHowItWorks({ lang }: { lang: Lang }) {
 
   const details: Record<JourneyStepKey, { icon: React.ReactNode; body: string }> = {
     SELECT: {
-      icon: <Sparkles size={19} aria-hidden />,
+      icon: <Sparkles size={18} aria-hidden />,
       body: t("قارن الباقات، اختار المدة، وأكّد طلبك من حسابك.", "Compare plans, pick a duration and confirm your order from your account."),
     },
     PAY: {
-      icon: <CreditCard size={19} aria-hidden />,
+      icon: <CreditCard size={18} aria-hidden />,
       body: t("حوّل مبلغ الطلب إلى رقم التحويل الظاهر بحسابك.", "Transfer the order amount to the transfer number shown in your account."),
     },
     PROOF: {
-      icon: <Upload size={19} aria-hidden />,
+      icon: <Upload size={18} aria-hidden />,
       body: t("ارفع صورة إثبات الدفع على نفس الطلب.", "Upload a screenshot of the payment on the same order."),
     },
     REVIEW: {
-      icon: <BadgeCheck size={19} aria-hidden />,
+      icon: <BadgeCheck size={18} aria-hidden />,
       body: t("فريقنا يراجع الدفع ويفعّل اشتراكك، وتلگى بياناته بحسابك.", "Our team reviews the payment and activates your plan; its details appear in your account."),
     },
   };
@@ -41,36 +44,29 @@ export function HomeHowItWorks({ lang }: { lang: Lang }) {
   ];
 
   return (
-    <section className="border-y border-line bg-surface/40 py-16 sm:py-20">
+    <section className="border-y border-line bg-surface/40 py-14 sm:py-20">
       <Container>
         <SectionHeading
-          eyebrow={t("شلون تشتغل", "How it works")}
           title={t("من الاختيار للتفعيل بأربع خطوات", "From choosing to activation in four steps")}
           description={t(
             "نفس الخطوات اللي تشوفها على طلبك بحسابك، خطوة بخطوة.",
             "The same steps you'll see on your order in your account, one by one.",
           )}
         />
-        <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {JOURNEY_STEPS.map((step, index) => (
-            <li key={step.key} className="surface relative rounded-card p-6">
-              <div className="flex items-center justify-between">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/20 text-glow">
-                  {details[step.key].icon}
-                </span>
-                <span className="nums text-sm font-bold text-ink-3">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-              </div>
-              <h3 className="mt-5 text-base font-bold text-ink">{isAr ? step.ar : step.en}</h3>
-              <p className="mt-2 text-sm leading-7 text-ink-2">{details[step.key].body}</p>
-              {index < JOURNEY_STEPS.length - 1 ? (
-                <span aria-hidden className="absolute -end-2.5 top-1/2 hidden h-px w-5 bg-gradient-to-l from-transparent via-line-strong to-transparent lg:block" />
-              ) : null}
+
+        <ol className="mt-8 grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-4" data-testid="home-steps">
+          {JOURNEY_STEPS.map((step) => (
+            <li key={step.key} className="border-s-2 border-brand/50 ps-4 lg:border-s-0 lg:border-t-2 lg:ps-0 lg:pt-5">
+              <h3 className="flex items-center gap-2 text-base font-bold text-ink">
+                <span className="text-brand-ink">{details[step.key].icon}</span>
+                {isAr ? step.ar : step.en}
+              </h3>
+              <p className="mt-1.5 text-sm leading-7 text-ink-2">{details[step.key].body}</p>
             </li>
           ))}
         </ol>
-        <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-ink-2">
+
+        <ul className="mt-8 flex flex-col gap-2.5 border-t border-line pt-6 text-sm text-ink-2 sm:flex-row sm:flex-wrap sm:gap-x-6">
           {facts.map((fact) => (
             <li key={fact.label} className="inline-flex items-center gap-2">
               <span className="text-brand-ink">{fact.icon}</span>

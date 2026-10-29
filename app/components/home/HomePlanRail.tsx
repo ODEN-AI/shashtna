@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
+import { monthlyEquivalent } from "@/app/ui/PackageCard";
 import { formatPrice, type Lang } from "@/src/lib/i18n";
 import { formatDuration } from "@/src/lib/subscription-duration";
 
@@ -102,7 +103,7 @@ export function HomePlanRail({ lang, plans }: { lang: Lang; plans: RailPlan[] })
                   <small>{isAr ? "د.ع" : "IQD"}</small>
                 </span>
                 <span className={`${s.perMonth} nums`} style={{ display: "block" }}>
-                  {isAr ? `≈ ${formatPrice(monthly(plan), lang)} بالشهر` : `≈ ${formatPrice(monthly(plan), lang)} a month`}
+                  {isAr ? `≈ ${formatPrice(monthlyEquivalent(plan.price, plan.durationMonths) ?? 0, lang)} بالشهر` : `≈ ${formatPrice(monthlyEquivalent(plan.price, plan.durationMonths) ?? 0, lang)} a month`}
                 </span>
               </span>
               <span className={s.planGo} aria-hidden>

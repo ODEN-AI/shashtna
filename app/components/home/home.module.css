@@ -21,6 +21,11 @@
   overflow-x: clip;
 }
 
+/* In-page anchors (#plans, #vip, #devices) land below the floating header. */
+.home :where([id]) {
+  scroll-margin-top: 96px;
+}
+
 .wrap {
   margin-inline: auto;
   max-width: 1320px;

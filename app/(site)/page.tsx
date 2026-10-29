@@ -83,8 +83,8 @@ export default async function HomePage() {
   const t = (ar: string, en: string) => (lang === "ar" ? ar : en);
 
   return (
-    // -mt-16/pt-16: the navy ground runs up behind the transparent header.
-    <div className={`${s.home} -mt-16 pt-16 pb-16`}>
+    // -mt-[80px]/pt-[80px]: the navy ground runs up behind the floating header.
+    <div className={`${s.home} -mt-[80px] pt-[80px] pb-16`}>
       <HomeStage lang={lang} services={services} platforms={platformNames} vipArt={vipArt}>
         {user ? <HomeCustomerStrip user={user} /> : null}
       </HomeStage>

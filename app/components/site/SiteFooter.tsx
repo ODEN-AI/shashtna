@@ -70,13 +70,14 @@ export async function SiteFooter({ bottomNav = false }: { bottomNav?: boolean })
   return (
     <footer
       className={cn(
-        "border-t border-line bg-canvas-deep",
+        // A raised navy panel with rounded top corners (the homepage direction).
+        "rounded-t-[32px] bg-[linear-gradient(180deg,#071131,#040a1c)] ring-1 ring-[rgba(160,190,255,0.10)] sm:rounded-t-[40px]",
         bottomNav && "pb-safe lg:pb-0",
         // The checkout page's fixed action bar (phones and tablets, about 113px tall).
         "max-lg:[body:has([data-testid=checkout-summary])_&]:pb-[calc(env(safe-area-inset-bottom)+7.5rem)]",
       )}
     >
-      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_repeat(3,1fr)] md:gap-10 md:py-12 lg:px-8">
+      <div className="mx-auto grid w-full max-w-[1320px] gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_repeat(3,1fr)] md:gap-10 md:py-14 lg:px-12">
         <div>
           <Logo plain />
           <p className="mt-3 max-w-xs text-sm leading-6 text-ink-3">
@@ -113,7 +114,7 @@ export async function SiteFooter({ bottomNav = false }: { bottomNav?: boolean })
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={item.label}
-                    className="flex h-11 w-11 items-center justify-center rounded-xl border border-line text-ink-2 transition hover:border-brand/60 hover:text-ink"
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-ink-2 ring-1 ring-[rgba(160,190,255,0.12)] transition hover:bg-[#1f4fff] hover:text-white"
                   >
                     {item.icon}
                   </a>
@@ -157,8 +158,8 @@ export async function SiteFooter({ bottomNav = false }: { bottomNav?: boolean })
       {/* Shashtna Digital: a separate business surface, kept out of the
           consumer navigation and homepage, and set apart from the
           subscription brand here. */}
-      <div className="border-t border-line">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-12">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-[24px] bg-white/[0.04] px-5 py-4 ring-1 ring-[rgba(160,190,255,0.10)]">
           <div className="flex min-w-0 items-center gap-3">
             <Code2 size={18} className="shrink-0 text-ink-3" aria-hidden />
             <p className="text-sm text-ink-3">
@@ -180,8 +181,8 @@ export async function SiteFooter({ bottomNav = false }: { bottomNav?: boolean })
           </div>
         </div>
       </div>
-      <div className="border-t border-line">
-        <p className="mx-auto w-full max-w-6xl px-4 py-5 text-xs text-ink-3 sm:px-6 lg:px-8">
+      <div>
+        <p className="mx-auto w-full max-w-[1320px] px-4 py-6 text-xs text-ink-3 sm:px-6 lg:px-12">
           © <span className="nums">{new Date().getFullYear()}</span> {t("شاشتنا. جميع الحقوق محفوظة.", "Shashtna. All rights reserved.")}
         </p>
       </div>

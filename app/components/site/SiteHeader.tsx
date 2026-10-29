@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 
 import { useLanguage } from "@/app/components/LanguageProvider";
-import { buttonClass } from "@/app/ui/Button";
 import { cn } from "@/app/ui/cn";
 import { Logo } from "@/app/ui/Logo";
 
@@ -139,7 +138,15 @@ function useDropdown<T extends HTMLElement>(name: string, openMenu: string | nul
   return { open, ref, menuId, button, close: () => setOpenMenu(null) };
 }
 
-const dropdownPanel = "glass-strong animate-fade-up absolute top-12 z-50 rounded-2xl p-2";
+const dropdownPanel =
+  "animate-fade-up absolute top-14 z-50 rounded-[22px] bg-[#0b1738]/95 p-2 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)] ring-1 ring-[rgba(160,190,255,0.14)] backdrop-blur-xl";
+
+// The site's pill controls (the homepage direction): a glowing royal-blue
+// action and quiet translucent rounds for everything else.
+const primaryPill =
+  "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#3d6bff,#1f4fff)] px-5 font-bold text-white shadow-[0_10px_30px_-8px_rgba(31,79,255,0.7)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-8px_rgba(31,79,255,0.85)] active:scale-[0.97]";
+const quietRound =
+  "inline-flex h-11 items-center justify-center rounded-full bg-white/[0.06] text-ink-2 ring-1 ring-[rgba(160,190,255,0.12)] transition hover:bg-white/[0.11] hover:text-ink";
 
 function DesktopMenu({
   group,
@@ -162,8 +169,8 @@ function DesktopMenu({
           href={group.href}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "relative inline-flex h-11 items-center whitespace-nowrap rounded-xl px-3 text-sm font-semibold transition",
-            active ? "text-ink after:absolute after:inset-x-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-glow" : "text-ink-2 hover:bg-white/5 hover:text-ink",
+            "relative inline-flex h-11 items-center whitespace-nowrap rounded-full px-4 font-semibold transition",
+            active ? "bg-white/10 text-ink" : "text-ink-2 hover:bg-white/5 hover:text-ink",
           )}
         >
           {group.label}
@@ -177,9 +184,8 @@ function DesktopMenu({
       <button
         {...button}
         className={cn(
-          "relative inline-flex h-11 items-center gap-1 whitespace-nowrap rounded-xl px-3 text-sm font-semibold transition",
-          active || open ? "text-ink" : "text-ink-2 hover:bg-white/5 hover:text-ink",
-          active && "after:absolute after:inset-x-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-glow",
+          "relative inline-flex h-11 items-center gap-1 whitespace-nowrap rounded-full px-4 font-semibold transition",
+          active || open ? "bg-white/10 text-ink" : "text-ink-2 hover:bg-white/5 hover:text-ink",
         )}
       >
         {group.label}
@@ -194,7 +200,7 @@ function DesktopMenu({
                   href={item.href}
                   onClick={close}
                   aria-current={isActive(pathname, item.href) && !item.href.includes("#") ? "page" : undefined}
-                  className="block rounded-xl px-3 py-2.5 transition hover:bg-white/8"
+                  className="block rounded-2xl px-3 py-2.5 transition hover:bg-white/8"
                 >
                   <span className="block text-sm font-bold text-ink">{item.label}</span>
                   <span className="mt-0.5 block text-xs text-ink-3">{item.description}</span>
@@ -224,7 +230,7 @@ function AccountMenu({
 
   return (
     <div ref={ref} className="relative max-sm:hidden">
-      <button {...button} className={buttonClass("primary", "md", "px-4")}>
+      <button {...button} className={primaryPill}>
         <LayoutDashboard size={16} aria-hidden />
         {t("حسابي", "My Shashtna")}
         <ChevronDown size={15} className={cn("transition", open && "rotate-180")} aria-hidden />
@@ -268,7 +274,8 @@ function LanguageToggle({ className }: { className?: string }) {
       type="button"
       onClick={toggleLanguage}
       className={cn(
-        "inline-flex h-11 min-w-11 items-center justify-center rounded-xl border border-line px-3 text-xs font-bold text-ink-2 transition hover:border-line-strong hover:text-ink",
+        quietRound,
+        "min-w-11 px-3 font-bold",
         className,
       )}
       aria-label={language === "ar" ? "Switch to English" : "التبديل إلى العربية"}
@@ -290,7 +297,7 @@ function NotificationsBell({ unread }: { unread: number }) {
       href="/notifications"
       aria-label={label}
       aria-current={pathname === "/notifications" ? "page" : undefined}
-      className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line text-ink-2 transition hover:border-line-strong hover:text-ink"
+      className={cn(quietRound, "relative w-11")}
     >
       <Bell size={18} aria-hidden />
       {unread ? (
@@ -358,12 +365,13 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
   const closeMobile = () => setMobileOpen(false);
   const mobileLink = (active: boolean) =>
     cn(
-      "flex h-12 items-center rounded-xl px-3 text-base font-bold hover:bg-surface-2",
-      active ? "bg-brand/15 text-ink" : "text-ink",
+      "flex h-12 items-center rounded-full px-4 text-base font-bold hover:bg-white/5",
+      active ? "bg-white/10 text-ink" : "text-ink",
     );
 
   return (
-    <header className="sticky top-0 z-40">
+    // Same frame as the homepage sections: 1320px wide, clamp(16px, 3.4vw, 48px) margins.
+    <header className="sticky top-0 z-40 mx-auto w-full max-w-[1320px] px-[clamp(16px,3.4vw,48px)] pt-3">
       {/*
         Background layer. The glass (backdrop-filter) lives on this sibling,
         never on <header> itself: an element with backdrop-filter becomes the
@@ -374,7 +382,7 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
         aria-hidden
         className={cn(
           "pointer-events-none absolute inset-0 -z-10 transition-[background-color,opacity] duration-300",
-          mobileOpen ? "border-b border-line bg-canvas" : scrolled ? "glass-bar" : "bg-transparent",
+          mobileOpen ? "bg-[#040a1c]" : "bg-transparent",
         )}
       />
       <a
@@ -383,7 +391,13 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
       >
         {t("تخطَّ إلى المحتوى", "Skip to content")}
       </a>
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      {/* The floating pill bar; it firms up once the page scrolls under it. */}
+      <div
+        className={cn(
+          "flex h-[68px] w-full items-center justify-between gap-4 rounded-full ps-3 pe-2.5 ring-1 ring-[rgba(160,190,255,0.12)] backdrop-blur-xl transition-[background-color,box-shadow] duration-300",
+          scrolled || mobileOpen ? "bg-[#071131]/90 shadow-[0_14px_40px_-18px_#000]" : "bg-[#071131]/60",
+        )}
+      >
         <div className="flex items-center gap-4 xl:gap-6">
           <Logo plain />
           <nav aria-label={t("القائمة الرئيسية", "Main navigation")} className="hidden lg:block">
@@ -398,7 +412,7 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
         {/* Language, then the account actions, kept apart from the navigation. */}
         <div className="flex items-center gap-2">
           <LanguageToggle className="max-sm:hidden" />
-          <span aria-hidden className="mx-1 hidden h-6 w-px bg-line sm:block" />
+          <span aria-hidden className="mx-0.5 hidden h-6 w-px bg-white/10 sm:block" />
           {user ? (
             <>
               <NotificationsBell unread={unread} />
@@ -406,17 +420,17 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
             </>
           ) : (
             <>
-              <Link href="/login" className={buttonClass("ghost", "md", "px-4 max-sm:hidden")}>
+              <Link href="/login" className="inline-flex h-11 items-center rounded-full px-4 font-semibold text-ink-2 transition hover:bg-white/5 hover:text-ink max-sm:hidden">
                 {t("تسجيل الدخول", "Log in")}
               </Link>
-              <Link href="/plans" className={buttonClass("primary", "md", "px-4")}>
+              <Link href="/plans" className={primaryPill}>
                 {t("ابدأ الآن", "Get started")}
               </Link>
             </>
           )}
           <button
             type="button"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line text-ink-2 transition hover:text-ink lg:hidden"
+            className={cn(quietRound, "w-11 lg:hidden")}
             aria-expanded={mobileOpen}
             aria-controls="mobile-menu"
             aria-label={mobileOpen ? t("إغلاق القائمة", "Close menu") : t("فتح القائمة", "Open menu")}
@@ -430,7 +444,7 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
       {mobileOpen ? (
         <div
           id="mobile-menu"
-          className="fixed inset-x-0 bottom-0 top-16 z-40 overflow-y-auto border-t border-line bg-canvas px-4 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-4 lg:hidden"
+          className="fixed inset-x-0 bottom-0 top-[86px] z-40 overflow-y-auto bg-[#040a1c] px-4 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-4 lg:hidden"
         >
           <nav aria-label={t("القائمة الرئيسية", "Main navigation")}>
             <ul className="space-y-1">
@@ -461,8 +475,8 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
                               onClick={closeMobile}
                               aria-current={active ? "page" : undefined}
                               className={cn(
-                                "flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold hover:bg-surface-2 hover:text-ink",
-                                active ? "bg-brand/15 text-ink" : "text-ink-2",
+                                "flex min-h-11 items-center rounded-full px-4 text-sm font-semibold hover:bg-white/5 hover:text-ink",
+                                active ? "bg-white/10 text-ink" : "text-ink-2",
                               )}
                             >
                               {item.label}
@@ -491,27 +505,27 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
           <div className="mt-6 space-y-2 border-t border-line pt-6">
             {user ? (
               <>
-                <Link href="/dashboard" onClick={closeMobile} className={buttonClass("primary", "lg", "w-full")}>
+                <Link href="/dashboard" onClick={closeMobile} className={cn(primaryPill, "h-13 w-full")}>
                   <LayoutDashboard size={18} aria-hidden />
                   {t("حسابي", "My Shashtna")}
                 </Link>
                 {user.isStaff ? (
-                  <Link href="/admin" onClick={closeMobile} className={buttonClass("secondary", "lg", "w-full")}>
+                  <Link href="/admin" onClick={closeMobile} className={cn(quietRound, "h-13 w-full gap-2 font-bold text-ink")}>
                     <ShieldCheck size={18} aria-hidden />
                     {t("لوحة الإدارة", "Admin console")}
                   </Link>
                 ) : null}
-                <button type="button" onClick={signOut} className={buttonClass("ghost", "lg", "w-full")}>
+                <button type="button" onClick={signOut} className={cn(quietRound, "h-13 w-full gap-2 font-bold")}>
                   <LogOut size={18} aria-hidden />
                   {t("تسجيل الخروج", "Sign out")}
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" onClick={closeMobile} className={buttonClass("secondary", "lg", "w-full")}>
+                <Link href="/login" onClick={closeMobile} className={cn(quietRound, "h-13 w-full gap-2 font-bold text-ink")}>
                   {t("تسجيل الدخول", "Sign in")}
                 </Link>
-                <Link href="/register" onClick={closeMobile} className={buttonClass("ghost", "lg", "w-full")}>
+                <Link href="/register" onClick={closeMobile} className={cn(quietRound, "h-13 w-full gap-2 font-bold")}>
                   <CircleUserRound size={18} aria-hidden />
                   {t("إنشاء حساب", "Create account")}
                 </Link>

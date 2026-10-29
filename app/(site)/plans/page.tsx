@@ -110,7 +110,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
       ) : (
         <>
           {iptv.length ? (
-            <section id="iptv" aria-labelledby="iptv-heading" className="scroll-mt-16 bg-iptv py-14 text-white sm:py-20">
+            <section id="iptv" aria-labelledby="iptv-heading" className="scroll-mt-24 bg-iptv py-14 text-white sm:py-20">
               <Container>
                 <h2 id="iptv-heading" className="text-[length:clamp(3rem,2rem+5vw,6rem)] font-black leading-none">IPTV</h2>
                 <p className="mt-5 max-w-2xl text-base leading-8 text-iptv-ink">
@@ -127,7 +127,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
           ) : null}
 
           {vip.length ? (
-            <section id="vip" aria-labelledby="vip-heading" className="scroll-mt-16 bg-vip-field py-14 sm:py-20">
+            <section id="vip" aria-labelledby="vip-heading" className="scroll-mt-24 bg-vip-field py-14 sm:py-20">
               <Container>
                 <h2 id="vip-heading" className="text-[length:clamp(3rem,2rem+5vw,6rem)] font-black leading-none text-vip">VIP</h2>
                 <p className="mt-5 max-w-2xl text-base leading-8 text-vip-text">

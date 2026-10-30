@@ -82,13 +82,15 @@ export function HomeAccountPreview({ lang, signedIn }: { lang: Lang; signedIn: b
             </Link>
           </div>
         </div>
-        <div>
-          <div className={s.laptopScreen}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/account-preview.jpg" alt={t("لوحة حسابي بموقع شاشتنا", "The My Shashtna dashboard")} width={600} height={380} loading="lazy" />
-          </div>
-          <div className={s.laptopBase} aria-hidden />
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          className={s.accountArt}
+          src="/brand/home-account.webp"
+          alt={t("حسابي: الاشتراكات، تاريخ الانتهاء، التجديد، بيانات الدخول والدعم", "My Shashtna: subscriptions, expiry, renewal, login details and support")}
+          width={1800}
+          height={1200}
+          loading="lazy"
+        />
       </div>
     </section>
   );
@@ -157,7 +159,7 @@ export function HomeCtaBand({ lang }: { lang: Lang }) {
           </div>
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/packages-preview.jpg" alt="" width={960} height={600} loading="lazy" />
+        <img className={s.bandArt} src="/brand/home-cta.webp" alt="" width={2560} height={1440} loading="lazy" />
       </div>
     </section>
   );

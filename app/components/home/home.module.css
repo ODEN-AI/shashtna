@@ -399,47 +399,47 @@
 }
 
 .serviceArt {
+  aspect-ratio: 3 / 2;
+  background: #040a1c;
   display: grid;
-  height: 160px;
   margin: -28px -28px 22px;
   overflow: hidden;
   place-items: center;
   position: relative;
 }
 
-.artIptv {
-  background: radial-gradient(80% 90% at 50% 100%, rgb(61 107 255 / 0.6), transparent), #0a1745;
-}
 
-.artVip {
-  background: #eaf2ff;
-}
 
 .artVip img,
+.artFill img,
+.artWhole img {
+  min-height: 0;
+}
+
 .artFill img {
   height: 100%;
   object-fit: cover;
   width: 100%;
 }
 
-.artApps {
-  background: radial-gradient(80% 90% at 50% 100%, rgb(92 200 255 / 0.45), transparent), #08163f;
-}
-
-.miniTv {
-  aspect-ratio: 16 / 10;
-  background: #000;
-  border-radius: 10px;
-  box-shadow: 0 0 0 6px #1b2447, 0 20px 40px -10px #000;
-  overflow: hidden;
-  width: 62%;
-}
-
-.miniTv img {
+/* a picture with text near its edges (Shashtna Player): shown whole */
+.artWhole img {
   height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.accountArt {
+  aspect-ratio: 3 / 2;
+  border-radius: 32px;
+  box-shadow: 0 0 0 1px var(--line), 0 40px 80px -30px #000, 0 0 120px -30px rgb(61 107 255 / 0.6);
+  height: auto;
   object-fit: cover;
   width: 100%;
 }
+
+
+
 
 .service h3 {
   font-size: 26px;
@@ -944,27 +944,8 @@
   width: 40px;
 }
 
-.laptopScreen {
-  background: linear-gradient(180deg, #1b2447, #0c1330);
-  border-radius: 16px 16px 6px 6px;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 40px 80px -30px #000, 0 0 120px -30px rgb(61 107 255 / 0.6);
-  padding: 10px;
-}
 
-.laptopScreen img {
-  aspect-ratio: 16 / 10;
-  border-radius: 8px;
-  height: auto;
-  object-fit: cover;
-  width: 100%;
-}
 
-.laptopBase {
-  background: linear-gradient(180deg, #232d55, #0d1433);
-  border-radius: 0 0 22px 22px;
-  height: 16px;
-  margin-inline: -6%;
-}
 
 /* faq */
 .faq {
@@ -1030,13 +1011,27 @@
 /* closing band */
 .band {
   align-items: center;
-  background: radial-gradient(60% 120% at 100% 50%, rgb(92 200 255 / 0.35), transparent 60%), linear-gradient(135deg, #2a5cff, #173ad6 55%, #0e2a9e);
+  aspect-ratio: 2.2 / 1;
+  background: #040a1c;
   border-radius: 40px;
+  box-shadow: inset 0 0 0 1px var(--line);
   display: grid;
   gap: 32px;
-  grid-template-columns: 1.3fr 1fr;
+  grid-template-columns: 1fr 1fr;
   overflow: hidden;
   padding: clamp(32px, 6vw, 80px);
+  position: relative;
+}
+
+/* the copy takes the picture's empty side: the right, in Arabic and English */
+.band > div {
+  grid-column: 1;
+  position: relative;
+  z-index: 1;
+}
+
+:global([dir="ltr"]) .band > div {
+  grid-column: 2;
 }
 
 .band h2 {
@@ -1051,13 +1046,12 @@
   margin-top: 14px;
 }
 
-.band img {
-  aspect-ratio: 16 / 10;
-  border-radius: 24px;
-  box-shadow: 0 30px 60px -20px rgb(0 0 0 / 0.6);
-  height: auto;
+.band .bandArt {
+  height: 100%;
+  inset: 0;
   object-fit: cover;
-  transform: rotate(4deg);
+  object-position: left center;
+  position: absolute;
   width: 100%;
 }
 
@@ -1095,6 +1089,23 @@
   .tvWrap {
     margin-top: 16px;
   }
+
+  .band {
+    aspect-ratio: auto;
+  }
+
+  .band > div,
+  :global([dir="ltr"]) .band > div {
+    grid-column: 1;
+  }
+
+  .band .bandArt {
+    aspect-ratio: 16 / 10;
+    border-radius: 24px;
+    height: auto;
+    order: -1;
+    position: relative;
+  }
 }
 
 @media (max-width: 600px) {
@@ -1117,10 +1128,6 @@
 
   .rail {
     grid-auto-columns: 80%;
-  }
-
-  .band img {
-    display: none;
   }
 
   .devList {

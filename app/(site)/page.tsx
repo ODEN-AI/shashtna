@@ -87,7 +87,7 @@ export default async function HomePage() {
         {user ? <HomeCustomerStrip user={user} /> : null}
       </HomeStage>
 
-      <HomeServiceCards lang={lang} hasIptv={iptv.length > 0} hasVip={vip.length > 0} hasPlayer={apps.some((app) => app.isPlayer)} vipArt={vipArt} />
+      <HomeServiceCards lang={lang} hasIptv={iptv.length > 0} hasVip={vip.length > 0} hasPlayer={apps.some((app) => app.isPlayer)} />
 
       {editorial.length ? (
         <section className={`${s.wrap} ${s.sectionTight}`} aria-label={t("عروض وأخبار شاشتنا", "Shashtna offers and news")}>

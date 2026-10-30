@@ -7,20 +7,19 @@ import s from "./home.module.css";
 
 /**
  * The three ways to watch, each its own product: IPTV, VIP and the Shashtna
- * Player. A card is shown only when its service exists in the catalogue.
+ * Player, each with its own picture. A card is shown only when its service
+ * exists in the catalogue.
  */
 export function HomeServiceCards({
   lang,
   hasIptv,
   hasVip,
   hasPlayer,
-  vipArt,
 }: {
   lang: Lang;
   hasIptv: boolean;
   hasVip: boolean;
   hasPlayer: boolean;
-  vipArt: string;
 }) {
   const t = translator(lang);
   const more = (label: string) => (
@@ -45,11 +44,9 @@ export function HomeServiceCards({
       <div className={s.services}>
         {hasIptv ? (
           <Link href="/plans#iptv" className={`${s.card} ${s.cardLink} ${s.service}`}>
-            <span className={`${s.serviceArt} ${s.artIptv}`}>
-              <span className={s.miniTv}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/packages-preview.jpg" alt="" width={960} height={600} loading="lazy" />
-              </span>
+            <span className={`${s.serviceArt} ${s.artFill}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/home-iptv.webp" alt="" width={1200} height={800} loading="lazy" />
             </span>
             <h3>IPTV</h3>
             <p>
@@ -63,9 +60,9 @@ export function HomeServiceCards({
         ) : null}
         {hasVip ? (
           <Link href="/devices" className={`${s.card} ${s.cardLink} ${s.service}`}>
-            <span className={`${s.serviceArt} ${s.artVip}`}>
+            <span className={`${s.serviceArt} ${s.artFill}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={vipArt} alt="" width={900} height={900} loading="lazy" />
+              <img src="/brand/home-vip.webp" alt="" width={1200} height={800} loading="lazy" />
             </span>
             <h3>VIP</h3>
             <p>
@@ -79,9 +76,9 @@ export function HomeServiceCards({
         ) : null}
         {hasPlayer ? (
           <Link href="/watch/player" className={`${s.card} ${s.cardLink} ${s.service}`}>
-            <span className={`${s.serviceArt} ${s.artApps} ${s.artFill}`}>
+            <span className={`${s.serviceArt} ${s.artWhole}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/account-preview.jpg" alt="" width={600} height={380} loading="lazy" />
+              <img src="/brand/home-player.webp" alt="" width={1600} height={900} loading="lazy" />
             </span>
             <h3>Shashtna Player</h3>
             <p>

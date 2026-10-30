@@ -68,7 +68,7 @@ export function HomePlanRail({ lang, plans }: { lang: Lang; plans: RailPlan[] })
         {shown.map((plan) => (
           <Link
             key={plan.id}
-            href={`/checkout?plan=${encodeURIComponent(plan.slug)}`}
+            href={`/plans/${encodeURIComponent(plan.slug)}`}
             className={`${s.card} ${s.cardLink} ${s.plan} ${plan.id === bestId ? s.planBest : ""}`}
             data-testid="home-plan-card"
           >

@@ -285,10 +285,72 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         />
       </GlassTile>
 
+      <CostSection snapshot={snapshot} lang={lang} />
       <ProductSection snapshot={snapshot} lang={lang} />
       <OperationsSection snapshot={snapshot} lang={lang} />
       <DataAvailability snapshot={snapshot} lang={lang} />
     </div>
+  );
+}
+
+/** Real cost of sales by channel: revenue − panel credit − supplier share. Unknown costs are flagged, never zero. */
+function CostSection({ snapshot, lang }: { snapshot: FinanceSnapshot; lang: Lang }) {
+  const t = translator(lang);
+  const { site, supplier, total } = snapshot.costs.current;
+  const rows = [
+    { key: "site", label: t("الموقع والمباشر", "Site & direct"), row: site },
+    { key: "supplier", label: t("عن طريق المورّد", "Through the supplier"), row: supplier },
+    { key: "total", label: t("المجموع", "Total"), row: total },
+  ];
+
+  return (
+    <GlassTile className="p-5 sm:p-7" testId="cost-section">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <TileLabel icon={<Wallet size={14} aria-hidden />}>{t("الكلفة الحقيقية وصافي الربح", "Real cost and net profit")}</TileLabel>
+          <p className="mt-1 text-sm text-ink-2">{t("الإيراد ناقص كلفة رصيد اللوحة وحصة المورّد.", "Revenue minus panel credit and the supplier's share.")}</p>
+        </div>
+        <Link href="/admin/finance/credits" className="text-xs font-bold text-brand-ink hover:underline">
+          {t("رصيد اللوحة", "Panel credit")}
+        </Link>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[34rem] text-sm">
+          <thead>
+            <tr className="text-xs text-ink-3">
+              <th className="py-2 text-start font-semibold">{t("القناة", "Channel")}</th>
+              <th className="py-2 text-end font-semibold">{t("الإيراد", "Revenue")}</th>
+              <th className="py-2 text-end font-semibold">{t("كلفة الرصيد", "Credit cost")}</th>
+              <th className="py-2 text-end font-semibold">{t("حصة المورّد", "Supplier share")}</th>
+              <th className="py-2 text-end font-semibold">{t("صافي الربح", "Net profit")}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line/70">
+            {rows.map(({ key, label, row }) => (
+              <tr key={key} className={cn(key === "total" && "font-bold")} data-testid={`cost-row-${key}`}>
+                <td className="py-2.5 text-ink">
+                  {label}
+                  <span className="nums ms-2 text-xs font-normal text-ink-3">{t(`${row.sales} مبيعة`, `${row.sales} sales`)}</span>
+                </td>
+                <td className="nums py-2.5 text-end text-ink">{money(row.revenue, lang)}</td>
+                <td className="nums py-2.5 text-end text-ink-2">{money(row.creditCost, lang)}</td>
+                <td className="nums py-2.5 text-end text-ink-2">{money(row.supplierShare, lang)}</td>
+                <td className={cn("nums py-2.5 text-end", row.netProfit < 0 ? "text-danger" : "text-ink")}>{money(row.netProfit, lang)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {total.unknownCostSales ? (
+        <p className="nums mt-3 flex items-start gap-2 text-xs leading-6 text-warning" data-testid="cost-unknown">
+          <AlertTriangle size={14} className="mt-1 shrink-0" aria-hidden />
+          {t(
+            `تكلفة غير معروفة: ${total.unknownCostSales} مبيعة بإيراد ${money(total.unknownCostRevenue, lang)} ما انحسبت بصافي الربح. سجّل كلفة الرصيد للمدد وشروات الرصيد حتى تنحسب الطلبات الجاية.`,
+            `Unknown cost: ${total.unknownCostSales} sales (${money(total.unknownCostRevenue, lang)} revenue) are left out of net profit. Set the credit per length and record credit purchases so future orders are costed.`,
+          )}
+        </p>
+      ) : null}
+    </GlassTile>
   );
 }
 

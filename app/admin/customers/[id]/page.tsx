@@ -5,6 +5,7 @@ import { Activity, ArrowRight, Bell, Cpu, EyeOff, FileCheck2, Gift, LifeBuoy, Ph
 import type { ReactNode } from "react";
 
 import { logRenewalContactAction } from "@/app/admin/actions";
+import { createSupplierSubscriptionAction } from "@/app/admin/finance/credits/actions";
 import { adjustPointsAction, setPointsStatusAction } from "@/app/admin/loyalty/actions";
 import { ActionForm } from "@/app/ui/ActionForm";
 import { RevealPassword } from "@/app/components/admin/CredentialReveal";
@@ -15,7 +16,7 @@ import { Badge, StatusBadge } from "@/app/ui/Badge";
 import { WhatsAppIcon } from "@/app/ui/BrandIcons";
 import { LinkButton } from "@/app/ui/Button";
 import { cn } from "@/app/ui/cn";
-import { Input } from "@/app/ui/Field";
+import { Field, Input, Select } from "@/app/ui/Field";
 import { SubmitButton } from "@/app/ui/SubmitButton";
 import { customerStatus } from "@/src/lib/customers";
 import { formatDate, formatDateTime, formatPrice } from "@/src/lib/i18n";
@@ -24,6 +25,9 @@ import { ROLE_LABELS } from "@/src/lib/roles";
 import { SUBSCRIPTION_STATE_LABELS } from "@/src/lib/subscription-state";
 import { requireStaffPage } from "@/src/server/auth";
 import { getCustomer360, type Customer360 } from "@/src/server/customers";
+import { SUPPLIER_DEFAULTS } from "@/src/lib/costs";
+import { formatDuration } from "@/src/lib/subscription-duration";
+import { db } from "@/src/prisma/db";
 import { getLoyalty } from "@/src/server/loyalty";
 import { getI18n } from "@/src/server/i18n";
 import { whatsappLink } from "@/src/server/settings";
@@ -57,6 +61,10 @@ export default async function Customer360Page({ params }: { params: Promise<{ id
   const { customer, can } = data;
   const loyalty = await getLoyalty(customer.id).catch(() => null);
   const isOwner = String(staff.role).toUpperCase() === "OWNER";
+  // The supplier form renews one of the customer's IPTV subscriptions or adds a new one.
+  const iptvSubscriptions = isOwner
+    ? (await db.orm.public.Subscription.where({ userId: customer.id }).select("id", "packageName", "expiryDate", "serviceType").all()).filter((row) => String(row.serviceType ?? "IPTV").toUpperCase() === "IPTV")
+    : [];
   const subs = data.subscriptions;
   const orders = data.orders;
   const overall = subs?.ok ? customerStatus(subs.data.map((sub) => sub.state)) : null;
@@ -205,6 +213,59 @@ export default async function Customer360Page({ params }: { params: Promise<{ id
                   </ActionForm>
                 </div>
               ) : null}
+            </SectionCard>
+          ) : null}
+
+          {isOwner ? (
+            <SectionCard title={t("تسجيل اشتراك عن طريق المورّد", "Record a subscription through the supplier")} icon={<Workflow size={14} aria-hidden />} testId="c360-supplier">
+              <p className="text-xs leading-6 text-ink-3">
+                {t(
+                  "للزبون اللي جا عن طريق المورّد ودفعلك: المورّد يسوي الاشتراك من لوحته. ينسجل كطلب مكتمل بدون كلفة رصيد ومع حصة المورّد، وما ياخذ نقاط.",
+                  "For a customer who came through the supplier and paid you: the supplier makes it from his panel. Recorded as a completed order with no credit cost and the supplier's share; it earns no points.",
+                )}
+              </p>
+              <ActionForm action={createSupplierSubscriptionAction} className="mt-4 space-y-3" resetOnSuccess>
+                <input type="hidden" name="userId" value={customer.id} />
+                <Field label={t("الاشتراك", "Subscription")} htmlFor="supplier-subscription">
+                  <Select id="supplier-subscription" name="subscriptionId" defaultValue="">
+                    <option value="">{t("اشتراك IPTV جديد", "New IPTV subscription")}</option>
+                    {iptvSubscriptions.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {t("تجديد", "Renew")}: {sub.packageName} — {formatDate(String(sub.expiryDate), lang)}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <div className="grid grid-cols-3 gap-2">
+                  <Field label={t("المدة", "Length")} htmlFor="supplier-months">
+                    <Select id="supplier-months" name="months" defaultValue={String(SUPPLIER_DEFAULTS.months)}>
+                      {[1, 3, 6, 12, 24].map((months) => (
+                        <option key={months} value={months}>
+                          {formatDuration(months, lang)}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label={t("السعر", "Price")} htmlFor="supplier-price">
+                    <Input id="supplier-price" name="price" inputMode="numeric" dir="ltr" defaultValue={String(SUPPLIER_DEFAULTS.price)} required />
+                  </Field>
+                  <Field label={t("حصة المورّد", "Supplier share")} htmlFor="supplier-share">
+                    <Input id="supplier-share" name="supplierShare" inputMode="numeric" dir="ltr" defaultValue={String(SUPPLIER_DEFAULTS.supplierShare)} required />
+                  </Field>
+                </div>
+                <Field label={t("اسم المستخدم (للاشتراك الجديد)", "Username (new subscription)")} htmlFor="supplier-username">
+                  <Input id="supplier-username" name="username" dir="ltr" autoComplete="off" maxLength={120} />
+                </Field>
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label={t("كلمة المرور", "Password")} htmlFor="supplier-password">
+                    <Input id="supplier-password" name="password" type="password" dir="ltr" autoComplete="new-password" maxLength={200} />
+                  </Field>
+                  <Field label={t("MAC (اختياري)", "MAC (optional)")} htmlFor="supplier-mac">
+                    <Input id="supplier-mac" name="macAddress" dir="ltr" autoComplete="off" maxLength={60} />
+                  </Field>
+                </div>
+                <SubmitButton size="sm" pendingLabel={t("جاري الحفظ...", "Saving...")}>{t("تسجيل الاشتراك", "Record subscription")}</SubmitButton>
+              </ActionForm>
             </SectionCard>
           ) : null}
 

@@ -17,6 +17,7 @@ import { Notice } from "@/app/ui/States";
 import { SubmitButton } from "@/app/ui/SubmitButton";
 import { formatDateTime, formatPrice } from "@/src/lib/i18n";
 import { ORDER_STATUS_LABELS, REQUEST_TYPE_LABELS, allowedTransitions, isOpen } from "@/src/lib/order-status";
+import { hasPermission } from "@/src/lib/roles";
 import { listEntityActivity } from "@/src/server/activity";
 import { customersById } from "@/src/server/admin-data";
 import { requireStaffPage } from "@/src/server/auth";
@@ -74,12 +75,22 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
       )
     : null;
 
+  const canSeeCost = hasPermission(staff.role, "finance");
   const details = [
     { label: t("النوع", "Type"), value: REQUEST_TYPE_LABELS[order.requestType]?.[lang] ?? order.requestType },
     { label: t("الخدمة", "Service"), value: `${order.serviceName} (${order.serviceType})` },
     { label: t("المدة", "Duration"), value: order.durationLabel },
     order.deviceName ? { label: t("الجهاز", "Device"), value: `${order.deviceName}${order.devicePrice ? ` · ${formatPrice(order.devicePrice, lang)}` : ""}` } : null,
     { label: t("المبلغ", "Amount"), value: formatPrice(order.price, lang) },
+    order.channel === "SUPPLIER" ? { label: t("القناة", "Channel"), value: t("عن طريق المورّد", "Through the supplier") } : null,
+    // Costs are financial: only for staff who can see Finance.
+    canSeeCost && order.cost && order.status === "COMPLETED"
+      ? {
+          label: t("كلفة الرصيد", "Credit cost"),
+          value: order.cost.creditCostIqd === null ? t("تكلفة غير معروفة", "Unknown cost") : formatPrice(order.cost.creditCostIqd, lang),
+        }
+      : null,
+    canSeeCost && order.cost?.supplierShareIqd != null ? { label: t("حصة المورّد", "Supplier share"), value: formatPrice(order.cost.supplierShareIqd, lang) } : null,
     { label: t("طريقة التواصل", "Contact method"), value: CONTACT_LABELS[order.contactMethod] ?? order.contactMethod },
     { label: t("طريقة الدفع", "Payment method"), value: order.paymentMethod ?? "—" },
     { label: t("رقم العملية / مرجع الدفع", "Transaction / payment reference"), value: order.paymentReference ?? "—" },

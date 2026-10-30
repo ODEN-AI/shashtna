@@ -1,9 +1,13 @@
-import { CheckCircle2 } from "lucide-react";
+import { Check } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { LogoImage } from "@/app/ui/Logo";
+import s from "@/app/components/home/home.module.css";
+import { ToneShell } from "@/app/components/site/ToneShell";
 import { getI18n } from "@/src/server/i18n";
 
+import a from "./auth.module.css";
+
+/** Sign in, register and password reset: the account's benefits on a royal panel beside the form. */
 export async function AuthShell({
   title,
   description,
@@ -18,35 +22,36 @@ export async function AuthShell({
   const { t } = await getI18n();
 
   return (
-    <section className="bg-cinema min-h-[calc(100dvh-4rem)]">
-      <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1fr_440px] lg:px-8">
-        <div className="hidden lg:block">
-          <LogoImage className="h-20" />
-          <h2 className="mt-8 max-w-md text-balance text-3xl font-bold leading-tight text-ink">
-            {t("حساب واحد لاشتراكك وطلباتك ودعمك.", "One account for your subscription, orders and support.")}
-          </h2>
-          <ul className="mt-8 space-y-4 text-[15px] text-ink-2">
+    <ToneShell>
+      <div className={`${s.wrap} ${a.frame}`}>
+        <aside className={a.side}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/shashtna-logo-white-256.webp" alt="" className={a.logo} />
+          <h2 className="text-balance">{t("حساب واحد لاشتراكك وطلباتك ودعمك.", "One account for your subscription, orders and support.")}</h2>
+          <ul className={a.ticks}>
             {[
               t("تابع اشتراكك وتاريخ انتهائه", "Follow your subscription and its expiry"),
               t("جدّد بخطوتين وتابع طلبك", "Renew in two steps and track your order"),
               t("بيانات الدخول والإيصالات بمكان واحد", "Login details and receipts in one place"),
               t("تذاكر دعم مرتبطة باشتراكك", "Support tickets linked to your subscription"),
             ].map((item) => (
-              <li key={item} className="flex items-center gap-3">
-                <CheckCircle2 size={18} className="shrink-0 text-glow" aria-hidden />
+              <li key={item}>
+                <span className={a.tick}>
+                  <Check size={15} aria-hidden />
+                </span>
                 {item}
               </li>
             ))}
           </ul>
-        </div>
+        </aside>
 
-        <div className="surface-raised w-full rounded-panel p-6 sm:p-8">
-          <h1 className="text-2xl font-bold text-ink">{title}</h1>
-          {description ? <p className="mt-2 text-sm leading-7 text-ink-2">{description}</p> : null}
-          <div className="mt-7">{children}</div>
-          {footer ? <div className="mt-6 border-t border-line pt-5 text-center text-sm text-ink-2">{footer}</div> : null}
+        <div className={a.card}>
+          <h1>{title}</h1>
+          {description ? <p>{description}</p> : null}
+          <div className={a.form}>{children}</div>
+          {footer ? <div className={a.foot}>{footer}</div> : null}
         </div>
       </div>
-    </section>
+    </ToneShell>
   );
 }

@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Crown, KeyRound, MonitorPlay, QrCode, Smartphone, Tv, UserRound } from "lucide-react";
 
+import h from "@/app/components/site/help.module.css";
+import { ToneShell } from "@/app/components/site/ToneShell";
 import { Badge } from "@/app/ui/Badge";
 import { LinkButton } from "@/app/ui/Button";
-import { Container, Eyebrow, SectionHeading } from "@/app/ui/Page";
+import s from "@/app/components/home/home.module.css";
+import { Container, SectionHeading } from "@/app/ui/Page";
 import { EmptyState } from "@/app/ui/States";
-import { getActiveApps, getActiveDevices, platformsOf } from "@/src/server/catalog";
+import { getActiveApps, getActiveDevices, platformName, platformsOf } from "@/src/server/catalog";
 import { getI18n } from "@/src/server/i18n";
 
 export const dynamic = "force-dynamic";
@@ -26,15 +29,15 @@ export default async function WatchPage() {
   const platforms = platformsOf(apps);
 
   return (
-    <>
-      <section className="bg-cinema border-b border-line">
-        <Container className="grid items-center gap-10 py-14 sm:py-20 lg:grid-cols-[1.2fr_1fr]">
+    <ToneShell>
+      <Container>
+        <section className={`${h.hero} ${h.heroSplit}`}>
           <div>
-            <Eyebrow>{t("شاهد على", "Watch on")}</Eyebrow>
-            <h1 className="mt-4 text-balance text-4xl font-bold leading-tight text-ink sm:text-5xl">
+            <p className={s.kicker}>{t("شاهد على", "Watch on")}</p>
+            <h1 className={`${h.title} text-balance`}>
               {t("شغّل اشتراكك على جهازك", "Watch your subscription on your device")}
             </h1>
-            <p className="mt-5 max-w-xl text-[15px] leading-8 text-ink-2">
+            <p className={h.lead}>
               {t(
                 "اختار جهازك، حمّل التطبيق المناسب، وأدخل بيانات اشتراكك من حسابك. أو اختار جهاز VIP جاهز.",
                 "Pick your device, install the right app and enter your subscription details from your account — or choose a ready-made VIP device.",
@@ -58,10 +61,10 @@ export default async function WatchPage() {
               <ArrowLeft size={15} className="transition group-hover:-translate-x-1 ltr:rotate-180 ltr:group-hover:translate-x-1" aria-hidden />
             </span>
           </Link>
-        </Container>
-      </section>
+        </section>
+      </Container>
 
-      <Container className="py-14">
+      <Container className="pt-10">
         <SectionHeading
           eyebrow={t("المنصات المدعومة", "Supported platforms")}
           title={t("اختار جهازك", "Choose your device")}
@@ -76,7 +79,7 @@ export default async function WatchPage() {
                     <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-surface-3 text-brand-ink">
                       {/tv|تلفز/i.test(platform) ? <Tv size={20} aria-hidden /> : <Smartphone size={20} aria-hidden />}
                     </span>
-                    <h3 className="text-base font-bold text-ink">{platform}</h3>
+                    <h3 className="text-base font-bold text-ink">{platformName(platform)}</h3>
                   </div>
                   <p className="mt-4 text-xs font-semibold text-ink-3">{t("التطبيق المقترح", "Recommended app")}</p>
                   <ul className="mt-2 space-y-2">
@@ -160,6 +163,6 @@ export default async function WatchPage() {
           </div>
         </section>
       </Container>
-    </>
+    </ToneShell>
   );
 }

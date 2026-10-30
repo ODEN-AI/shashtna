@@ -1,0 +1,287 @@
+[
+  {
+    "id": "table.loyaltyAccount",
+    "label": "Create table \"loyaltyAccount\"",
+    "summary": "Creates table \"loyaltyAccount\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "loyaltyAccount"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"loyaltyAccount\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"loyaltyAccount\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"loyaltyAccount\"",
+        "sql": "CREATE TABLE \"public\".\"loyaltyAccount\" (\n  \"balance\" int4 DEFAULT 0 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"lastRedeemedAt\" timestamptz,\n  \"openRewardOrderId\" int4,\n  \"status\" text DEFAULT 'ACTIVE' NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"loyaltyAccount\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"loyaltyAccount\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.loyaltyEntry",
+    "label": "Create table \"loyaltyEntry\"",
+    "summary": "Creates table \"loyaltyEntry\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "loyaltyEntry"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"loyaltyEntry\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"loyaltyEntry\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"loyaltyEntry\"",
+        "sql": "CREATE TABLE \"public\".\"loyaltyEntry\" (\n  \"actorUserId\" int4,\n  \"availableAt\" timestamptz NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"idempotencyKey\" text NOT NULL,\n  \"kind\" text NOT NULL,\n  \"orderId\" int4,\n  \"points\" int4 NOT NULL,\n  \"reason\" text,\n  \"rule\" text NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"loyaltyEntry\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"loyaltyEntry\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.packageOption.pointsEarned",
+    "label": "Add column \"pointsEarned\" to \"packageOption\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "pointsEarned",
+        "table": "packageOption"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"pointsEarned\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "packageOption",
+          "pointsEarned"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"pointsEarned\"",
+        "sql": "ALTER TABLE \"public\".\"packageOption\" ADD COLUMN \"pointsEarned\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"pointsEarned\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "packageOption",
+          "pointsEarned"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.loyaltyReward",
+    "label": "Add column \"loyaltyReward\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "loyaltyReward",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"loyaltyReward\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "loyaltyReward"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"loyaltyReward\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"loyaltyReward\" bool DEFAULT false NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"loyaltyReward\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "loyaltyReward"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.loyaltyAccount.loyaltyAccount_userId_key",
+    "label": "Add unique constraint on \"loyaltyAccount\" (userId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "loyaltyAccount_userId_key",
+        "table": "loyaltyAccount"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"loyaltyAccount_userId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "loyaltyAccount_userId_key",
+          "public",
+          "\"public\".\"loyaltyAccount\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"loyaltyAccount_userId_key\"",
+        "sql": "ALTER TABLE \"public\".\"loyaltyAccount\" ADD CONSTRAINT \"loyaltyAccount_userId_key\" UNIQUE (\"userId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"loyaltyAccount_userId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "loyaltyAccount_userId_key",
+          "public",
+          "\"public\".\"loyaltyAccount\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.loyaltyEntry.loyaltyEntry_idempotencyKey_key",
+    "label": "Add unique constraint on \"loyaltyEntry\" (idempotencyKey)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "loyaltyEntry_idempotencyKey_key",
+        "table": "loyaltyEntry"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"loyaltyEntry_idempotencyKey_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "loyaltyEntry_idempotencyKey_key",
+          "public",
+          "\"public\".\"loyaltyEntry\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"loyaltyEntry_idempotencyKey_key\"",
+        "sql": "ALTER TABLE \"public\".\"loyaltyEntry\" ADD CONSTRAINT \"loyaltyEntry_idempotencyKey_key\" UNIQUE (\"idempotencyKey\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"loyaltyEntry_idempotencyKey_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "loyaltyEntry_idempotencyKey_key",
+          "public",
+          "\"public\".\"loyaltyEntry\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.loyaltyEntry.loyaltyEntry_userId_idx_a489d58a",
+    "label": "Create index \"loyaltyEntry_userId_idx_a489d58a\" on \"loyaltyEntry\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "loyaltyEntry_userId_idx_a489d58a",
+        "table": "loyaltyEntry"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"loyaltyEntry_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"loyaltyEntry_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"loyaltyEntry_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"loyaltyEntry_userId_idx_a489d58a\" ON \"public\".\"loyaltyEntry\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"loyaltyEntry_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"loyaltyEntry_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  }
+]

@@ -39,6 +39,7 @@ app (v1.0.0 / v2.0.0)  →  app/api/mobile/*  →  src/server/mobile/*  →  web
 | `GET notifications`, `POST notifications/read` | `notifications.ts` |
 | `POST/DELETE devices` | accepted, not stored (no push-device table): `deviceId: null` |
 | `GET dashboard?order=` | the services above |
+| `GET loyalty`, `POST loyalty/redeem` | `src/server/loyalty.ts` («نقاط شاشتنا»): `{ loyalty: { enabled: false } }` while the program is off; redeem takes `{ reward: "3m" \| "6m", subscriptionId }` → 201 `{ order, loyalty }`, or 409 `CANNOT_REDEEM` / 404 `NOT_FOUND` / 400 `INVALID` with an Arabic `message` |
 | `GET config`, `GET receipts`, `GET/POST subscription-requests`, `PUT account/profile` | older app build (v1.0.0), unchanged responses |
 
 ## Rules
@@ -49,6 +50,9 @@ app (v1.0.0 / v2.0.0)  →  app/api/mobile/*  →  src/server/mobile/*  →  web
 - **Ownership:** orders, proofs, subscriptions and tickets are read by `(id, userId)`; another customer's id
   answers 404. An older build's `userId` field is checked, never trusted (mismatch → 403).
 - **Prices:** never read from the client; `createOrder` prices from the catalogue.
+- **Loyalty:** the customer is taken from the token, never the body; points, costs and the reward order
+  (price 0, `requestType` `RENEW`, `loyaltyReward: true`) are decided on the server. Orders carry the
+  additive `loyaltyReward` flag.
 - **IPTV credentials:** only `GET subscriptions/{id}` (like the website's subscription page). Lists and the
   dashboard carry `credentials: null` and null flat fields.
 - **Content:** Admin kinds `AD` (and other promotional kinds) → `OFFER`; `ANNOUNCEMENT`/`NEWS` → `ANNOUNCEMENT`.

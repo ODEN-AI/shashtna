@@ -1,3 +1,4 @@
+import { loyaltySettingProblem } from "@/src/lib/loyalty";
 import { PERMISSIONS, STAFF_ROLES, hasPermission, normalizeRole, type Permission } from "@/src/lib/roles";
 
 /**
@@ -8,7 +9,7 @@ import { PERMISSIONS, STAFF_ROLES, hasPermission, normalizeRole, type Permission
  */
 
 /** Audit entity types written by logActivity() (src/server/activity.ts). */
-export const AUDIT_ENTITIES = ["ORDER", "SUBSCRIPTION", "TICKET", "PACKAGE", "DEVICE", "APP", "ANNOUNCEMENT", "INCIDENT", "SETTING", "STAFF", "USER", "LEAD", "PASSWORD_RESET", "NOTIFICATION", "FINANCE", "INTELLIGENCE"] as const;
+export const AUDIT_ENTITIES = ["ORDER", "SUBSCRIPTION", "TICKET", "PACKAGE", "DEVICE", "APP", "ANNOUNCEMENT", "INCIDENT", "SETTING", "STAFF", "USER", "LEAD", "PASSWORD_RESET", "NOTIFICATION", "FINANCE", "INTELLIGENCE", "LOYALTY"] as const;
 
 /** Actions that matter for security reviews. */
 export const SECURITY_ACTIONS = ["ROLE_CHANGED", "STAFF_SESSIONS_REVOKED", "SUBSCRIPTION_CREDENTIALS_REVEALED", "SETTINGS_UPDATED", "PASSWORD_RESET_CODE_ISSUED", "PASSWORD_CHANGED", "CONSOLE_DEVICE_REGISTERED", "CONSOLE_DEVICE_REVOKED"] as const;
@@ -95,6 +96,7 @@ export const LONG_SETTING_GROUPS = ["legal"] as const;
 
 /** Server-side format checks for the settings that have one (empty is always allowed). */
 export function settingProblem(key: string, value: string): string | null {
+  if (key.startsWith("loyalty.")) return loyaltySettingProblem(key, value);
   if (!value) return null;
   if (key === "contact.telegram" && !/^https:\/\/t\.me\//.test(value)) return "رابط تيليجرام يجب أن يبدأ بـ https://t.me/";
   if ((key === "contact.facebook" || key === "player.downloadUrl") && !/^https:\/\//.test(value)) return "الروابط يجب أن تبدأ بـ https://";

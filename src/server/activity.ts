@@ -16,7 +16,8 @@ export type EntityType =
   | "PASSWORD_RESET"
   | "NOTIFICATION"
   | "FINANCE"
-  | "INTELLIGENCE";
+  | "INTELLIGENCE"
+  | "LOYALTY";
 
 export type ActivityInput = {
   actor?: { id: number; role?: string | null } | null;

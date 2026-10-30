@@ -35,6 +35,8 @@ export type CheckoutPlan = {
   imageUrl: string | null;
   /** Every length the plan is sold in, with what this order would cost in it. */
   options: { id: number; durationMonths: number; price: number }[];
+  /** Loyalty points this order earns (IPTV, program on); null hides the line. */
+  points?: number | null;
 };
 
 export type CheckoutDevice = {
@@ -367,6 +369,12 @@ export function CheckoutForm({
               <div className={c.row}>
                 <dt>{t("سعر الباقة", "Plan price")}</dt>
                 <dd className="nums">{formatPrice(plan.price, language)}</dd>
+              </div>
+            ) : null}
+            {plan?.points ? (
+              <div className={c.row} data-testid="summary-points">
+                <dt>{t("نقاط شاشتنا", "Shashtna Points")}</dt>
+                <dd className="nums">{t(`هذا الطلب يعطيك ${plan.points} نقطة`, `This order earns ${plan.points} points`)}</dd>
               </div>
             ) : null}
             {needsDevice || fixedDevice ? (

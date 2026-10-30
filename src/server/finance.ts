@@ -52,6 +52,7 @@ export const loadFinanceSources = cache(async () => {
       "deviceName",
       "createdAt",
       "updatedAt",
+      "loyaltyReward",
     ).all(),
     db.orm.public.Receipt.select("id", "orderId", "userId", "price", "serviceName", "serviceType", "createdAt").all(),
     db.orm.public.ActivityEvent.where({ entityType: "ORDER" })
@@ -87,7 +88,8 @@ export const loadFinanceSources = cache(async () => {
     createdAt: String(expense.createdAt),
   }));
 
-  return { orders: normalizedOrders, sales, expenses: expenseRows, users, subscriptions };
+  // Order counts and average order value leave out loyalty rewards (reported in Admin → Shashtna Points).
+  return { orders: normalizedOrders.filter((order) => !order.loyaltyReward), sales, expenses: expenseRows, users, subscriptions };
 });
 
 type Sources = Awaited<ReturnType<typeof loadFinanceSources>>;

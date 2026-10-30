@@ -11,9 +11,10 @@ import { cn } from "./cn";
 import { Notice } from "./States";
 
 /** Visual order timeline: vertical on phones, horizontal from `sm` up. */
-export function OrderStepper({ status, lang }: { status: string; lang: Lang }) {
+export function OrderStepper({ status, lang, reward = false }: { status: string; lang: Lang; reward?: boolean }) {
   const normalized = normalizeOrderStatus(status);
-  const steps = orderTimeline(normalized);
+  // A points reward has no payment step.
+  const steps = orderTimeline(normalized).filter((step) => !reward || step.status !== "AWAITING_PAYMENT");
   const isAr = lang === "ar";
 
   if (normalized === "CANCELLED" || normalized === "REJECTED") {
@@ -27,7 +28,7 @@ export function OrderStepper({ status, lang }: { status: string; lang: Lang }) {
   }
 
   return (
-    <ol className="grid gap-0 sm:grid-cols-5" aria-label={isAr ? "مراحل الطلب" : "Order progress"}>
+    <ol className={cn("grid gap-0", reward ? "sm:grid-cols-4" : "sm:grid-cols-5")} aria-label={isAr ? "مراحل الطلب" : "Order progress"}>
       {steps.map((step, index) => {
         const label = ORDER_STATUS_LABELS[step.status];
         const last = index === steps.length - 1;

@@ -217,9 +217,9 @@ test("package options migration: additive table and order column, one option per
 
   const migration = JSON.parse(readFileSync(new URL("../migrations/app/20261030T1021_package_options/migration.json", import.meta.url), "utf8"));
   const previous = JSON.parse(readFileSync(new URL("../migrations/app/20261017T1832_package_renewal_price/migration.json", import.meta.url), "utf8"));
-  const ref = JSON.parse(readFileSync(new URL("../migrations/app/refs/db.json", import.meta.url), "utf8"));
+  const next = JSON.parse(readFileSync(new URL("../migrations/app/20261030T1747_loyalty_points/migration.json", import.meta.url), "utf8"));
   assert.equal(migration.from, previous.to, "chained after the VIP renewal price");
-  assert.equal(migration.to, ref.hash, "the db ref points at the latest contract");
+  assert.equal(migration.to, next.from, "the loyalty migration follows it");
 });
 
 test("order price: renewals use the renewal price; VIP renewal has no device; client values are ignored", () => {

@@ -1,4 +1,6 @@
 import { planOrderPrice } from "@/src/lib/catalogue";
+import { orderPointValue } from "@/src/lib/loyalty";
+import { getLoyaltyRules } from "@/src/server/loyalty";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -103,6 +105,9 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       ? `/plans/${encodeURIComponent(plan.slug)}${back.size ? `?${back.toString()}` : ""}`
       : choosePath;
 
+  const loyalty = plan && plan.serviceType === "IPTV" && mode !== "DEVICE_PURCHASE" ? await getLoyaltyRules() : null;
+  const orderPoints = loyalty?.enabled && plan ? orderPointValue(planOrderPrice(option ?? plan, mode), option?.pointsEarned ?? null) : null;
+
   const steps = [
     t("تأكيد الطلب", "Confirm"),
     t("الدفع", "Payment"),
@@ -147,6 +152,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
                   features: plan.features.slice(0, 4),
                   imageUrl: plan.imageUrl,
                   options: plan.options.map((item) => ({ id: item.id, durationMonths: item.durationMonths, price: planOrderPrice(item, mode) })),
+                  points: orderPoints,
                 }
               : null
           }

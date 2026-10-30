@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Activity, ArrowRight, Bell, Cpu, EyeOff, FileCheck2, LifeBuoy, Phone, RefreshCw, ShoppingBag, Tv, UserRound, Workflow } from "lucide-react";
+import { Activity, ArrowRight, Bell, Cpu, EyeOff, FileCheck2, Gift, LifeBuoy, Phone, RefreshCw, ShoppingBag, Tv, UserRound, Workflow } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { logRenewalContactAction } from "@/app/admin/actions";
+import { adjustPointsAction, setPointsStatusAction } from "@/app/admin/loyalty/actions";
+import { ActionForm } from "@/app/ui/ActionForm";
 import { RevealPassword } from "@/app/components/admin/CredentialReveal";
 import { EmptyLine, SectionCard, SectionError } from "@/app/components/admin/dashboard/DashboardUI";
 import { Forbidden } from "@/app/components/admin/Forbidden";
@@ -22,6 +24,7 @@ import { ROLE_LABELS } from "@/src/lib/roles";
 import { SUBSCRIPTION_STATE_LABELS } from "@/src/lib/subscription-state";
 import { requireStaffPage } from "@/src/server/auth";
 import { getCustomer360, type Customer360 } from "@/src/server/customers";
+import { getLoyalty } from "@/src/server/loyalty";
 import { getI18n } from "@/src/server/i18n";
 import { whatsappLink } from "@/src/server/settings";
 import { TICKET_STATUS_LABELS } from "@/src/server/tickets";
@@ -52,6 +55,8 @@ export default async function Customer360Page({ params }: { params: Promise<{ id
 
   const { t, lang } = await getI18n();
   const { customer, can } = data;
+  const loyalty = await getLoyalty(customer.id).catch(() => null);
+  const isOwner = String(staff.role).toUpperCase() === "OWNER";
   const subs = data.subscriptions;
   const orders = data.orders;
   const overall = subs?.ok ? customerStatus(subs.data.map((sub) => sub.state)) : null;
@@ -146,6 +151,60 @@ export default async function Customer360Page({ params }: { params: Promise<{ id
               ) : (
                 <EmptyLine>{t("لا توجد تذاكر دعم.", "No support tickets.")}</EmptyLine>
               )}
+            </SectionCard>
+          ) : null}
+
+          {loyalty ? (
+            <SectionCard title={t("نقاط شاشتنا", "Shashtna Points")} icon={<Gift size={14} aria-hidden />} action={can("finance") ? { href: "/admin/loyalty", label: t("التقرير", "Report") } : undefined} testId="c360-points">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-ink">
+                  <span className="nums text-2xl font-bold">{loyalty.balance}</span>
+                  <span className="ms-2 text-xs text-ink-3">
+                    {t("الرصيد", "Balance")} · {t("متاحة", "available")} <span className="nums">{loyalty.available}</span> · {t("معلّقة", "pending")} <span className="nums">{loyalty.pending}</span>
+                  </span>
+                </p>
+                {loyalty.status === "SUSPENDED" ? <Badge tone="danger">{t("موقوف", "Suspended")}</Badge> : null}
+              </div>
+              {loyalty.entries.length ? (
+                <ul className="mt-3 divide-y divide-line/70">
+                  {loyalty.entries.slice(0, 10).map((entry) => (
+                    <li key={entry.id} className="flex items-center justify-between gap-3 py-2 text-sm" data-testid="c360-points-entry">
+                      <span className="min-w-0">
+                        <span className="block font-semibold text-ink">{lang === "ar" ? entry.label.ar : entry.label.en}</span>
+                        <span className="nums block text-xs text-ink-3">
+                          {formatDate(entry.createdAt, lang)}
+                          {entry.orderNumber ? ` · ${entry.orderNumber}` : ""}
+                          {entry.reason ? ` · ${entry.reason}` : ""}
+                        </span>
+                      </span>
+                      <span className={cn("nums font-bold", entry.points < 0 ? "text-danger" : "text-success")} dir="ltr">
+                        {entry.points > 0 ? `+${entry.points}` : entry.points}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyLine>{t("ماكو حركة نقاط.", "No points activity.")}</EmptyLine>
+              )}
+              {isOwner ? (
+                <div className="mt-4 space-y-3 border-t border-line pt-4">
+                  <ActionForm action={adjustPointsAction} className="space-y-2" resetOnSuccess>
+                    <input type="hidden" name="userId" value={customer.id} />
+                    <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-2">
+                      <Input name="points" inputMode="numeric" dir="ltr" placeholder="+10 / -5" aria-label={t("النقاط", "Points")} required />
+                      <Input name="reason" placeholder={t("السبب (إلزامي)", "Reason (required)")} aria-label={t("السبب", "Reason")} required minLength={3} maxLength={500} />
+                    </div>
+                    <SubmitButton size="sm" variant="secondary">{t("تعديل إداري", "Adjust")}</SubmitButton>
+                  </ActionForm>
+                  <ActionForm action={setPointsStatusAction}>
+                    <input type="hidden" name="userId" value={customer.id} />
+                    <input type="hidden" name="status" value={loyalty.status === "SUSPENDED" ? "ACTIVE" : "SUSPENDED"} />
+                    <SubmitButton size="sm" variant="ghost">
+                      {loyalty.status === "SUSPENDED" ? t("تفعيل حساب النقاط", "Reactivate points") : t("إيقاف الاستبدال", "Suspend redemption")}
+                    </SubmitButton>
+                  </ActionForm>
+                </div>
+              ) : null}
             </SectionCard>
           ) : null}
 

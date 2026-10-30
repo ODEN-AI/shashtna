@@ -21,6 +21,8 @@ import { ORDER_STATUS_LABELS, REQUEST_TYPE_LABELS, isUnpaid } from "@/src/lib/or
 import { listEntityActivity } from "@/src/server/activity";
 import { requireCustomer } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
+import { pointsLabel } from "@/src/lib/loyalty";
+import { getLoyaltyRules, orderLoyalty } from "@/src/server/loyalty";
 import { getOrderForUser } from "@/src/server/orders";
 import { proofUploadTimes } from "@/src/server/payment-proofs";
 import { getSettings, manualTransferDetails, safeExternalUrl, telegramLink, whatsappLink } from "@/src/server/settings";
@@ -50,12 +52,18 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     notFound();
   }
 
-  const [{ t, lang }, settings, events, proofs] = await Promise.all([
+  const [{ t, lang }, settings, events, proofs, loyaltyRules, points] = await Promise.all([
     getI18n(),
     getSettings(),
     listEntityActivity("ORDER", order.id, { customerVisibleOnly: true }),
     proofUploadTimes([order.id]),
+    getLoyaltyRules(),
+    orderLoyalty(order.id).catch(() => null),
   ]);
+  const reward = order.loyaltyReward;
+  const pointsState = points
+    ? { PENDING: t("معلّقة", "pending"), CONFIRMED: t("مثبتة", "confirmed"), REVERSED: t("مسحوبة", "reversed") }[points.state]
+    : null;
   const proofUploadedAt = proofs.get(order.id) ?? null;
   const proofUrl = proofUploadedAt ? `/api/orders/${order.id}/payment-proof?v=${encodeURIComponent(proofUploadedAt)}` : null;
   const stage = orderStage(order.status, Boolean(proofUploadedAt));
@@ -79,10 +87,13 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     { label: order.requestType === "DEVICE_PURCHASE" ? t("الجهاز", "Device") : t("الباقة", "Plan"), value: order.serviceName },
     order.requestType !== "DEVICE_PURCHASE" ? { label: t("المدة", "Duration"), value: order.durationLabel } : null,
     order.deviceName && order.requestType !== "DEVICE_PURCHASE" ? { label: t("جهاز VIP", "VIP device"), value: order.deviceName } : null,
-    { label: t("المبلغ", "Amount"), value: <span className="nums">{formatPrice(order.price, lang)}</span> },
+    { label: t("المبلغ", "Amount"), value: <span className="nums">{reward ? `${t("مكافأة نقاط", "Points reward")} — ${formatPrice(0, lang)}` : formatPrice(order.price, lang)}</span> },
+    points && loyaltyRules.enabled
+      ? { label: t("نقاط شاشتنا", "Shashtna Points"), value: <span className="nums">{t(`+${pointsLabel(points.points, "ar")} على هذا الطلب`, `+${pointsLabel(points.points, "en")} on this order`)} ({pointsState})</span> }
+      : null,
     order.paymentMethod ? { label: t("طريقة الدفع", "Payment method"), value: order.paymentMethod } : null,
     order.paymentReference ? { label: t("رقم العملية", "Transaction number"), value: <span className="nums" dir="ltr">{order.paymentReference}</span> } : null,
-    {
+    reward ? null : {
       label: t("إثبات الدفع", "Payment proof"),
       value: proofUrl ? (
         <a href={proofUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-brand-ink underline-offset-4 hover:underline">
@@ -116,10 +127,10 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           </div>
           <div className="text-end">
             <StatusBadge status={order.status} label={label[lang]} />
-            <p className="nums mt-3 text-2xl font-bold text-ink">{formatPrice(order.price, lang)}</p>
+            <p className="nums mt-3 text-2xl font-bold text-ink">{reward ? t("مكافأة نقاط", "Points reward") : formatPrice(order.price, lang)}</p>
           </div>
         </div>
-        {stage === "CANCELLED" || stage === "REJECTED" ? null : <OrderJourney stage={stage} lang={lang} className="mt-8" />}
+        {stage === "CANCELLED" || stage === "REJECTED" ? null : <OrderJourney stage={stage} lang={lang} className="mt-8" reward={reward} />}
       </Card>
 
       <OrderPaymentFlow order={order} stage={stage} proofUrl={proofUrl} transfer={manualTransferDetails(settings)} lang={lang} />

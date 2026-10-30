@@ -4,9 +4,10 @@ import { notFound } from "next/navigation";
 import { ArrowRight, ImageIcon, PackageCheck, Phone, Tv, UserRound } from "lucide-react";
 
 import { updateOrderStatusAction } from "@/app/admin/actions";
+import { reverseOrderPointsAction } from "@/app/admin/loyalty/actions";
 import { Forbidden } from "@/app/components/admin/Forbidden";
 import { ActionForm } from "@/app/ui/ActionForm";
-import { StatusBadge } from "@/app/ui/Badge";
+import { Badge, StatusBadge } from "@/app/ui/Badge";
 import { WhatsAppIcon } from "@/app/ui/BrandIcons";
 import { LinkButton } from "@/app/ui/Button";
 import { Card, CardHeader } from "@/app/ui/Card";
@@ -20,6 +21,7 @@ import { listEntityActivity } from "@/src/server/activity";
 import { customersById } from "@/src/server/admin-data";
 import { requireStaffPage } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
+import { orderLoyalty } from "@/src/server/loyalty";
 import { getOrder } from "@/src/server/orders";
 import { proofUploadTimes } from "@/src/server/payment-proofs";
 import { whatsappLink } from "@/src/server/settings";
@@ -37,7 +39,7 @@ const CONTACT_LABELS: Record<string, string> = {
 
 export default async function AdminOrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { allowed } = await requireStaffPage(`/admin/orders/${id}`, "orders");
+  const { user: staff, allowed } = await requireStaffPage(`/admin/orders/${id}`, "orders");
 
   if (!allowed) {
     return <Forbidden />;
@@ -49,11 +51,12 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
     notFound();
   }
 
-  const [{ t, lang }, customers, events, proofs] = await Promise.all([
+  const [{ t, lang }, customers, events, proofs, points] = await Promise.all([
     getI18n(),
     customersById([order.userId]),
     listEntityActivity("ORDER", order.id),
     proofUploadTimes([order.id]),
+    orderLoyalty(order.id).catch(() => null),
   ]);
   const proofUploadedAt = proofs.get(order.id) ?? null;
   const proofUrl = proofUploadedAt ? `/api/orders/${order.id}/payment-proof?v=${encodeURIComponent(proofUploadedAt)}` : null;
@@ -62,7 +65,8 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   // With a proof on file the likely next step is "Paid" — still a manual choice.
   const suggestedStatus = proofUrl && transitions.includes("PAID") ? "PAID" : transitions[0];
   const open = isOpen(order.status);
-  const canActivate = open && order.requestType !== "DEVICE_PURCHASE";
+  // A points reward is activated only after the owner approved it (PAID).
+  const canActivate = open && order.requestType !== "DEVICE_PURCHASE" && (!order.loyaltyReward || order.status === "PAID" || order.status === "FULFILLING");
   const customerWhatsApp = customer
     ? whatsappLink(
         customer.phone.replace(/^0/, "964"),
@@ -97,6 +101,11 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           <div>
             <p className="nums text-2xl font-bold text-ink">{order.number}</p>
             <p className="mt-1 text-sm text-ink-2">{order.serviceName}</p>
+            {order.loyaltyReward ? (
+              <Badge tone="glow" className="mt-2">
+                {t("مكافأة نقاط — موافقة المالك مطلوبة", "Points reward — owner approval required")}
+              </Badge>
+            ) : null}
           </div>
           <div className="text-end">
             <StatusBadge status={order.status} label={ORDER_STATUS_LABELS[order.status][lang]} />
@@ -104,7 +113,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           </div>
         </div>
         <div className="mt-8">
-          <OrderStepper status={order.status} lang={lang} />
+          <OrderStepper status={order.status} lang={lang} reward={order.loyaltyReward} />
         </div>
       </Card>
 
@@ -215,6 +224,28 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
                 <Tv size={16} aria-hidden />
                 {order.requestType === "RENEW" ? t("تجديد الاشتراك", "Renew subscription") : t("إنشاء الاشتراك", "Create subscription")}
               </LinkButton>
+            </Card>
+          ) : null}
+
+          {points && String(staff.role).toUpperCase() === "OWNER" ? (
+            <Card className="p-6">
+              <CardHeader
+                title={t("نقاط هذا الطلب", "Points on this order")}
+                description={t(
+                  `+${points.points} نقطة (${{ PENDING: "معلّقة", CONFIRMED: "مثبتة", REVERSED: "مسحوبة" }[points.state]})`,
+                  `+${points.points} points (${points.state.toLowerCase()})`,
+                )}
+              />
+              {points.state !== "REVERSED" ? (
+                <ActionForm action={reverseOrderPointsAction} className="mt-4 space-y-3">
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <Field label={t("سبب السحب (إلزامي)", "Reason (required)")} htmlFor="reverseReason">
+                    <Input id="reverseReason" name="reason" required minLength={3} maxLength={500} />
+                  </Field>
+                  <SubmitButton size="sm" variant="danger">{t("سحب النقاط", "Reverse points")}</SubmitButton>
+                  <p className="text-xs leading-5 text-ink-3">{t("الرصيد ممكن يصير بالسالب؛ هذا يمنع الاستبدال فقط ولا يطالب العميل بأي مبلغ.", "The balance may go negative; that only blocks redemption and never asks the customer for money.")}</p>
+                </ActionForm>
+              ) : null}
             </Card>
           ) : null}
 

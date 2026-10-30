@@ -74,6 +74,8 @@ model PackageOption {
   price           Int
   /// Price of a renewal order for this length (null = same as price).
   renewalPrice    Int?
+  /// Loyalty points a completed order of this length earns (null = price ÷ 1,000, rounded down).
+  pointsEarned    Int?
   isActive        Boolean  @default(true)
   createdAt       TimestamptzString @default(now())
   updatedAt       temporal.updatedAtString()
@@ -149,6 +151,8 @@ model SubscriptionRequest {
   customerNote     String?
   adminNote        String?
   subscriptionId   Int?
+  /// A free renewal bought with loyalty points (price 0, requestType RENEW).
+  loyaltyReward    Boolean  @default(false)
 }
 
 model Receipt {
@@ -353,6 +357,43 @@ model ConsoleDevice {
   revokedAt       TimestamptzString?
   revokedBy       Int?
   updatedAt       temporal.updatedAtString()
+
+  @@index([userId])
+}
+
+// «نقاط شاشتنا» — one row per customer in the loyalty program. `balance` is a
+// cache of the sum of the customer's LoyaltyEntry rows (checked by the admin
+// reconciliation); it is only changed in the same transaction as an entry.
+// `openRewardOrderId` is the reward order not yet completed (one at a time).
+// `status` is validated in code: ACTIVE | SUSPENDED.
+model LoyaltyAccount {
+  id                Int      @id @default(autoincrement())
+  userId            Int      @unique
+  balance           Int      @default(0)
+  openRewardOrderId Int?
+  lastRedeemedAt    TimestamptzString?
+  status            String   @default("ACTIVE")
+  createdAt         TimestamptzString @default(now())
+  updatedAt         temporal.updatedAtString()
+}
+
+// The loyalty ledger. Rows are never updated or deleted. `points` is signed;
+// `kind` is validated in code: SEED | EARN | REDEEM | REDEEM_RETURN | REVERSE
+// | ADJUST | EXPIRE. `idempotencyKey` makes every award / redemption happen
+// once (e.g. earn:order:12). `rule` is a JSON snapshot of the settings the
+// entry was computed with, so a rule change never rewrites history.
+model LoyaltyEntry {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  kind           String
+  points         Int
+  orderId        Int?
+  availableAt    TimestamptzString
+  idempotencyKey String   @unique
+  rule           String
+  reason         String?
+  actorUserId    Int?
+  createdAt      TimestamptzString @default(now())
 
   @@index([userId])
 }

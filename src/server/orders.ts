@@ -15,6 +15,7 @@ import { normalizeServiceType } from "@/src/server/catalog";
 import { planOrderPrice } from "@/src/lib/catalogue";
 import { resolveOrderOption } from "@/src/lib/package-options";
 import { packageOptions } from "@/src/server/package-options";
+import { awardForOrder, returnReward } from "@/src/server/loyalty";
 
 export const REQUEST_TYPES = ["NEW", "RENEW", "UPGRADE", "DEVICE_PURCHASE"] as const;
 export type RequestType = (typeof REQUEST_TYPES)[number];
@@ -59,6 +60,7 @@ export function serializeOrder(row: NonNullable<OrderRow>, options: { staff?: bo
     status: normalizeOrderStatus(row.status),
     storedStatus: row.status,
     subscriptionId: row.subscriptionId,
+    loyaltyReward: Boolean(row.loyaltyReward),
     createdAt: String(row.createdAt),
     updatedAt: String(row.updatedAt),
   };
@@ -305,6 +307,8 @@ async function saveOrder(userId: number, fields: OrderFields): Promise<CreateOrd
     userId,
     planSlug: fields.planSlug,
     requestType: fields.requestType,
+    // A loyalty reward (free renewal) is never reused or re-priced as a paid order.
+    loyaltyReward: false,
   })
     .where((order) => order.status.in(UNPAID_STORED_STATUSES))
     .orderBy((order) => order.id.desc())
@@ -401,6 +405,10 @@ export async function cancelOrderByCustomer(userId: number, orderId: number) {
     customerVisible: true,
   });
 
+  if (row.loyaltyReward) {
+    await returnReward(orderId, { id: userId, role: "CUSTOMER" });
+  }
+
   return { ok: true as const };
 }
 
@@ -447,6 +455,17 @@ export async function updateOrderStatus(
 
   const current = normalizeOrderStatus(row.status);
 
+  // A points reward has no payment step, and only the owner approves it.
+  if (row.loyaltyReward && current !== target) {
+    if (target === "AWAITING_PAYMENT") {
+      return { ok: false as const, error: "طلب المكافأة ما يحتاج دفع." };
+    }
+
+    if ((target === "PAID" || target === "FULFILLING" || target === "COMPLETED") && String(actor.role).toUpperCase() !== "OWNER") {
+      return { ok: false as const, error: "الموافقة على طلبات مكافأة النقاط للمالك فقط." };
+    }
+  }
+
   if (current !== target && !canTransition(current, target)) {
     return {
       ok: false as const,
@@ -483,6 +502,10 @@ export async function updateOrderStatus(
       body: `${label.ar} — ${label.hintAr}`,
       link: `/orders/${orderId}`,
     });
+
+    if (row.loyaltyReward && (target === "REJECTED" || target === "CANCELLED")) {
+      await returnReward(orderId, actor);
+    }
   }
 
   return { ok: true as const };
@@ -544,6 +567,10 @@ export async function completeOrderWithSubscription(
       : `تم تفعيل «${row.serviceName}». تفاصيل الاشتراك موجودة بحسابك.`,
     link: `/subscriptions/${subscriptionId}`,
   });
+
+  // Loyalty: the price the customer was charged (before staff completed the
+  // order) earns points; a completed reward frees the open-reward slot.
+  await awardForOrder(orderId, row.price);
 
   return updated;
 }

@@ -399,6 +399,7 @@ export async function POST(
         durationLabel: option.durationLabel,
         price: option.price,
         renewalPrice: option.renewalPrice,
+        pointsEarned: "pointsEarned" in option ? (option.pointsEarned ?? null) : null,
         isActive: option.isActive,
       });
     }

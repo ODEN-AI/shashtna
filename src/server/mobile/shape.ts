@@ -163,6 +163,8 @@ export function shapeOrder(order: Order, proofUploadedAt: string | null) {
     serviceName: order.serviceName,
     planSlug: order.planSlug,
     price: order.price,
+    /** A free renewal bought with points: no payment step (additive). */
+    loyaltyReward: order.loyaltyReward,
     durationMonths: order.durationMonths,
     durationLabel: order.durationLabel,
     deviceName: order.deviceName,

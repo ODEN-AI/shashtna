@@ -27,6 +27,7 @@ export function PlanBuy({
   isVip,
   deviceFrom,
   hasOthers,
+  points = null,
 }: {
   lang: Lang;
   slug: string;
@@ -37,6 +38,8 @@ export function PlanBuy({
   isVip: boolean;
   deviceFrom: number | null;
   hasOthers: boolean;
+  /** Loyalty points each option's order earns (IPTV, program on); null hides the line. */
+  points?: Record<number, number> | null;
 }) {
   const t = translator(lang);
   const [selectedId, setSelectedId] = useState(initialId);
@@ -99,6 +102,11 @@ export function PlanBuy({
         {selected.renewalPrice !== null && selected.renewalPrice !== selected.price ? (
           <li className="nums" data-testid="plan-renewal-price">
             {t(`التجديد: ${formatPrice(selected.renewalPrice, lang)}`, `Renewal: ${formatPrice(selected.renewalPrice, lang)}`)}
+          </li>
+        ) : null}
+        {points && points[selected.id] ? (
+          <li className="nums" data-testid="plan-points">
+            {t(`هذا الطلب يعطيك ${points[selected.id]} نقطة`, `This order earns ${points[selected.id]} points`)}
           </li>
         ) : null}
         <li>{t("الدفع بالتحويل بعد تأكيد الطلب", "Pay by transfer after you confirm")}</li>

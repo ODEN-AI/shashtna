@@ -9,6 +9,7 @@ import {
   BarChart3,
   BrainCircuit,
   Bell,
+  Gift,
   Boxes,
   Briefcase,
   CircleDollarSign,
@@ -85,6 +86,7 @@ const ICONS: Record<string, typeof Inbox> = {
   security: LockKeyhole,
   audit: ScrollText,
   settings: Settings,
+  loyalty: Gift,
 };
 
 type Counts = Partial<Record<string, number>>;

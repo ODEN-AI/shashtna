@@ -1,4 +1,5 @@
 import { isValidPrice, parseRenewalPrice } from "@/src/lib/catalogue";
+import { parsePointsEarned } from "@/src/lib/loyalty";
 import { formatDurationAr, parseDuration, type DurationUnit } from "@/src/lib/subscription-duration";
 
 /**
@@ -28,6 +29,8 @@ export type PackageOption = {
   durationLabel: string;
   price: number;
   renewalPrice: number | null;
+  /** Loyalty points an order of this length earns (null = automatic: price ÷ 1,000). */
+  pointsEarned?: number | null;
   isActive: boolean;
 };
 
@@ -39,6 +42,8 @@ export type ParsedOption = {
   durationLabel: string;
   price: number;
   renewalPrice: number | null;
+  /** Loyalty points override; null = automatic, undefined = not sent (keep what is stored). */
+  pointsEarned?: number | null;
   isActive: boolean;
 };
 
@@ -96,6 +101,9 @@ export function parsePackageOptions(raw: unknown, serviceType: "IPTV" | "VIP"): 
     const renewal = parseRenewalPrice(row.renewalPrice);
     if (!renewal.ok) return { ok: false, error: `${position}: سعر التجديد غير صحيح.` };
 
+    const points = row.pointsEarned === undefined ? undefined : parsePointsEarned(row.pointsEarned);
+    if (points && !points.ok) return { ok: false, error: `${position}: نقاط الطلب يجب أن تكون رقمًا صحيحًا من 0 إلى 100000، أو فارغة.` };
+
     if (row.isActive !== undefined && typeof row.isActive !== "boolean") {
       return { ok: false, error: `${position}: حالة المدة غير صحيحة.` };
     }
@@ -109,6 +117,8 @@ export function parsePackageOptions(raw: unknown, serviceType: "IPTV" | "VIP"): 
       durationLabel: label || formatDurationAr(durationMonths),
       price: row.price,
       renewalPrice: renewal.value,
+      // VIP never earns points (v1): its override is always cleared.
+      ...(serviceType === "VIP" ? { pointsEarned: null } : points ? { pointsEarned: points.value } : {}),
       isActive: row.isActive ?? true,
     });
   }

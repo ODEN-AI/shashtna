@@ -36,6 +36,8 @@ export type OrderInput = {
   deviceName: string | null;
   createdAt: string;
   updatedAt: string;
+  /** A free renewal bought with loyalty points: never revenue, a sale or a product row. */
+  loyaltyReward?: boolean;
 };
 
 export type ReceiptInput = {
@@ -107,7 +109,8 @@ export function recognizeSales(input: {
   const sales: Sale[] = [];
 
   for (const order of input.orders) {
-    if (!isPaidStatus(order.status)) continue;
+    // Loyalty rewards (and their 0-price receipts, skipped below as linked) are reported separately.
+    if (order.loyaltyReward || !isPaidStatus(order.status)) continue;
 
     const receipts = receiptsByOrder.get(order.id) ?? [];
     const firstReceipt = receipts

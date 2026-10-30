@@ -8,6 +8,7 @@ import { db } from "@/src/prisma/db";
 import { assertCustomer } from "@/src/server/auth";
 import { logActivity } from "@/src/server/activity";
 import { markNotificationsRead } from "@/src/server/notifications";
+import { redeemReward } from "@/src/server/loyalty";
 import { cancelOrderByCustomer, setOrderContact } from "@/src/server/orders";
 import { savePaymentProof } from "@/src/server/payment-proofs";
 import { MANUAL_TRANSFER_METHOD } from "@/src/server/settings";
@@ -87,6 +88,31 @@ export async function uploadPaymentProofAction(_prev: ActionState, formData: For
   } catch (error) {
     return failure(error, "تعذر رفع الصورة، حاول مرة أخرى.");
   }
+}
+
+// ------------------------------------------------------------------ points
+
+/** Spend points on a free IPTV renewal; on success, go to the new reward order. */
+export async function redeemPointsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  let orderId: number;
+
+  try {
+    const user = await assertCustomer();
+    const result = await redeemReward(user.id, formData.get("reward"), formData.get("subscriptionId"));
+
+    if (!result.ok) {
+      return { ok: false, message: result.error };
+    }
+
+    orderId = result.orderId;
+  } catch (error) {
+    return failure(error, "تعذر استبدال النقاط. حاول مرة ثانية.");
+  }
+
+  revalidatePath("/points");
+  revalidatePath("/dashboard");
+  revalidatePath("/orders");
+  redirect(`/orders/${orderId}`);
 }
 
 // ----------------------------------------------------------- notifications

@@ -11,6 +11,8 @@ export type CatalogOption = {
   price: number;
   /** Price of a renewal order for this length; null = same as price. */
   renewalPrice: number | null;
+  /** Loyalty points override (null = price ÷ 1,000). */
+  pointsEarned: number | null;
 };
 
 export type CatalogPackage = {
@@ -117,6 +119,7 @@ export async function getActivePackages(): Promise<CatalogPackage[]> {
           durationLabel: option.durationLabel,
           price: option.price,
           renewalPrice: option.renewalPrice,
+          pointsEarned: option.pointsEarned ?? null,
         })),
         description: pkg.description,
         features: splitLines(pkg.specifications),

@@ -289,10 +289,23 @@ Your memory of Prisma is likely wrong for this version.
 - **Business changes:** prices, packages, business rules, and anything customer-visible in copy or pricing.
 - **Other:** changes to `api/mobile` or `api/console` contracts, new dependencies, and deleting files.
 
+## Progress tracking (required)
+
+- `docs/PROGRESS.md` is the single source of truth for project status, roadmap phases, decisions, known risks and the next step. Read it at the start of every task.
+- A task is not done until `docs/PROGRESS.md` is updated in the same branch:
+  - the status (✅ done / 🔄 in progress / ⏳ planned / ⏸️ paused / ❓ needs verification);
+  - what actually changed, and the key files;
+  - the tests run, with their real results;
+  - the commit or PR;
+  - remaining risks;
+  - new decisions with their reasons;
+  - the updated next step.
+- Never mark anything done without evidence (a commit, PR, migration output or test output). Plans and attempts stay ⏳ or 🔄.
+- Detailed reports stay in `docs/<area>/`. `PROGRESS.md` links to them instead of copying them.
+- Every PR description states "docs/PROGRESS.md updated".
+
 ## Known risk (temporary note, re-verified 2026-10-30 — update or delete when it no longer applies)
 
-- **Resolved:** production has `20261016T0559_package_duration_unit`, `20261017T1832_package_renewal_price` and `20261030T1021_package_options` (applied 2026-10-30 with the owner's approval through `scripts/db/production-migrate.mjs`; marker `5a6b23eee534`, recorded in PR #6).
-- **Pending:** `20261030T1747_loyalty_points` (PR for `feat/loyalty-points`) is not on production. Code that reads `loyaltyEntry`, `loyaltyAccount`, `packageOption.pointsEarned` or `subscriptionRequest.loyaltyReward` must not be published before it is applied (owner approval).
-- **Unverified:**
-  - What Netlify publishes now.
-  - Whether a merge to `main` deploys automatically.
+- **Resolved:** production has every migration up to `20261030T1747_loyalty_points` (marker `0395c5c66aa0`, `db verify` passed, 2026-10-30, owner-approved). `main` (PR #6 and PR #7) is deployed. Loyalty is deployed **off**.
+- **Open:** see "Known risks" in `docs/PROGRESS.md` (previews write to production; database password to rotate; `scripts/db/production-migrate.mjs` does not run on Windows).
+- **Unverified:** whether a merge to `main` publishes automatically (both 2026-10-30 merges went live).

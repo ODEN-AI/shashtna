@@ -12,6 +12,7 @@ import { formatDateTime, formatPrice } from "@/src/lib/i18n";
 import { requireStaffPage } from "@/src/server/auth";
 import { safeHref, splitLines } from "@/src/server/catalog";
 import { getPackageDetail } from "@/src/server/catalogue";
+import { packageOptions } from "@/src/server/package-options";
 import { getI18n } from "@/src/server/i18n";
 import { normalizeDurationUnit } from "@/src/lib/subscription-duration";
 
@@ -33,8 +34,11 @@ export default async function CataloguePackagePage({ params }: { params: Promise
 
   if (!data) notFound();
 
-  const { t, lang } = await getI18n();
+  const [{ t, lang }, allOptions] = await Promise.all([getI18n(), packageOptions(packageId)]);
   const { pkg, compatibility, usage, activity } = data;
+  // Lengths parked by the server (removed, but kept for past orders) are not edited here.
+  const options = allOptions.filter((option) => option.durationMonths > 0);
+  const onSale = options.filter((option) => option.isActive);
   const referenced = !usage.ok || usage.orders > 0 || usage.subscriptions > 0;
 
   return (
@@ -55,11 +59,15 @@ export default async function CataloguePackagePage({ params }: { params: Promise
                 name: pkg.name,
                 slug: pkg.slug,
                 serviceType: pkg.serviceType,
-                price: pkg.price,
-                renewalPrice: pkg.renewalPrice ?? null,
-                durationMonths: pkg.durationMonths,
-                durationUnit: normalizeDurationUnit(pkg.durationUnit),
-                durationLabel: pkg.durationLabel,
+                options: options.map((option) => ({
+                  id: option.id,
+                  durationMonths: option.durationMonths,
+                  durationUnit: normalizeDurationUnit(option.durationUnit),
+                  durationLabel: option.durationLabel,
+                  price: option.price,
+                  renewalPrice: option.renewalPrice,
+                  isActive: option.isActive,
+                })),
                 description: pkg.description,
                 specifications: pkg.specifications,
                 notes: pkg.notes,
@@ -151,6 +159,7 @@ export default async function CataloguePackagePage({ params }: { params: Promise
                   renewalPrice: pkg.renewalPrice ?? null,
                   durationMonths: pkg.durationMonths,
                   durationLabel: pkg.durationLabel,
+                  options: onSale.map((option) => ({ id: option.id, durationMonths: option.durationMonths, durationLabel: option.durationLabel, price: option.price, renewalPrice: option.renewalPrice })),
                   description: pkg.description,
                   features: splitLines(pkg.specifications),
                   notes: pkg.notes,

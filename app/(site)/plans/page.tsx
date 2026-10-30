@@ -79,6 +79,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
     imageUrl: pkg.imageUrl,
     href: detailsHref(pkg),
     deviceFrom: deviceFrom.get(pkg.id) ?? null,
+    options: pkg.options,
   });
 
   return (

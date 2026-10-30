@@ -10,16 +10,24 @@ const byName: Record<string, Migration> = Object.fromEntries(chain.map((m) => [m
 const before = chain.filter((m) => m.name < "20261016");
 const ledgerOf = (items: { name: string; hash: string }[]) => items.map((m) => ({ migration_name: m.name, migration_hash: m.hash }));
 
-test("production state (marker bec797, ledger up to console_device) → exactly the two package migrations", () => {
+test("production state (marker bec797, ledger up to console_device) → exactly the package migrations, in order", () => {
   const plan = planMigration({ chain, ledger: ledgerOf(before), marker: byName["20261001T2236_console_device"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261016T0559_package_duration_unit", "20261017T1832_package_renewal_price"]);
-  assert.equal(plan.tip, byName["20261017T1832_package_renewal_price"].to);
+  assert.deepEqual(plan.pending, ["20261016T0559_package_duration_unit", "20261017T1832_package_renewal_price", "20261030T1021_package_options"]);
+  assert.equal(plan.tip, byName["20261030T1021_package_options"].to);
+});
+
+test("package migrations already applied → only the package options migration is pending", () => {
+  const applied = chain.filter((m) => m.name <= "20261017T1832_package_renewal_price");
+  const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261017T1832_package_renewal_price"].to });
+
+  assert.equal(plan.ok, true, plan.problems.join("; "));
+  assert.deepEqual(plan.pending, ["20261030T1021_package_options"]);
 });
 
 test("up to date → nothing pending", () => {
-  const plan = planMigration({ chain, ledger: ledgerOf(chain), marker: byName["20261017T1832_package_renewal_price"].to });
+  const plan = planMigration({ chain, ledger: ledgerOf(chain), marker: byName["20261030T1021_package_options"].to });
   assert.equal(plan.ok, true);
   assert.deepEqual(plan.pending, []);
 });

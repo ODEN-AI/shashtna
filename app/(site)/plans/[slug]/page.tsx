@@ -5,11 +5,13 @@ import { ArrowLeft, ArrowRight, CalendarClock, Check } from "lucide-react";
 
 import s from "@/app/components/home/home.module.css";
 import p from "@/app/components/plans/plan.module.css";
+import { PlanBuy } from "@/app/components/plans/PlanBuy";
 import { LinkButton } from "@/app/ui/Button";
 import { distinctHighlights, repeatsDuration } from "@/app/ui/catalogue-text";
 import { monthlyEquivalent } from "@/app/ui/PackageCard";
 import { ErrorState } from "@/app/ui/States";
 import { FAQ } from "@/src/content/help";
+import { optionIdParam } from "@/src/lib/package-options";
 import { formatPrice } from "@/src/lib/i18n";
 import { formatDuration } from "@/src/lib/subscription-duration";
 import {
@@ -31,7 +33,10 @@ const VIP_ART = "/brand/vip-art.jpg";
 const MARK = "/brand/shashtna-mark-256.webp";
 
 type Params = { slug: string };
-type Search = { renew?: string; upgrade?: string };
+type Search = { renew?: string; upgrade?: string; option?: string };
+
+/** The cheapest length a plan is sold in (for "from" prices). */
+const lowestPrice = (pkg: CatalogPackage) => Math.min(...pkg.options.map((option) => option.price));
 
 function positiveId(value: unknown) {
   const number = Number(value);
@@ -48,18 +53,19 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 
   return {
     title: plan.name,
-    description: `${plan.name} من شاشتنا: ${plan.durationLabel} بسعر واضح بالدينار العراقي. شوف المميزات واطلب الباقة.`,
+    description: `${plan.name} من شاشتنا: ${plan.options.map((option) => option.durationLabel).join("، ")} بأسعار واضحة بالدينار العراقي. اختار المدة واطلب الباقة.`,
     alternates: { canonical: `/plans/${plan.slug}` },
   };
 }
 
 /**
- * One plan's details, between the plans page and checkout: duration, price,
- * what it includes, what to know before buying (for VIP, the compatible
- * devices), how ordering works, the same service's other durations and the
- * payment questions. "Subscribe now" opens checkout with this plan; a
- * renewal or upgrade (?renew / ?upgrade) carries through every link. Every
- * name, price and fact comes from the catalogue.
+ * One plan's details, between the plans page and checkout: the lengths it
+ * is sold in with their prices (the customer picks one; ?option keeps the
+ * choice), what it includes, what to know before buying (for VIP, the
+ * compatible devices), how ordering works, the same service's other plans
+ * and the payment questions. "Subscribe now" opens checkout with this plan
+ * and length; a renewal or upgrade (?renew / ?upgrade) carries through every
+ * link. Every name, price and fact comes from the catalogue.
  */
 export default async function PlanPage({ params, searchParams }: { params: Promise<Params>; searchParams: Promise<Search> }) {
   const [{ slug }, search, { t, lang }] = await Promise.all([params, searchParams, getI18n()]);
@@ -94,13 +100,14 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
   if (!plan) notFound();
 
   const isVip = plan.serviceType === "VIP";
-  const orderHref = `/checkout?plan=${encodeURIComponent(plan.slug)}${carry ? `&${carry}` : ""}`;
+  // The length shown first: the one in the address when this plan sells it, else the default.
+  const requested = optionIdParam(search.option);
+  const initialOption = plan.options.find((option) => option.id === requested) ?? plan.options[0];
   const plansHref = `/plans${carry ? `?${carry}` : ""}#${isVip ? "vip" : "iptv"}`;
   const detailsHref = (pkg: CatalogPackage) => `/plans/${encodeURIComponent(pkg.slug)}${carry ? `?${carry}` : ""}`;
 
   const description = repeatsDuration(plan.description, plan) ? null : plan.description;
   const features = distinctHighlights(plan, 12);
-  const perMonth = monthlyEquivalent(plan.price, plan.durationMonths);
   const devices = isVip ? data.devices.filter((device) => device.packageIds.includes(plan.id)) : [];
   const deviceFrom = devices.length ? Math.min(...devices.map((device) => device.price)) : null;
   const others = data.packages.filter((pkg) => pkg.serviceType === plan.serviceType && pkg.id !== plan.id);
@@ -126,7 +133,10 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
           <div className="min-w-0">
             <span className={`${p.duration} nums`}>
               <CalendarClock size={16} aria-hidden />
-              {plan.serviceType} · {formatDuration(plan.durationMonths, lang)}
+              {plan.serviceType} ·{" "}
+              {plan.options.length > 1
+                ? t(`${plan.options.length} مدد`, `${plan.options.length} lengths`)
+                : formatDuration(plan.durationMonths, lang)}
             </span>
             <h1 id="plan-title" className={p.name} dir="auto" data-testid="plan-name">
               {plan.name}
@@ -137,29 +147,16 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
               </p>
             ) : null}
 
-            <div className={p.priceRow}>
-              <span className={`${p.price} nums`} data-testid="plan-price">
-                {new Intl.NumberFormat("en-US").format(plan.price)}
-                <small>{t("د.ع", "IQD")}</small>
-              </span>
-              {perMonth ? (
-                <span className={`${p.perMonth} nums`}>
-                  {t(`≈ ${formatPrice(perMonth, lang)} بالشهر`, `≈ ${formatPrice(perMonth, lang)} a month`)}
-                </span>
-              ) : null}
-            </div>
-
-            <ul className={p.facts}>
-              {isVip && deviceFrom !== null ? (
-                <li className="nums">{t(`+ جهاز من ${formatPrice(deviceFrom, lang)}`, `+ device from ${formatPrice(deviceFrom, lang)}`)}</li>
-              ) : null}
-              {plan.renewalPrice !== null && plan.renewalPrice !== plan.price ? (
-                <li className="nums" data-testid="plan-renewal-price">
-                  {t(`التجديد: ${formatPrice(plan.renewalPrice, lang)}`, `Renewal: ${formatPrice(plan.renewalPrice, lang)}`)}
-                </li>
-              ) : null}
-              <li>{t("الدفع بالتحويل بعد تأكيد الطلب", "Pay by transfer after you confirm")}</li>
-            </ul>
+            <PlanBuy
+              lang={lang}
+              slug={plan.slug}
+              options={plan.options}
+              initialId={initialOption.id}
+              carry={carry}
+              isVip={isVip}
+              deviceFrom={deviceFrom}
+              hasOthers={others.length > 0}
+            />
 
             {renewId || upgradeId ? (
               <p className={p.mode} role="status">
@@ -168,18 +165,6 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
                   : t("راح تنطلب هاي الباقة كتجديد لاشتراكك.", "This plan will be ordered as a renewal of your subscription.")}
               </p>
             ) : null}
-
-            <div className={p.actions}>
-              <Link href={orderHref} className={`${p.btn} ${isVip ? p.btnGold : p.btnWhite}`} data-testid="plan-subscribe">
-                {t("اشترك الآن", "Subscribe now")}
-                <ArrowLeft size={18} className="ltr:rotate-180" aria-hidden />
-              </Link>
-              {others.length ? (
-                <a href="#other-durations" className={`${p.btn} ${p.btnGlass}`}>
-                  {t("قارن المدد", "Compare durations")}
-                </a>
-              ) : null}
-            </div>
           </div>
         </section>
 
@@ -210,10 +195,12 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
                 <span className={p.tick}>
                   <Check size={14} aria-hidden />
                 </span>
-                {t(
-                  `مدة الاشتراك ${formatDuration(plan.durationMonths, "ar")}، تبدأ من يوم التفعيل`,
-                  `${formatDuration(plan.durationMonths, "en")} of service, starting on activation`,
-                )}
+                {plan.options.length > 1
+                  ? t("المدة اللي تختارها تبدأ من يوم التفعيل", "The length you choose starts on activation")
+                  : t(
+                      `مدة الاشتراك ${formatDuration(plan.durationMonths, "ar")}، تبدأ من يوم التفعيل`,
+                      `${formatDuration(plan.durationMonths, "en")} of service, starting on activation`,
+                    )}
               </li>
               <li>
                 <span className={p.tick}>
@@ -337,12 +324,12 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
         </section>
 
         {others.length ? (
-          <section id="other-durations" className="scroll-mt-24" aria-labelledby="others-title">
+          <section id="other-plans" className="scroll-mt-24" aria-labelledby="others-title">
             <p className={s.kicker} style={isVip ? { color: "var(--gold)" } : undefined}>
               {plan.serviceType}
             </p>
             <h2 id="others-title" className={s.h2}>
-              {t("مدد ثانية", "Other durations")}
+              {t("باقات ثانية", "Other plans")}
             </h2>
             <ul className={p.others}>
               {others.map((pkg) => {
@@ -351,9 +338,15 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
                 return (
                   <li key={pkg.id}>
                     <Link href={detailsHref(pkg)} className={`${p.other} ${isVip ? p.otherVip : ""}`} data-testid="plan-other">
-                      <small className="nums">{formatDuration(pkg.durationMonths, lang)}</small>
+                      <small className="nums">
+                        {pkg.options.length > 1
+                          ? pkg.options.map((option) => formatDuration(option.durationMonths, lang)).join(" · ")
+                          : formatDuration(pkg.durationMonths, lang)}
+                      </small>
                       <b dir="auto">{pkg.name}</b>
-                      <span className={`${p.otherPrice} nums`}>{formatPrice(pkg.price, lang)}</span>
+                      <span className={`${p.otherPrice} nums`}>
+                        {pkg.options.length > 1 ? t(`من ${formatPrice(lowestPrice(pkg), lang)}`, `From ${formatPrice(lowestPrice(pkg), lang)}`) : formatPrice(pkg.price, lang)}
+                      </span>
                       {monthly ? (
                         <span className={`${p.otherPer} nums`}>
                           {t(`≈ ${formatPrice(monthly, lang)} بالشهر`, `≈ ${formatPrice(monthly, lang)} a month`)}

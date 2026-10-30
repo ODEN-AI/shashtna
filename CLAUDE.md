@@ -141,6 +141,11 @@ Never use `db update` or `db init` on any shared database; they are for a throwa
 - **Prices:** whole IQD, 0–100,000,000 (`isValidPrice`).
 - **Renewal price:** `renewalPrice` is optional. When null, renewals cost the normal price.
 - **Slugs:** a package's slug is locked once orders reference it.
+- **Options (lengths):** a package is sold in one or more lengths, each with its own price and renewal price (`packageOption` table, edited in the package form). See `docs/package-options.md`.
+  - The rules above (duration, price, renewal price) apply per option; one option per length per package; at least one active option.
+  - VIP packages have exactly one option (3 months).
+  - `package.price` / `renewalPrice` / `duration*` mirror the default option (the shortest active one) for older readers; edit options, not these columns.
+  - A removed option that orders used is kept inactive (parked on a negative `durationMonths`), never deleted.
 
 **Orders** (`subscriptionRequest` table), via `createOrder` in `src/server/orders.ts`:
 - **Types:** `NEW`, `RENEW`, `UPGRADE`, `DEVICE_PURCHASE`.

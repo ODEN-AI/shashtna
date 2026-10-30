@@ -15,6 +15,8 @@ export const GET = withMobileUser(async ({ request, user }) => {
   const url = new URL(request.url);
   const selection = await resolveCheckoutSelection(user, {
     plan: url.searchParams.get("plan") ?? undefined,
+    // Optional (additive): newer app builds send the chosen length.
+    option: url.searchParams.get("option") ?? undefined,
     device: url.searchParams.get("device") ?? undefined,
     renew: url.searchParams.get("renew") ?? undefined,
     upgrade: url.searchParams.get("upgrade") ?? undefined,
@@ -42,11 +44,15 @@ export const GET = withMobileUser(async ({ request, user }) => {
           slug: selection.plan.slug,
           name: selection.plan.name,
           serviceType: selection.plan.serviceType,
-          // The price this order will be charged (renewal price on renewals).
-          price: planOrderPrice(selection.plan, selection.mode),
-          normalPrice: selection.plan.price,
-          durationMonths: selection.plan.durationMonths,
-          durationLabel: selection.plan.durationLabel,
+          // The length being ordered (the chosen one, else the default) and the
+          // price this order will be charged (renewal price on renewals).
+          optionId: selection.option?.id ?? null,
+          price: planOrderPrice(selection.option ?? selection.plan, selection.mode),
+          normalPrice: (selection.option ?? selection.plan).price,
+          durationMonths: (selection.option ?? selection.plan).durationMonths,
+          durationLabel: (selection.option ?? selection.plan).durationLabel,
+          // Every length on sale (additive), shortest first.
+          options: selection.plan.options.map((option) => ({ ...option, orderPrice: planOrderPrice(option, selection.mode) })),
           description: selection.plan.description,
           features: selection.plan.features.slice(0, 4),
           imageUrl: absoluteUrl(request, selection.plan.imageUrl),

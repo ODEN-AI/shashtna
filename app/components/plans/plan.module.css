@@ -115,6 +115,99 @@
   opacity: 1;
 }
 
+/* the lengths a plan is sold in */
+.lengths {
+  border: 0;
+  margin: 22px 0 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.lengths legend {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
+
+.lengthList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.length {
+  align-items: center;
+  background: rgb(255 255 255 / 0.1);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.2);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 16px 6px 8px;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.length:hover {
+  background: rgb(255 255 255 / 0.16);
+}
+
+.length:has(:focus-visible) {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.lengthOn {
+  background: #fff;
+  box-shadow: 0 12px 26px -14px rgb(0 0 0 / 0.6);
+  color: #0e2a9e;
+}
+
+.lengthOn:hover {
+  background: #fff;
+}
+
+.lengthTick {
+  background: rgb(255 255 255 / 0.18);
+  border-radius: 50%;
+  display: grid;
+  height: 26px;
+  place-items: center;
+  width: 26px;
+}
+
+.lengthOn .lengthTick {
+  background: linear-gradient(135deg, var(--royal-2), var(--royal));
+  color: #fff;
+}
+
+.lengthName {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.lengthPrice {
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.heroVip .length {
+  background: rgb(255 255 255 / 0.05);
+  box-shadow: inset 0 0 0 1px rgb(241 207 122 / 0.22);
+}
+
+.heroVip .lengthOn {
+  background: linear-gradient(135deg, #f6dc95, #d9ad4f);
+  color: #2a1d05;
+}
+
+.heroVip .lengthOn .lengthTick {
+  background: rgb(42 29 5 / 0.85);
+  color: #f6dc95;
+}
+
 .priceRow {
   align-items: baseline;
   display: flex;

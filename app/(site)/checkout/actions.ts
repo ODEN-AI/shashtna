@@ -24,6 +24,8 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
     const result = await createOrder(user.id, {
       requestType: formData.get("requestType"),
       planSlug: formData.get("planSlug"),
+      // The length picked on the plan's page; createOrder checks it belongs to the plan.
+      optionId: formData.get("optionId") || undefined,
       deviceId: formData.get("deviceId"),
       subscriptionId: formData.get("subscriptionId"),
       // Chosen on the review page; createOrder only accepts supported methods.

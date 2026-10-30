@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-type Params = { plan?: string; device?: string; renew?: string; upgrade?: string; type?: string };
+type Params = { plan?: string; option?: string; device?: string; renew?: string; upgrade?: string; type?: string };
 
 // Stand-in for a visitor without a session. resolveCheckoutSelection only
 // reads the user for renewals and upgrades (an existing subscription), and
@@ -70,7 +70,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     redirect(selection.choosePath);
   }
 
-  const { mode, plan, device, devices: compatibleDevices, initialDeviceId, subscription, contactOptions, initialContact, choosePath } = selection;
+  const { mode, plan, option, device, devices: compatibleDevices, initialDeviceId, subscription, contactOptions, initialContact, choosePath } = selection;
   // With several compatible devices, start on the cheapest so the total is
   // known from the first look; the customer can switch. The server prices
   // the order from the chosen device either way.
@@ -92,11 +92,15 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     DEVICE_PURCHASE: [t("تأكيد شراء الجهاز", "Confirm device purchase"), t("راجع الجهاز وأكّد الطلب.", "Review the device and confirm the order.")],
   };
 
-  // Back goes to the plan's details (with the renewal or upgrade), so the
-  // choice is kept; "Change" in the form goes to the full plans list.
+  // Back goes to the plan's details with the same length (and the renewal
+  // or upgrade), so the choice is kept; "Change" in the form goes to the
+  // full plans list.
+  const back = new URLSearchParams();
+  if (option) back.set("option", String(option.id));
+  if (subscription && mode !== "NEW") back.set(mode === "RENEW" ? "renew" : "upgrade", String(subscription.id));
   const backHref =
     plan && mode !== "DEVICE_PURCHASE"
-      ? `/plans/${encodeURIComponent(plan.slug)}${subscription && mode !== "NEW" ? `?${mode === "RENEW" ? "renew" : "upgrade"}=${subscription.id}` : ""}`
+      ? `/plans/${encodeURIComponent(plan.slug)}${back.size ? `?${back.toString()}` : ""}`
       : choosePath;
 
   const steps = [
@@ -133,13 +137,16 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
                   slug: plan.slug,
                   name: plan.name,
                   serviceType: plan.serviceType,
-                  // What this order will cost: renewals use the renewal price when set.
-                  price: planOrderPrice(plan, mode),
-                  durationMonths: plan.durationMonths,
-                  durationLabel: plan.durationLabel,
+                  // The chosen length; what this order will cost (renewals use
+                  // that length's renewal price when set).
+                  optionId: option?.id ?? null,
+                  price: planOrderPrice(option ?? plan, mode),
+                  durationMonths: (option ?? plan).durationMonths,
+                  durationLabel: (option ?? plan).durationLabel,
                   description: plan.description,
                   features: plan.features.slice(0, 4),
                   imageUrl: plan.imageUrl,
+                  options: plan.options.map((item) => ({ id: item.id, durationMonths: item.durationMonths, price: planOrderPrice(item, mode) })),
                 }
               : null
           }

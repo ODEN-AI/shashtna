@@ -57,6 +57,28 @@ model Package {
   createdAt       TimestamptzString @default(now())
   updatedAt       temporal.updatedAtString()
   devices         PackageDevice[]
+  options         PackageOption[]
+}
+
+/// One sellable length of a package, with its own price. price / renewalPrice /
+/// duration* on Package mirror the package's default option (its shortest
+/// active one) for older readers.
+model PackageOption {
+  id              Int      @id @default(autoincrement())
+  packageId       Int
+  package         Package  @relation(fields: [packageId], references: [id])
+  durationMonths  Int
+  /// How the admin entered the duration: MONTH or YEAR. durationMonths stays canonical.
+  durationUnit    String   @default("MONTH")
+  durationLabel   String
+  price           Int
+  /// Price of a renewal order for this length (null = same as price).
+  renewalPrice    Int?
+  isActive        Boolean  @default(true)
+  createdAt       TimestamptzString @default(now())
+  updatedAt       temporal.updatedAtString()
+
+  @@unique([packageId, durationMonths])
 }
 
 model Device {
@@ -106,6 +128,8 @@ model SubscriptionRequest {
   userId          Int
   user            User     @relation(fields: [userId], references: [id])
   planSlug        String
+  /// The package option (length + price) the customer chose; null for older orders and device purchases.
+  packageOptionId Int?
   serviceType     String   @default("IPTV")
   serviceName     String
   requestType     String   @default("NEW")

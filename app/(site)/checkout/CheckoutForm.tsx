@@ -23,6 +23,8 @@ const MARK = "/brand/shashtna-mark-256.webp";
 
 export type CheckoutPlan = {
   slug: string;
+  /** The package option (length + price) being ordered. */
+  optionId: number | null;
   name: string;
   serviceType: "IPTV" | "VIP";
   price: number;
@@ -31,6 +33,8 @@ export type CheckoutPlan = {
   description: string;
   features: string[];
   imageUrl: string | null;
+  /** Every length the plan is sold in, with what this order would cost in it. */
+  options: { id: number; durationMonths: number; price: number }[];
 };
 
 export type CheckoutDevice = {
@@ -123,6 +127,8 @@ export function CheckoutForm({
     <form action={action} className={c.form}>
       <input type="hidden" name="requestType" value={mode} />
       <input type="hidden" name="planSlug" value={mode === "DEVICE_PURCHASE" ? "" : plan?.slug ?? ""} />
+      {/* The server checks this length belongs to the plan and prices the order from it. */}
+      <input type="hidden" name="optionId" value={mode === "DEVICE_PURCHASE" ? "" : plan?.optionId ?? ""} />
       <input type="hidden" name="deviceId" value={device?.id ?? ""} />
       <input type="hidden" name="subscriptionId" value={subscriptionId ?? ""} />
       <input type="hidden" name="contactMethod" value={contact} />
@@ -178,6 +184,37 @@ export function CheckoutForm({
               ) : null}
             </div>
           </div>
+
+          {/* Several lengths: switch here (the page reloads and the server prices it again). */}
+          {plan && plan.options.length > 1 ? (
+            <nav aria-label={t("مدة الاشتراك", "Subscription length")} data-testid="checkout-lengths">
+              <p className={c.subhead}>{t("مدة الاشتراك", "Subscription length")}</p>
+              <ul className={c.lengths}>
+                {plan.options.map((option) => {
+                  const query = new URLSearchParams(returnQuery);
+                  query.set("option", String(option.id));
+                  const active = option.id === plan.optionId;
+
+                  return (
+                    <li key={option.id}>
+                      <Link
+                        href={`/checkout?${query.toString()}`}
+                        replace
+                        scroll={false}
+                        aria-current={active ? "true" : undefined}
+                        className={cn(c.length, active && c.lengthOn)}
+                        data-testid="checkout-length"
+                        data-option-id={option.id}
+                      >
+                        <span className="nums">{formatDuration(option.durationMonths, language)}</span>
+                        <span className="nums">{formatPrice(option.price, language)}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+          ) : null}
 
           {/* VIP plans come with a compatible device. */}
           {needsDevice ? (

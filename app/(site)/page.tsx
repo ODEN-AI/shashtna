@@ -105,7 +105,7 @@ export default async function HomePage() {
 
       <HomePlanRail
         lang={lang}
-        plans={iptv.map((pkg) => ({ id: pkg.id, name: pkg.name, slug: pkg.slug, price: pkg.price, durationMonths: pkg.durationMonths, imageUrl: pkg.imageUrl }))}
+        plans={iptv.map((pkg) => ({ id: pkg.id, name: pkg.name, slug: pkg.slug, price: pkg.price, durationMonths: pkg.durationMonths, imageUrl: pkg.imageUrl, options: pkg.options }))}
       />
 
       <HomeVipLaunch

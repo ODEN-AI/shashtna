@@ -191,8 +191,34 @@ test("VIP renewal price migration: nullable column, VIP 3 months = 35,000 only w
 
   const migration = JSON.parse(readFileSync(new URL("../migrations/app/20261017T1832_package_renewal_price/migration.json", import.meta.url), "utf8"));
   const previous = JSON.parse(readFileSync(new URL("../migrations/app/20261016T0559_package_duration_unit/migration.json", import.meta.url), "utf8"));
-  const ref = JSON.parse(readFileSync(new URL("../migrations/app/refs/db.json", import.meta.url), "utf8"));
   assert.equal(migration.from, previous.to, "chained after the IPTV seed");
+});
+
+test("package options migration: additive table and order column, one option per existing package", () => {
+  const ops = readOps("20261030T1021_package_options");
+
+  assert.deepEqual(
+    ops.map((op) => op.operationClass),
+    ["additive", "additive", "additive", "additive", "additive", "data"],
+    "nothing is dropped or rewritten",
+  );
+  assert.ok(ops.some((op) => op.id === "table.packageOption"));
+  assert.ok(ops.some((op) => op.id === "column.public.subscriptionRequest.packageOptionId"));
+  assert.ok(ops.some((op) => op.id === "unique.packageOption.packageOption_packageId_durationMonths_key"), "one option per length per package");
+
+  const backfill = ops.find((op) => op.id === "data.public.packageOption.backfill_from_package");
+  assert.ok(backfill, "the backfill data step");
+  const insert = backfill.execute.map((step) => step.sql).join("\n");
+  assert.match(insert, /INSERT INTO "public"\."packageOption"/);
+  assert.match(insert, /SELECT p\."id", p\."durationMonths", p\."durationUnit", p\."durationLabel", p\."price", p\."renewalPrice"/, "copies the package's own length and prices");
+  assert.match(insert, /WHERE NOT EXISTS \(SELECT 1 FROM "public"\."packageOption" o WHERE o\."packageId" = p\."id"\)/, "only packages without an option: safe to run again");
+  assert.doesNotMatch(insert, /UPDATE|DELETE/, "packages, orders and subscriptions are only read");
+  assert.match(backfill.postcheck[0].sql, /o\."durationMonths" = p\."durationMonths" AND o\."price" = p\."price"/);
+
+  const migration = JSON.parse(readFileSync(new URL("../migrations/app/20261030T1021_package_options/migration.json", import.meta.url), "utf8"));
+  const previous = JSON.parse(readFileSync(new URL("../migrations/app/20261017T1832_package_renewal_price/migration.json", import.meta.url), "utf8"));
+  const ref = JSON.parse(readFileSync(new URL("../migrations/app/refs/db.json", import.meta.url), "utf8"));
+  assert.equal(migration.from, previous.to, "chained after the VIP renewal price");
   assert.equal(migration.to, ref.hash, "the db ref points at the latest contract");
 });
 

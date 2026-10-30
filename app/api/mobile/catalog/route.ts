@@ -22,6 +22,8 @@ export const GET = withPublic(async ({ request }) => {
       renewalPrice: pkg.renewalPrice ?? pkg.price,
       durationMonths: pkg.durationMonths,
       durationLabel: pkg.durationLabel,
+      // Additive: every length on sale with its own price (the fields above are the default one).
+      options: pkg.options.map((option) => ({ ...option, renewalPrice: option.renewalPrice ?? option.price })),
       description: pkg.description,
       features: pkg.features,
       notes: pkg.notes,

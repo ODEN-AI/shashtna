@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { catalogueImageUrl, describeChanges, describeLinks, isValidPrice, parseRenewalPrice } from "@/src/lib/catalogue";
 import { requireAdmin } from "@/src/lib/session";
+import { parsePackageOptions, type ParsedOption } from "@/src/lib/package-options";
 import { durationValue, hasDurationFields, resolvePackageDuration } from "@/src/lib/subscription-duration";
 import { auditCatalogue, packageReferences } from "@/src/server/catalogue";
+import { deletePackageOptions, describeOption, packageOptions, savePackageOptions, syncDefaultOption } from "@/src/server/package-options";
 import {
   db,
   ensureDatabaseConnection,
@@ -28,6 +30,8 @@ type PackageBody = {
   imageUrl?: string | null;
   isActive?: boolean;
   deviceIds?: number[];
+  /** Lengths with their own prices; replaces the package's options when sent. */
+  options?: unknown;
 };
 
 type RouteContext = {
@@ -227,7 +231,35 @@ export async function PATCH(
         value;
     }
 
-    if (body.price !== undefined) {
+    /*
+     * Lengths and prices. Sent as options (the catalogue form), they replace
+     * the package's options and its price / duration columns follow the
+     * default option. Sent the old way (price / duration on the package),
+     * they apply to the default option.
+     */
+    const hasOptions =
+      body.options !== undefined;
+
+    let parsedOptions: ParsedOption[] | null = null;
+
+    if (hasOptions) {
+      const parsed =
+        parsePackageOptions(body.options, serviceType);
+
+      if (!parsed.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: parsed.error,
+          },
+          { status: 400 }
+        );
+      }
+
+      parsedOptions = parsed.options;
+    }
+
+    if (!hasOptions && body.price !== undefined) {
       // Whole dinars only: a fraction or a string is rejected, not ignored.
       if (!isValidPrice(body.price)) {
         return NextResponse.json(
@@ -244,7 +276,7 @@ export async function PATCH(
         body.price;
     }
 
-    if (body.renewalPrice !== undefined) {
+    if (!hasOptions && body.renewalPrice !== undefined) {
       const renewalPrice =
         parseRenewalPrice(body.renewalPrice);
 
@@ -266,8 +298,9 @@ export async function PATCH(
     // Duration is only touched when the request carries it (a status toggle
     // leaves it alone); VIP stays on its fixed three months.
     if (
-      serviceType === "VIP" ||
-      hasDurationFields(body)
+      !hasOptions &&
+      (serviceType === "VIP" ||
+        hasDurationFields(body))
     ) {
       const keepsLength =
         body.durationValue === undefined &&
@@ -419,6 +452,69 @@ export async function PATCH(
       await db.orm.public.PackageDevice.where({ packageId }).select("deviceId").all()
     ).map((link) => link.deviceId);
 
+    /*
+     * Options are saved first: if they are refused, nothing about the
+     * package has changed yet.
+     */
+    let optionAudit: { before: string; after: string } | null = null;
+
+    if (parsedOptions) {
+      const saved =
+        await savePackageOptions(packageId, parsedOptions);
+
+      if (!saved.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: saved.error,
+          },
+          { status: saved.status }
+        );
+      }
+
+      const live = (list: typeof saved.before) =>
+        list.filter((option) => option.durationMonths > 0).map(describeOption).join("; ");
+
+      optionAudit = { before: live(saved.before), after: live(saved.after) };
+    } else if (
+      updateData.price !== undefined ||
+      updateData.renewalPrice !== undefined ||
+      updateData.durationMonths !== undefined
+    ) {
+      const lengths = (await packageOptions(packageId)).filter((option) => option.durationMonths > 0 && option.isActive);
+
+      // A VIP package sells one length only; the old edit path can't fold several into it.
+      if (serviceType === "VIP" && lengths.length > 1) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "باقات VIP مدتها واحدة (3 أشهر). احذف المدد الزائدة من صفحة الباقة أولًا.",
+          },
+          { status: 409 }
+        );
+      }
+
+      const synced =
+        await syncDefaultOption(packageId, existing, {
+          price: Number(updateData.price ?? existing.price),
+          renewalPrice: (updateData.renewalPrice !== undefined ? updateData.renewalPrice : existing.renewalPrice) as number | null,
+          durationMonths: Number(updateData.durationMonths ?? existing.durationMonths),
+          durationUnit: String(updateData.durationUnit ?? existing.durationUnit),
+          durationLabel: String(updateData.durationLabel ?? existing.durationLabel),
+        });
+
+      if (!synced.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: synced.error,
+          },
+          { status: synced.status }
+        );
+      }
+    }
+
     updateData.updatedAt =
       new Date().toISOString();
 
@@ -469,6 +565,7 @@ export async function PATCH(
       before: existing,
       after: updateData,
       links: hasDeviceIds ? describeLinks(linksBefore, deviceIds) : null,
+      options: optionAudit,
     });
 
     return NextResponse.json({
@@ -580,6 +677,9 @@ export async function DELETE(
       })
       .deleteAndCount();
 
+    // Its lengths go with it (no order references a package that can be deleted).
+    await deletePackageOptions(packageId);
+
     const deleted =
       await db.orm.public.Package
         .where({
@@ -638,8 +738,9 @@ async function auditPackageUpdate(input: {
   before: Record<string, unknown>;
   after: Record<string, unknown>;
   links: ReturnType<typeof describeLinks> | null;
+  options: { before: string; after: string } | null;
 }) {
-  const { actor, packageId, name, before, after, links } = input;
+  const { actor, packageId, name, before, after, links, options } = input;
   const events: { action: string; summary: string; changes: string[] }[] = [];
   const price = describeChanges(before, after, ["price", "renewalPrice"]);
   const status = describeChanges(before, after, ["isActive"]);
@@ -649,6 +750,7 @@ async function auditPackageUpdate(input: {
   if (price.length) events.push({ action: "PACKAGE_PRICE_CHANGED", summary: `Price changed for ${name}: ${price.join("; ")} IQD`, changes: price });
   if (status.length) events.push({ action: after.isActive ? "PACKAGE_ACTIVATED" : "PACKAGE_DEACTIVATED", summary: `Package ${after.isActive ? "activated" : "deactivated"}: ${name}`, changes: status });
   if (media.length) events.push({ action: "PACKAGE_MEDIA_CHANGED", summary: `Image changed for ${name}`, changes: media });
+  if (options && options.before !== options.after) events.push({ action: "PACKAGE_OPTIONS_CHANGED", summary: `Lengths and prices changed for ${name}`, changes: [`before: ${options.before || "—"}`, `after: ${options.after || "—"}`] });
   if (links?.changed) events.push({ action: "PACKAGE_COMPATIBILITY_CHANGED", summary: `Compatible devices changed for ${name}`, changes: [`added: ${links.added.join(", ") || "—"}`, `removed: ${links.removed.join(", ") || "—"}`] });
   if (details.length) events.push({ action: "PACKAGE_UPDATED", summary: `Package edited: ${name}`, changes: details });
 

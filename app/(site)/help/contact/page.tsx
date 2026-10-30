@@ -61,7 +61,7 @@ export default async function ContactPage() {
           "For anything about your subscription, a support ticket from your account is best — it's linked to your subscription automatically.",
         )}
       />
-      <Container className="grid gap-8 py-14 lg:grid-cols-[1.2fr_1fr]">
+      <Container className="grid gap-8 pt-7 lg:grid-cols-[1.2fr_1fr]">
         <div className="space-y-4">
           <article className="surface-raised rounded-panel p-6 ring-1 ring-brand/40 sm:p-8">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand text-white shadow-brand">

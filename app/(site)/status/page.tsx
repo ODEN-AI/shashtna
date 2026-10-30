@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CheckCircle2, Wrench } from "lucide-react";
 
 import { HelpHero } from "@/app/components/site/HelpHero";
+import { ToneShell } from "@/app/components/site/ToneShell";
 import { StatusBadge } from "@/app/ui/Badge";
 import { Container } from "@/app/ui/Page";
 import { ErrorState } from "@/app/ui/States";
@@ -44,7 +45,7 @@ export default async function StatusPage() {
   }
 
   return (
-    <>
+    <ToneShell>
       <HelpHero
         eyebrow={t("مركز المساعدة", "Help centre")}
         title={t("حالة الخدمة", "Service status")}
@@ -53,7 +54,7 @@ export default async function StatusPage() {
           "The Shashtna team posts known incidents and maintenance here. This page shows what the team publishes — it isn't automated monitoring.",
         )}
       />
-      <Container className="py-14">
+      <Container className="pt-7">
         {data === null ? (
           <ErrorState title={t("تعذر تحميل حالة الخدمة", "Status couldn't be loaded")} />
         ) : (
@@ -112,6 +113,6 @@ export default async function StatusPage() {
           </div>
         )}
       </Container>
-    </>
+    </ToneShell>
   );
 }

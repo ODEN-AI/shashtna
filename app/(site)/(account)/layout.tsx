@@ -5,6 +5,7 @@ import a from "@/app/components/account/account.module.css";
 import { AccountMobileTabs } from "@/app/components/account/AccountMobileTabs";
 import { AccountNav } from "@/app/components/account/AccountNav";
 import s from "@/app/components/home/home.module.css";
+import { ToneShell } from "@/app/components/site/ToneShell";
 import { getSessionUser } from "@/src/server/auth";
 import { countUnreadNotifications } from "@/src/server/notifications";
 
@@ -25,8 +26,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
   const unread = await countUnreadNotifications(user.id).catch(() => 0);
 
   return (
-    // -mt-[80px]/pt-[80px]: the navy ground runs up behind the floating header.
-    <div className={`${s.home} -mt-[80px] pt-[80px] pb-16`}>
+    <ToneShell>
       <div className={`${s.wrap} ${a.area}`}>
         <aside className={a.side}>
           <AccountNav unread={unread} name={user.name} />
@@ -36,6 +36,6 @@ export default async function AccountLayout({ children }: { children: React.Reac
           {children}
         </div>
       </div>
-    </div>
+    </ToneShell>
   );
 }

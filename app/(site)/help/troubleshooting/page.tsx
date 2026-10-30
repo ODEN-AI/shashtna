@@ -26,7 +26,7 @@ export default async function TroubleshootingPage() {
         title={t("حل المشاكل", "Troubleshooting")}
         description={t("اختار المشكلة واتبع الخطوات. إذا ما انحلت، افتح تذكرة دعم.", "Pick the issue and follow the steps. If it isn't solved, open a support ticket.")}
       />
-      <Container className="grid gap-10 py-14 lg:grid-cols-[240px_1fr]">
+      <Container className="grid gap-10 pt-7 lg:grid-cols-[240px_1fr]">
         <nav aria-label={t("المشاكل", "Issues")} className="lg:sticky lg:top-24 lg:self-start">
           <ul className="flex gap-2 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible scrollbar-none">
             {TROUBLESHOOTING.map((guide) => (

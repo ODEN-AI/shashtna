@@ -1,4 +1,5 @@
 import { HelpHero } from "@/app/components/site/HelpHero";
+import { ToneShell } from "@/app/components/site/ToneShell";
 import { Container } from "@/app/ui/Page";
 import { Notice } from "@/app/ui/States";
 import type { LegalDraft } from "@/src/content/legal";
@@ -21,9 +22,9 @@ export async function LegalPage({
   const published = settings.savedKeys.includes(settingKey) && text.length > 0;
 
   return (
-    <>
+    <ToneShell>
       <HelpHero eyebrow={t("شاشتنا", "Shashtna")} title={t(titleAr, titleEn)} />
-      <Container className="max-w-3xl py-14">
+      <Container className="max-w-3xl pt-7">
         {published ? (
           <article className="surface rounded-panel p-6 sm:p-10">
             <div className="whitespace-pre-line text-[15px] leading-8 text-ink-2">{text}</div>
@@ -47,6 +48,6 @@ export async function LegalPage({
           </>
         )}
       </Container>
-    </>
+    </ToneShell>
   );
 }

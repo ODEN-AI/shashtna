@@ -2,70 +2,14 @@
  * The customer area in the site's navy direction. Used inside the homepage
  * wrapper (home.module.css `.home`), whose colour variables it reads.
  *
- * `.area` re-tones the shared surfaces the account pages are built from
- * (Card, Notice, StatusBadge, fields, lists) for this area only: the same
- * components keep their look in the admin. These rules are unlayered, so
- * they win over the Tailwind utilities they replace.
+ * The shared components inside take the navy look from ToneShell
+ * (components/site/tone.module.css).
  */
 .area {
   display: grid;
   gap: 28px;
   grid-template-columns: 272px minmax(0, 1fr);
   padding-block: 16px 24px;
-}
-
-.area :global(.surface),
-.area :global(.surface-raised) {
-  background: linear-gradient(180deg, var(--panel-2), var(--panel));
-  border: 0;
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.area :global(.rounded-card) {
-  border-radius: 24px;
-}
-
-.area :global(.rounded-panel) {
-  border-radius: 32px;
-}
-
-.area :global(.bg-surface),
-.area :global(.bg-surface-2),
-.area :global(.bg-surface-3),
-.area :global(.bg-canvas) {
-  background-color: rgb(255 255 255 / 0.05);
-}
-
-.area :global(.bg-surface\/60),
-.area :global(.bg-surface-2\/60) {
-  background-color: rgb(255 255 255 / 0.04);
-}
-
-.area :global(.border-line),
-.area :global(.divide-line) > :not(:last-child) {
-  border-color: var(--line);
-}
-
-.area :global(.border-line-strong) {
-  border-color: rgb(160 190 255 / 0.2);
-}
-
-.area :global(.bg-brand) {
-  background: linear-gradient(135deg, var(--royal-2), var(--royal));
-}
-
-.area :global(.bg-brand\/15),
-.area :global(.bg-brand\/10) {
-  background-color: rgb(31 79 255 / 0.18);
-}
-
-.area :global(.text-brand-ink) {
-  color: var(--sky);
-}
-
-/* Shared buttons become pills here. */
-.area :global(.rounded-xl.inline-flex.font-bold) {
-  border-radius: 999px;
 }
 
 /* ---------------------------------------------------------------- nav */

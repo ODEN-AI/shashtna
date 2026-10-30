@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { LifeBuoy } from "lucide-react";
+import Link from "next/link";
+import { LifeBuoy, MonitorPlay } from "lucide-react";
 
-import { AppCard } from "@/app/ui/AppCard";
+import p from "@/app/components/apps/apps.module.css";
+import { AppTile } from "@/app/components/apps/AppTile";
+import s from "@/app/components/home/home.module.css";
 import { LinkButton } from "@/app/ui/Button";
-import { Container, Eyebrow } from "@/app/ui/Page";
 import { EmptyState, ErrorState } from "@/app/ui/States";
 import { getActiveApps, platformsOf, type CatalogApp } from "@/src/server/catalog";
 import { getI18n } from "@/src/server/i18n";
@@ -16,6 +18,16 @@ export const metadata: Metadata = {
   alternates: { canonical: "/apps" },
 };
 
+// Platform names as customers say them (the catalogue stores codes such as ANDROID).
+const PLATFORM_NAMES: Record<string, string> = { ANDROID_TV: "Android TV", ANDROID: "Android", IOS: "iOS", WINDOWS: "Windows" };
+const platformName = (platform: string) => PLATFORM_NAMES[platform.toUpperCase().replace(/[\s-]+/g, "_")] ?? platform;
+
+/**
+ * Apps in the site's navy direction: a head with one link per platform and
+ * a TV and phone with Shashtna's logo, then one chapter per platform with its apps
+ * (Shashtna Player first and highlighted), and a closing help band. Every
+ * app, platform and link comes from the catalogue.
+ */
 export default async function AppsPage() {
   const { t, lang } = await getI18n();
 
@@ -27,66 +39,115 @@ export default async function AppsPage() {
     console.error("APPS_PAGE_ERROR:", error);
   }
 
-  return (
-    <>
-      <section className="bg-cinema border-b border-line">
-        <Container className="py-14 sm:py-20">
-          <Eyebrow>{t("شاهد على", "Watch on")}</Eyebrow>
-          <h1 className="mt-4 max-w-3xl text-balance text-4xl font-bold leading-tight text-ink sm:text-5xl">
-            {t("التطبيقات", "Apps")}
-          </h1>
-          <p className="mt-5 max-w-2xl text-[15px] leading-8 text-ink-2">
-            {t(
-              "حمّل Shashtna Player أو التطبيق المناسب لجهازك، واتبع خطوات الإعداد. بيانات الدخول موجودة بحسابك بعد التفعيل.",
-              "Download Shashtna Player or the right app for your device and follow the setup steps. Your login details are in your account after activation.",
-            )}
-          </p>
-        </Container>
-      </section>
+  const groups = apps ? platformsOf(apps) : [];
+  const player = apps?.find((app) => app.isPlayer);
 
-      <Container className="py-14">
-        {apps === null ? (
-          <ErrorState
-            title={t("تعذر تحميل التطبيقات", "Apps couldn't be loaded")}
-            description={t("حدّث الصفحة بعد شوية.", "Refresh the page shortly.")}
-            action={<LinkButton href="/apps" variant="secondary">{t("إعادة المحاولة", "Try again")}</LinkButton>}
-          />
-        ) : apps.length === 0 ? (
-          <EmptyState
-            title={t("ماكو تطبيقات منشورة حاليًا", "No apps are published right now")}
-            description={t("تواصل ويانا ونساعدك تختار التطبيق المناسب.", "Contact us and we'll help you pick the right app.")}
-            action={<LinkButton href="/help/contact" variant="secondary">{t("تواصل ويانا", "Contact us")}</LinkButton>}
-          />
-        ) : (
-          <div className="space-y-14">
-            {platformsOf(apps).map(({ platform, apps: items }) => (
-              <section key={platform} id={encodeURIComponent(platform)} className="scroll-mt-24">
-                <h2 className="text-xl font-bold text-ink">{platform}</h2>
-                <div className="mt-5 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                  {items.map((app) => (
-                    <AppCard key={app.id} app={app} lang={lang} />
-                  ))}
-                </div>
-              </section>
-            ))}
+  return (
+    // -mt-[80px]/pt-[80px]: the navy ground runs up behind the floating header.
+    <div className={`${s.home} -mt-[80px] pt-[80px] pb-16`}>
+      <div className={s.wrap}>
+        <section className={p.head} aria-labelledby="apps-title">
+          <div>
+            <p className={s.kicker}>{t("شاهد على", "Watch on")}</p>
+            <h1 id="apps-title" className={p.title}>
+              {t("التطبيقات", "Apps")}
+            </h1>
+            <p className={p.lead}>
+              {t(
+                "حمّل Shashtna Player أو التطبيق المناسب لجهازك، واتبع خطوات الإعداد. بيانات الدخول موجودة بحسابك بعد التفعيل.",
+                "Download Shashtna Player or the right app for your device and follow the setup steps. Your login details are in your account after activation.",
+              )}
+            </p>
+            {groups.length ? (
+              <ul className={p.platforms} aria-label={t("المنصات", "Platforms")}>
+                {groups.map(({ platform, apps: items }) => (
+                  <li key={platform}>
+                    <a href={`#${encodeURIComponent(platform)}`} className={p.platform}>
+                      <span className={`${p.platformCount} nums`}>{items.length}</span>
+                      {platformName(platform)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
+          <div className={p.screenWrap}>
+            <div className={p.screen}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/shashtna-logo-white-256.webp" alt="" />
+            </div>
+            <div className={p.phone} aria-hidden>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/shashtna-mark-256.webp" alt="" />
+            </div>
+            {player ? (
+              <a href={`#app-${player.slug}`} className={p.chipFloat}>
+                <span className={p.chipIcon}>
+                  <MonitorPlay size={20} aria-hidden />
+                </span>
+                <span>
+                  <small>{t("التطبيق الرسمي", "The official app")}</small>
+                  <b dir="auto">{player.name}</b>
+                </span>
+              </a>
+            ) : null}
+          </div>
+        </section>
+
+        {apps === null ? (
+          <div className={s.section}>
+            <ErrorState
+              title={t("تعذر تحميل التطبيقات", "Apps couldn't be loaded")}
+              description={t("حدّث الصفحة بعد شوية.", "Refresh the page shortly.")}
+              action={<LinkButton href="/apps" variant="secondary">{t("إعادة المحاولة", "Try again")}</LinkButton>}
+            />
+          </div>
+        ) : apps.length === 0 ? (
+          <div className={s.section}>
+            <EmptyState
+              title={t("ماكو تطبيقات منشورة حاليًا", "No apps are published right now")}
+              description={t("تواصل ويانا ونساعدك تختار التطبيق المناسب.", "Contact us and we'll help you pick the right app.")}
+              action={<LinkButton href="/help/contact" variant="secondary">{t("تواصل ويانا", "Contact us")}</LinkButton>}
+            />
+          </div>
+        ) : (
+          groups.map(({ platform, apps: items }) => (
+            <section key={platform} id={encodeURIComponent(platform)} className={`${p.group} scroll-mt-24`} aria-labelledby={`platform-${encodeURIComponent(platform)}`}>
+              <div className={p.groupHead}>
+                <h2 id={`platform-${encodeURIComponent(platform)}`} className={p.groupTitle}>
+                  {platformName(platform)}
+                </h2>
+                <p className={`${p.groupNote} nums`}>
+                  {t(`${items.length} ${items.length === 1 ? "تطبيق" : "تطبيقات"}`, `${items.length} ${items.length === 1 ? "app" : "apps"}`)}
+                </p>
+              </div>
+              <div className={p.grid}>
+                {[...items]
+                  .sort((a, b) => Number(b.isPlayer) - Number(a.isPlayer))
+                  .map((app) => (
+                    <AppTile key={app.id} app={app} lang={lang} platformName={platformName(platform)} />
+                  ))}
+              </div>
+            </section>
+          ))
         )}
 
-        <div className="surface mt-16 flex flex-col items-start gap-4 rounded-card p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <LifeBuoy size={22} className="mt-0.5 shrink-0 text-glow" aria-hidden />
-            <div>
-              <h2 className="font-bold text-ink">{t("التطبيق ما يشتغل؟", "App not working?")}</h2>
-              <p className="mt-1 text-sm text-ink-2">
-                {t("شوف خطوات حل المشاكل الشائعة للتثبيت والتشغيل.", "See steps for common install and playback issues.")}
-              </p>
-            </div>
+        <section className={p.help} aria-labelledby="apps-help">
+          <div>
+            <h2 id="apps-help">{t("التطبيق ما يشتغل؟", "App not working?")}</h2>
+            <p>{t("شوف خطوات حل المشاكل الشائعة للتثبيت والتشغيل.", "See steps for common install and playback issues.")}</p>
           </div>
-          <LinkButton href="/help/troubleshooting" variant="secondary">
-            {t("حل المشاكل", "Troubleshooting")}
-          </LinkButton>
-        </div>
-      </Container>
-    </>
+          <div className={p.helpActions}>
+            <Link href="/help/troubleshooting" className={`${p.btn} ${p.btnWhite}`}>
+              <LifeBuoy size={18} aria-hidden />
+              {t("حل المشاكل", "Troubleshooting")}
+            </Link>
+            <Link href="/help/contact" className={`${p.btn} ${p.btnGlass}`}>
+              {t("تواصل ويانا", "Contact us")}
+            </Link>
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }

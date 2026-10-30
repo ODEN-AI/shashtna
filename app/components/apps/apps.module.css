@@ -1,0 +1,493 @@
+/*
+ * /apps in the site's navy direction. Used inside the homepage wrapper
+ * (home.module.css `.home`), whose colour variables it reads.
+ */
+.head {
+  align-items: center;
+  background:
+    radial-gradient(60% 90% at 15% 20%, rgb(61 107 255 / 0.45), transparent 70%),
+    linear-gradient(180deg, #0a1a4f 0%, #050c2b 100%);
+  border-radius: 40px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  display: grid;
+  gap: clamp(24px, 4vw, 56px);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  margin-top: 16px;
+  overflow: hidden;
+  padding: clamp(28px, 5vw, 64px);
+}
+
+.title {
+  font-size: clamp(44px, 6.4vw, 92px);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.lead {
+  color: var(--ink-2);
+  font-size: clamp(17px, 1.4vw, 20px);
+  line-height: 1.7;
+  margin-top: 18px;
+  max-width: 50ch;
+}
+
+.platforms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  list-style: none;
+  margin-top: 28px;
+  padding: 0;
+}
+
+.platform {
+  align-items: center;
+  background: rgb(255 255 255 / 0.07);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink);
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: 800;
+  gap: 10px;
+  height: 48px;
+  padding-inline: 8px 18px;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.platform:hover {
+  background: rgb(255 255 255 / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(92 200 255 / 0.4);
+}
+
+.platformCount {
+  background: linear-gradient(135deg, var(--royal-2), var(--royal));
+  border-radius: 50%;
+  color: #fff;
+  display: grid;
+  font-size: 13px;
+  height: 32px;
+  place-items: center;
+  width: 32px;
+}
+
+/* a screen with the ad's poster, like the homepage TV */
+.screenWrap {
+  position: relative;
+}
+
+.screen {
+  align-items: center;
+  aspect-ratio: 16 / 10;
+  background:
+    radial-gradient(60% 80% at 30% 20%, rgb(92 200 255 / 0.45), transparent 70%),
+    linear-gradient(135deg, #2a5cff, #1338c9 55%, #0b2386);
+  border-radius: 28px;
+  box-shadow: 0 0 0 10px #0b1433, 0 0 0 11px rgb(160 190 255 / 0.18), 0 50px 90px -40px rgb(31 79 255 / 0.9);
+  display: flex;
+  justify-content: center;
+  margin-inline-end: 12%;
+  overflow: hidden;
+}
+
+.screen img {
+  filter: drop-shadow(0 18px 30px rgb(0 0 0 / 0.35));
+  width: 34%;
+}
+
+/* a phone leaning on the screen */
+.phone {
+  align-items: center;
+  aspect-ratio: 9 / 18;
+  background: linear-gradient(180deg, #11214d, #071131);
+  border-radius: 26px;
+  bottom: -6%;
+  box-shadow: 0 0 0 7px #0b1433, 0 0 0 8px rgb(160 190 255 / 0.22), 0 30px 60px -20px rgb(0 0 0 / 0.8);
+  display: flex;
+  inset-inline-end: 0;
+  justify-content: center;
+  position: absolute;
+  width: 24%;
+}
+
+.phone img {
+  width: 52%;
+}
+
+.chipFloat {
+  align-items: center;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  background: rgb(7 17 49 / 0.85);
+  border-radius: 20px;
+  box-shadow: inset 0 0 0 1px rgb(160 190 255 / 0.22), 0 20px 40px -20px rgb(0 0 0 / 0.7);
+  bottom: -18px;
+  display: flex;
+  gap: 12px;
+  inset-inline-start: -10px;
+  padding: 12px 16px;
+  position: absolute;
+}
+
+.chipFloat small {
+  color: var(--ink-3);
+  display: block;
+  font-size: 13px;
+}
+
+.chipFloat b {
+  display: block;
+  font-size: 16px;
+}
+
+.chipIcon {
+  background: linear-gradient(135deg, var(--royal-2), var(--royal));
+  border-radius: 14px;
+  color: #fff;
+  display: grid;
+  height: 42px;
+  place-items: center;
+  width: 42px;
+}
+
+/* one platform */
+.group {
+  align-items: start;
+  background: radial-gradient(70% 60% at 85% 0%, rgb(61 107 255 / 0.22), transparent 70%), linear-gradient(180deg, #0a1745, #071131);
+  border-radius: 40px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  display: grid;
+  gap: 24px 40px;
+  grid-template-columns: minmax(200px, 300px) minmax(0, 1fr);
+  margin-top: 28px;
+  padding: clamp(22px, 3.6vw, 48px);
+}
+
+.groupHead {
+  display: grid;
+  gap: 10px;
+}
+
+.groupTitle {
+  font-size: clamp(32px, 4.4vw, 60px);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.groupNote {
+  color: var(--ink-3);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+/* one app */
+.app {
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border-radius: 28px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+}
+
+.appPlayer {
+  background:
+    radial-gradient(80% 120% at 100% 0%, rgb(92 200 255 / 0.28), transparent 60%),
+    linear-gradient(135deg, #2a5cff, #1338c9 60%, #0d2a99);
+  box-shadow: 0 30px 60px -30px rgb(31 79 255 / 0.9);
+  grid-column: span 2;
+}
+
+.appTop {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.appIcon {
+  background: rgb(255 255 255 / 0.08);
+  border-radius: 20px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--sky);
+  display: grid;
+  flex-shrink: 0;
+  height: 64px;
+  overflow: hidden;
+  place-items: center;
+  width: 64px;
+}
+
+.appPlayer .appIcon {
+  background: #fff;
+  box-shadow: 0 14px 30px -14px rgb(0 0 0 / 0.6);
+}
+
+.appIcon img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.appIcon .mark {
+  height: 44px;
+  object-fit: contain;
+  width: 44px;
+}
+
+.appName {
+  font-size: 21px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.appMeta {
+  color: var(--ink-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 14px;
+  gap: 4px 10px;
+  margin-top: 4px;
+}
+
+.appPlayer .appMeta {
+  color: rgb(255 255 255 / 0.75);
+}
+
+.official {
+  background: rgb(255 255 255 / 0.92);
+  border-radius: 999px;
+  color: #0e2a9e;
+  font-size: 12px;
+  font-weight: 800;
+  margin-inline-start: 8px;
+  padding: 3px 10px;
+  vertical-align: middle;
+}
+
+.appText {
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.appPlayer .appText {
+  color: rgb(255 255 255 / 0.88);
+}
+
+.steps {
+  background: rgb(255 255 255 / 0.05);
+  border-radius: 20px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  padding: 4px 16px;
+}
+
+.appPlayer .steps {
+  background: rgb(0 0 0 / 0.16);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+}
+
+.steps summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-size: 15px;
+  font-weight: 800;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 48px;
+}
+
+.steps summary::-webkit-details-marker {
+  display: none;
+}
+
+.plus {
+  background: rgb(255 255 255 / 0.1);
+  border-radius: 50%;
+  display: grid;
+  height: 28px;
+  place-items: center;
+  transition: transform 0.25s var(--ease);
+  width: 28px;
+}
+
+.steps[open] .plus {
+  transform: rotate(45deg);
+}
+
+.steps ol {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  padding: 4px 0 14px;
+}
+
+.steps li {
+  align-items: flex-start;
+  counter-increment: step;
+  display: flex;
+  font-size: 15px;
+  gap: 10px;
+  line-height: 1.7;
+}
+
+.steps li::before {
+  background: linear-gradient(135deg, var(--royal-2), var(--royal));
+  border-radius: 50%;
+  color: #fff;
+  content: counter(step);
+  display: grid;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 800;
+  height: 24px;
+  margin-top: 2px;
+  place-items: center;
+  width: 24px;
+}
+
+.notes {
+  color: var(--ink-3);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.appPlayer .notes {
+  color: rgb(255 255 255 / 0.75);
+}
+
+.appFoot {
+  margin-top: auto;
+}
+
+.btn {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 16px;
+  font-weight: 800;
+  gap: 10px;
+  height: 52px;
+  justify-content: center;
+  padding-inline: 24px;
+  transition: transform 0.25s var(--ease), background-color 0.25s;
+  width: 100%;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, var(--royal-2), var(--royal));
+  box-shadow: 0 12px 28px -12px rgb(31 79 255 / 0.85);
+  color: #fff;
+}
+
+.btnWhite {
+  background: #fff;
+  box-shadow: 0 14px 30px -12px rgb(0 0 0 / 0.5);
+  color: #0e2a9e;
+}
+
+.btnWhite:hover {
+  background: #eaf0ff;
+}
+
+.unavailable {
+  color: var(--ink-3);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* closing help band */
+.help {
+  align-items: center;
+  background: radial-gradient(70% 140% at 100% 0%, rgb(92 200 255 / 0.25), transparent 60%), linear-gradient(135deg, #1f4fff, #1238c4);
+  border-radius: 36px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: space-between;
+  margin-top: 28px;
+  padding: clamp(24px, 3.6vw, 44px);
+}
+
+.help h2 {
+  font-size: clamp(24px, 2.6vw, 34px);
+  font-weight: 900;
+}
+
+.help p {
+  color: rgb(255 255 255 / 0.85);
+  font-size: 16px;
+  margin-top: 6px;
+}
+
+.helpActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.helpActions .btn {
+  width: auto;
+}
+
+.btnGlass {
+  background: rgb(255 255 255 / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25);
+  color: #fff;
+}
+
+.btnGlass:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+
+@media (max-width: 900px) {
+  .head,
+  .group {
+    grid-template-columns: 1fr;
+  }
+
+  .groupHead {
+    align-items: baseline;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .chipFloat {
+    inset-inline-start: 12px;
+  }
+}
+
+@media (max-width: 700px) {
+  .appPlayer {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .head,
+  .group {
+    border-radius: 28px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .helpActions,
+  .helpActions .btn {
+    width: 100%;
+  }
+}

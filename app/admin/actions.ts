@@ -587,6 +587,19 @@ export async function saveSettingsAction(_prev: AdminState, formData: FormData):
       details: describeSettingChanges(changes).join("\n"),
     });
 
+    const loyaltyChanges = changes.filter((change) => change.group === "loyalty");
+
+    if (loyaltyChanges.length) {
+      await logActivity({
+        actor: staff,
+        entityType: "LOYALTY",
+        action: "LOYALTY_SETTINGS_CHANGED",
+        summary: `تحديث إعدادات نقاط شاشتنا: ${loyaltyChanges.map((change) => change.key).join("، ")}`,
+        details: describeSettingChanges(loyaltyChanges).join("\n"),
+      });
+      revalidatePath("/admin/loyalty");
+    }
+
     revalidatePath("/admin/system", "layout");
 
     revalidatePath("/", "layout");

@@ -101,6 +101,8 @@ export type PackageOptionValues = {
   durationLabel: string;
   price: number | "";
   renewalPrice: number | null;
+  /** Loyalty points an order of this length earns; null = price ÷ 1,000. */
+  pointsEarned?: number | null;
   isActive: boolean;
 };
 
@@ -126,7 +128,7 @@ function customLabel(label: string, months: number) {
 }
 
 /** An option row as typed in the form (strings until the server validates them). */
-type OptionRow = { key: string; id?: number; amount: string; unit: DurationUnit; label: string; price: string; renewal: string; isActive: boolean };
+type OptionRow = { key: string; id?: number; amount: string; unit: DurationUnit; label: string; price: string; renewal: string; points: string; isActive: boolean };
 
 let rowSeed = 0;
 
@@ -141,6 +143,7 @@ function optionRow(option: PackageOptionValues): OptionRow {
     label: customLabel(option.durationLabel, option.durationMonths),
     price: String(option.price),
     renewal: option.renewalPrice === null ? "" : String(option.renewalPrice),
+    points: typeof option.pointsEarned === "number" ? String(option.pointsEarned) : "",
     isActive: option.isActive,
   };
 }
@@ -225,9 +228,18 @@ function OptionsEditor({ vip, rows, setRows }: { vip: boolean; rows: OptionRow[]
               </div>
 
               {vip ? null : (
-                <Field label={t("تسمية المدة (اختياري)", "Length label (optional)")} htmlFor={`${id}-label`} className="mt-3">
-                  <Input id={`${id}-label`} value={row.label} onChange={(event) => update(row.key, { label: event.target.value })} placeholder={preview.ok ? formatDuration(preview.months, "ar") : ""} maxLength={40} />
-                </Field>
+                <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                  <Field label={t("تسمية المدة (اختياري)", "Length label (optional)")} htmlFor={`${id}-label`}>
+                    <Input id={`${id}-label`} value={row.label} onChange={(event) => update(row.key, { label: event.target.value })} placeholder={preview.ok ? formatDuration(preview.months, "ar") : ""} maxLength={40} />
+                  </Field>
+                  <Field
+                    label={t("نقاط الطلب", "Order points")}
+                    htmlFor={`${id}-points`}
+                    hint={t(`فارغ = تلقائي (${price !== null ? Math.floor(price / 1000) : "السعر ÷ 1000"}).`, `Empty = automatic (${price !== null ? Math.floor(price / 1000) : "price ÷ 1000"}).`)}
+                  >
+                    <Input id={`${id}-points`} inputMode="numeric" dir="ltr" value={row.points} onChange={(event) => update(row.key, { points: event.target.value })} data-testid="package-option-points" />
+                  </Field>
+                </div>
               )}
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -292,6 +304,8 @@ export function PackageForm({ initial, devices, slugLocked }: { initial: Package
         price: priceValue(row.price),
         // Empty = renewals of this length cost its normal price.
         renewalPrice: row.renewal.trim() === "" ? null : priceValue(row.renewal),
+        // Empty = automatic loyalty points (price ÷ 1,000). IPTV only.
+        ...(vip ? {} : { pointsEarned: row.points.trim() === "" ? null : priceValue(row.points) }),
         isActive: row.isActive,
       })),
       description: text(form, "description"),

@@ -33,6 +33,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/customers", ar: "العملاء", en: "Customers", icon: "customers", permission: "customers" },
       { href: "/admin/subscriptions", ar: "الاشتراكات", en: "Subscriptions", icon: "subscriptions", permission: "subscriptions" },
       { href: "/admin/lookup", ar: "بحث سريع", en: "Lookup", icon: "lookup", permission: "subscriptions" },
+      { href: "/admin/loyalty", ar: "نقاط شاشتنا", en: "Shashtna Points", icon: "loyalty", permission: "finance" },
       { href: "/admin/password-resets", ar: "إعادة تعيين كلمات المرور", en: "Password resets", icon: "resets", permission: "customers", badgeKey: "resets" },
     ],
   },

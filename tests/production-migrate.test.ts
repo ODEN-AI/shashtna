@@ -10,12 +10,12 @@ const byName: Record<string, Migration> = Object.fromEntries(chain.map((m) => [m
 const before = chain.filter((m) => m.name < "20261016");
 const ledgerOf = (items: { name: string; hash: string }[]) => items.map((m) => ({ migration_name: m.name, migration_hash: m.hash }));
 
-test("production state (marker bec797, ledger up to console_device) → exactly the package and loyalty migrations, in order", () => {
+test("production state (marker bec797, ledger up to console_device) → exactly the package, loyalty and cost migrations, in order", () => {
   const plan = planMigration({ chain, ledger: ledgerOf(before), marker: byName["20261001T2236_console_device"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261016T0559_package_duration_unit", "20261017T1832_package_renewal_price", "20261030T1021_package_options", "20261030T1747_loyalty_points"]);
-  assert.equal(plan.tip, byName["20261030T1747_loyalty_points"].to);
+  assert.deepEqual(plan.pending, ["20261016T0559_package_duration_unit", "20261017T1832_package_renewal_price", "20261030T1021_package_options", "20261030T1747_loyalty_points", "20261030T2329_real_costs"]);
+  assert.equal(plan.tip, byName["20261030T2329_real_costs"].to);
 });
 
 test("package migrations already applied → only the package options migration is pending", () => {
@@ -23,19 +23,27 @@ test("package migrations already applied → only the package options migration 
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261017T1832_package_renewal_price"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261030T1021_package_options", "20261030T1747_loyalty_points"]);
+  assert.deepEqual(plan.pending, ["20261030T1021_package_options", "20261030T1747_loyalty_points", "20261030T2329_real_costs"]);
 });
 
-test("package options applied (production after PR #6) → only the loyalty migration is pending", () => {
+test("package options applied (production after PR #6) → the loyalty and cost migrations are pending", () => {
   const applied = chain.filter((m) => m.name <= "20261030T1021_package_options");
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261030T1021_package_options"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261030T1747_loyalty_points"]);
+  assert.deepEqual(plan.pending, ["20261030T1747_loyalty_points", "20261030T2329_real_costs"]);
+});
+
+test("loyalty applied (production now, marker 0395c5) → only the real costs migration is pending", () => {
+  const applied = chain.filter((m) => m.name <= "20261030T1747_loyalty_points");
+  const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261030T1747_loyalty_points"].to });
+
+  assert.equal(plan.ok, true, plan.problems.join("; "));
+  assert.deepEqual(plan.pending, ["20261030T2329_real_costs"]);
 });
 
 test("up to date → nothing pending", () => {
-  const plan = planMigration({ chain, ledger: ledgerOf(chain), marker: byName["20261030T1747_loyalty_points"].to });
+  const plan = planMigration({ chain, ledger: ledgerOf(chain), marker: byName["20261030T2329_real_costs"].to });
   assert.equal(plan.ok, true);
   assert.deepEqual(plan.pending, []);
 });

@@ -201,7 +201,7 @@ test("liability: every reward3mPoints points ≈ $1", () => {
   assert.equal(loyalty.liabilityUsd(-10, rules), 0);
 });
 
-test("loyalty migration: additive only, chained after package options, the db ref points at it", async () => {
+test("loyalty migration: additive only, chained after package options, followed by real costs", async () => {
   const { readFileSync } = await import("node:fs");
   const read = (path: string) => JSON.parse(readFileSync(new URL(`../migrations/app/${path}`, import.meta.url), "utf8"));
   const ops: { id: string; operationClass: string }[] = read("20261030T1747_loyalty_points/ops.json");
@@ -214,7 +214,7 @@ test("loyalty migration: additive only, chained after package options, the db re
 
   const migration = read("20261030T1747_loyalty_points/migration.json");
   assert.equal(migration.from, read("20261030T1021_package_options/migration.json").to);
-  assert.equal(migration.to, read("refs/db.json").hash);
+  assert.equal(migration.to, read("20261030T2329_real_costs/migration.json").from);
 });
 
 test("enabled periods come from the settings audit trail; the program starts off", () => {

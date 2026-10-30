@@ -76,6 +76,8 @@ model PackageOption {
   renewalPrice    Int?
   /// Loyalty points a completed order of this length earns (null = price ÷ 1,000, rounded down).
   pointsEarned    Int?
+  /// Panel credit this length costs to activate, in US cents (100 = $1); null = unknown.
+  creditCostCents Int?
   isActive        Boolean  @default(true)
   createdAt       TimestamptzString @default(now())
   updatedAt       temporal.updatedAtString()
@@ -153,6 +155,15 @@ model SubscriptionRequest {
   subscriptionId   Int?
   /// A free renewal bought with loyalty points (price 0, requestType RENEW).
   loyaltyReward    Boolean  @default(false)
+  /// Where the sale came from: SITE (site or direct with the owner) or SUPPLIER (the supplier's panel).
+  channel          String   @default("SITE")
+  /// SUPPLIER orders: the supplier's part of the price, whole IQD.
+  supplierShareIqd Int?
+  /// Cost snapshot taken when the order completed (null = unknown): the option's
+  /// panel credit in US cents, its IQD cost and the credit purchase whose rate was used.
+  creditCostCents  Int?
+  creditCostIqd    Int?
+  creditPurchaseId Int?
 }
 
 model Receipt {
@@ -359,6 +370,21 @@ model ConsoleDevice {
   updatedAt       temporal.updatedAtString()
 
   @@index([userId])
+}
+
+// Panel credit bought by the owner (Admin → Finance → Credit). Append-only:
+// the latest purchase sets the current rate (iqdPaid ÷ credit dollars), and
+// orders keep the purchase their cost was computed with.
+model CreditPurchase {
+  id          Int      @id @default(autoincrement())
+  purchasedOn TimestamptzString
+  creditCents Int
+  iqdPaid     Int
+  note        String?
+  createdBy   Int?
+  createdAt   TimestamptzString @default(now())
+
+  @@index([purchasedOn])
 }
 
 // «نقاط شاشتنا» — one row per customer in the loyalty program. `balance` is a

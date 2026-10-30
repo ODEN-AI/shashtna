@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'0395c5c66aa074ac9cb6f91abbdbb45a6b7a1d9886fe4178c293b0161f82b5c5'>;
+  StorageHashBase<'76e80bbd5844429e363e648371af22c236ec16159cd44d41918c8a95346d2dcd'>;
 export type ExecutionHash =
   ExecutionHashBase<'d8addb4cc0af42d953fb10a2186e958644888c9a878dd60aac358599ccb8eda8'>;
 export type ProfileHash =
@@ -317,6 +317,15 @@ export type FieldOutputTypes = {
       readonly revokedBy: CodecTypes['pg/int4@1']['output'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
+    readonly CreditPurchase: {
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly purchasedOn: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly creditCents: CodecTypes['pg/int4@1']['output'];
+      readonly iqdPaid: CodecTypes['pg/int4@1']['output'];
+      readonly note: CodecTypes['pg/text@1']['output'] | null;
+      readonly createdBy: CodecTypes['pg/int4@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
     readonly Device: {
       readonly id: CodecTypes['pg/int4@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
@@ -416,6 +425,7 @@ export type FieldOutputTypes = {
       readonly price: CodecTypes['pg/int4@1']['output'];
       readonly renewalPrice: CodecTypes['pg/int4@1']['output'] | null;
       readonly pointsEarned: CodecTypes['pg/int4@1']['output'] | null;
+      readonly creditCostCents: CodecTypes['pg/int4@1']['output'] | null;
       readonly isActive: CodecTypes['pg/bool@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
@@ -530,6 +540,11 @@ export type FieldOutputTypes = {
       readonly adminNote: CodecTypes['pg/text@1']['output'] | null;
       readonly subscriptionId: CodecTypes['pg/int4@1']['output'] | null;
       readonly loyaltyReward: CodecTypes['pg/bool@1']['output'];
+      readonly channel: CodecTypes['pg/text@1']['output'];
+      readonly supplierShareIqd: CodecTypes['pg/int4@1']['output'] | null;
+      readonly creditCostCents: CodecTypes['pg/int4@1']['output'] | null;
+      readonly creditCostIqd: CodecTypes['pg/int4@1']['output'] | null;
+      readonly creditPurchaseId: CodecTypes['pg/int4@1']['output'] | null;
     };
     readonly User: {
       readonly id: CodecTypes['pg/int4@1']['output'];
@@ -623,6 +638,15 @@ export type FieldInputTypes = {
       readonly revokedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
       readonly revokedBy: CodecTypes['pg/int4@1']['input'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+    };
+    readonly CreditPurchase: {
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly purchasedOn: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly creditCents: CodecTypes['pg/int4@1']['input'];
+      readonly iqdPaid: CodecTypes['pg/int4@1']['input'];
+      readonly note: CodecTypes['pg/text@1']['input'] | null;
+      readonly createdBy: CodecTypes['pg/int4@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
     readonly Device: {
       readonly id: CodecTypes['pg/int4@1']['input'];
@@ -723,6 +747,7 @@ export type FieldInputTypes = {
       readonly price: CodecTypes['pg/int4@1']['input'];
       readonly renewalPrice: CodecTypes['pg/int4@1']['input'] | null;
       readonly pointsEarned: CodecTypes['pg/int4@1']['input'] | null;
+      readonly creditCostCents: CodecTypes['pg/int4@1']['input'] | null;
       readonly isActive: CodecTypes['pg/bool@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
@@ -837,6 +862,11 @@ export type FieldInputTypes = {
       readonly adminNote: CodecTypes['pg/text@1']['input'] | null;
       readonly subscriptionId: CodecTypes['pg/int4@1']['input'] | null;
       readonly loyaltyReward: CodecTypes['pg/bool@1']['input'];
+      readonly channel: CodecTypes['pg/text@1']['input'];
+      readonly supplierShareIqd: CodecTypes['pg/int4@1']['input'] | null;
+      readonly creditCostCents: CodecTypes['pg/int4@1']['input'] | null;
+      readonly creditCostIqd: CodecTypes['pg/int4@1']['input'] | null;
+      readonly creditPurchaseId: CodecTypes['pg/int4@1']['input'] | null;
     };
     readonly User: {
       readonly id: CodecTypes['pg/int4@1']['input'];
@@ -931,6 +961,15 @@ export type StorageColumnTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
+    readonly creditPurchase: {
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly createdBy: CodecTypes['pg/int4@1']['output'] | null;
+      readonly creditCents: CodecTypes['pg/int4@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly iqdPaid: CodecTypes['pg/int4@1']['output'];
+      readonly note: CodecTypes['pg/text@1']['output'] | null;
+      readonly purchasedOn: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
     readonly device: {
       readonly description: CodecTypes['pg/text@1']['output'];
       readonly id: CodecTypes['pg/int4@1']['output'];
@@ -1023,6 +1062,7 @@ export type StorageColumnTypes = {
     };
     readonly packageOption: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly creditCostCents: CodecTypes['pg/int4@1']['output'] | null;
       readonly durationLabel: CodecTypes['pg/text@1']['output'];
       readonly durationMonths: CodecTypes['pg/int4@1']['output'];
       readonly durationUnit: CodecTypes['pg/text@1']['output'];
@@ -1122,8 +1162,12 @@ export type StorageColumnTypes = {
     readonly subscriptionRequest: {
       readonly adminNote: CodecTypes['pg/text@1']['output'] | null;
       readonly bonusYears: CodecTypes['pg/int4@1']['output'];
+      readonly channel: CodecTypes['pg/text@1']['output'];
       readonly contactMethod: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly creditCostCents: CodecTypes['pg/int4@1']['output'] | null;
+      readonly creditCostIqd: CodecTypes['pg/int4@1']['output'] | null;
+      readonly creditPurchaseId: CodecTypes['pg/int4@1']['output'] | null;
       readonly customerNote: CodecTypes['pg/text@1']['output'] | null;
       readonly deviceId: CodecTypes['pg/text@1']['output'] | null;
       readonly deviceName: CodecTypes['pg/text@1']['output'] | null;
@@ -1142,6 +1186,7 @@ export type StorageColumnTypes = {
       readonly serviceType: CodecTypes['pg/text@1']['output'];
       readonly status: CodecTypes['pg/text@1']['output'];
       readonly subscriptionId: CodecTypes['pg/int4@1']['output'] | null;
+      readonly supplierShareIqd: CodecTypes['pg/int4@1']['output'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
@@ -1238,6 +1283,15 @@ export type StorageColumnInputTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
     };
+    readonly creditPurchase: {
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly createdBy: CodecTypes['pg/int4@1']['input'] | null;
+      readonly creditCents: CodecTypes['pg/int4@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly iqdPaid: CodecTypes['pg/int4@1']['input'];
+      readonly note: CodecTypes['pg/text@1']['input'] | null;
+      readonly purchasedOn: CodecTypes['pg/timestamptz-string@1']['input'];
+    };
     readonly device: {
       readonly description: CodecTypes['pg/text@1']['input'];
       readonly id: CodecTypes['pg/int4@1']['input'];
@@ -1330,6 +1384,7 @@ export type StorageColumnInputTypes = {
     };
     readonly packageOption: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly creditCostCents: CodecTypes['pg/int4@1']['input'] | null;
       readonly durationLabel: CodecTypes['pg/text@1']['input'];
       readonly durationMonths: CodecTypes['pg/int4@1']['input'];
       readonly durationUnit: CodecTypes['pg/text@1']['input'];
@@ -1429,8 +1484,12 @@ export type StorageColumnInputTypes = {
     readonly subscriptionRequest: {
       readonly adminNote: CodecTypes['pg/text@1']['input'] | null;
       readonly bonusYears: CodecTypes['pg/int4@1']['input'];
+      readonly channel: CodecTypes['pg/text@1']['input'];
       readonly contactMethod: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly creditCostCents: CodecTypes['pg/int4@1']['input'] | null;
+      readonly creditCostIqd: CodecTypes['pg/int4@1']['input'] | null;
+      readonly creditPurchaseId: CodecTypes['pg/int4@1']['input'] | null;
       readonly customerNote: CodecTypes['pg/text@1']['input'] | null;
       readonly deviceId: CodecTypes['pg/text@1']['input'] | null;
       readonly deviceName: CodecTypes['pg/text@1']['input'] | null;
@@ -1449,6 +1508,7 @@ export type StorageColumnInputTypes = {
       readonly serviceType: CodecTypes['pg/text@1']['input'];
       readonly status: CodecTypes['pg/text@1']['input'];
       readonly subscriptionId: CodecTypes['pg/int4@1']['input'] | null;
+      readonly supplierShareIqd: CodecTypes['pg/int4@1']['input'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
     };
@@ -1948,6 +2008,61 @@ type ContractBase = Omit<
                   readonly name: 'consoleDevice_userId_idx_a489d58a';
                   readonly prefix: 'consoleDevice_userId_idx';
                   readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [];
+            };
+            readonly creditPurchase: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly purchasedOn: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                };
+                readonly creditCents: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly iqdPaid: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly note: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly createdBy: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'creditPurchase_purchasedOn_idx_8771a6d2';
+                  readonly prefix: 'creditPurchase_purchasedOn_idx';
+                  readonly columns: readonly ['purchasedOn'];
                   readonly unique: false;
                 },
               ];
@@ -2573,6 +2688,11 @@ type ContractBase = Omit<
                   readonly nullable: true;
                 };
                 readonly pointsEarned: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly creditCostCents: {
                   readonly nativeType: 'int4';
                   readonly codecId: 'pg/int4@1';
                   readonly nullable: true;
@@ -3306,6 +3426,35 @@ type ContractBase = Omit<
                     readonly value: DefaultLiteralValue<'pg/bool@1', false>;
                   };
                 };
+                readonly channel: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'SITE'>;
+                  };
+                };
+                readonly supplierShareIqd: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly creditCostCents: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly creditCostIqd: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly creditPurchaseId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
               };
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [];
@@ -3487,6 +3636,10 @@ type ContractBase = Omit<
     readonly consoleDevice: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'ConsoleDevice';
+    };
+    readonly creditPurchase: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'CreditPurchase';
     };
     readonly loyaltyAccount: {
       readonly namespace: 'public' & NamespaceId;
@@ -3932,6 +4085,58 @@ type ContractBase = Omit<
                 readonly revokedAt: { readonly column: 'revokedAt' };
                 readonly revokedBy: { readonly column: 'revokedBy' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
+              };
+            };
+          };
+          readonly CreditPurchase: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly purchasedOn: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly creditCents: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly iqdPaid: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly note: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly createdBy: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'creditPurchase';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly purchasedOn: { readonly column: 'purchasedOn' };
+                readonly creditCents: { readonly column: 'creditCents' };
+                readonly iqdPaid: { readonly column: 'iqdPaid' };
+                readonly note: { readonly column: 'note' };
+                readonly createdBy: { readonly column: 'createdBy' };
+                readonly createdAt: { readonly column: 'createdAt' };
               };
             };
           };
@@ -4536,6 +4741,10 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
+              readonly creditCostCents: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
               readonly isActive: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
@@ -4580,6 +4789,7 @@ type ContractBase = Omit<
                 readonly price: { readonly column: 'price' };
                 readonly renewalPrice: { readonly column: 'renewalPrice' };
                 readonly pointsEarned: { readonly column: 'pointsEarned' };
+                readonly creditCostCents: { readonly column: 'creditCostCents' };
                 readonly isActive: { readonly column: 'isActive' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
@@ -5185,6 +5395,26 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
               };
+              readonly channel: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly supplierShareIqd: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly creditCostCents: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly creditCostIqd: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly creditPurchaseId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
             };
             readonly relations: {
               readonly user: {
@@ -5224,6 +5454,11 @@ type ContractBase = Omit<
                 readonly adminNote: { readonly column: 'adminNote' };
                 readonly subscriptionId: { readonly column: 'subscriptionId' };
                 readonly loyaltyReward: { readonly column: 'loyaltyReward' };
+                readonly channel: { readonly column: 'channel' };
+                readonly supplierShareIqd: { readonly column: 'supplierShareIqd' };
+                readonly creditCostCents: { readonly column: 'creditCostCents' };
+                readonly creditCostIqd: { readonly column: 'creditCostIqd' };
+                readonly creditPurchaseId: { readonly column: 'creditPurchaseId' };
               };
             };
           };

@@ -1,0 +1,332 @@
+[
+  {
+    "id": "table.creditPurchase",
+    "label": "Create table \"creditPurchase\"",
+    "summary": "Creates table \"creditPurchase\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "creditPurchase"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"creditPurchase\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"creditPurchase\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"creditPurchase\"",
+        "sql": "CREATE TABLE \"public\".\"creditPurchase\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"createdBy\" int4,\n  \"creditCents\" int4 NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"iqdPaid\" int4 NOT NULL,\n  \"note\" text,\n  \"purchasedOn\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"creditPurchase\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"creditPurchase\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.packageOption.creditCostCents",
+    "label": "Add column \"creditCostCents\" to \"packageOption\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "creditCostCents",
+        "table": "packageOption"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"creditCostCents\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "packageOption",
+          "creditCostCents"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"creditCostCents\"",
+        "sql": "ALTER TABLE \"public\".\"packageOption\" ADD COLUMN \"creditCostCents\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"creditCostCents\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "packageOption",
+          "creditCostCents"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.channel",
+    "label": "Add column \"channel\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "channel",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"channel\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "channel"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"channel\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"channel\" text DEFAULT 'SITE' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"channel\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "channel"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.creditCostCents",
+    "label": "Add column \"creditCostCents\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "creditCostCents",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"creditCostCents\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "creditCostCents"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"creditCostCents\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"creditCostCents\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"creditCostCents\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "creditCostCents"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.creditCostIqd",
+    "label": "Add column \"creditCostIqd\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "creditCostIqd",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"creditCostIqd\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "creditCostIqd"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"creditCostIqd\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"creditCostIqd\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"creditCostIqd\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "creditCostIqd"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.creditPurchaseId",
+    "label": "Add column \"creditPurchaseId\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "creditPurchaseId",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"creditPurchaseId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "creditPurchaseId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"creditPurchaseId\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"creditPurchaseId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"creditPurchaseId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "creditPurchaseId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.supplierShareIqd",
+    "label": "Add column \"supplierShareIqd\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "supplierShareIqd",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"supplierShareIqd\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "supplierShareIqd"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"supplierShareIqd\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"supplierShareIqd\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"supplierShareIqd\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "supplierShareIqd"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.creditPurchase.creditPurchase_purchasedOn_idx_8771a6d2",
+    "label": "Create index \"creditPurchase_purchasedOn_idx_8771a6d2\" on \"creditPurchase\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "creditPurchase_purchasedOn_idx_8771a6d2",
+        "table": "creditPurchase"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"creditPurchase_purchasedOn_idx_8771a6d2\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"creditPurchase_purchasedOn_idx_8771a6d2\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"creditPurchase_purchasedOn_idx_8771a6d2\"",
+        "sql": "CREATE INDEX \"creditPurchase_purchasedOn_idx_8771a6d2\" ON \"public\".\"creditPurchase\" (\"purchasedOn\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"creditPurchase_purchasedOn_idx_8771a6d2\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"creditPurchase_purchasedOn_idx_8771a6d2\""
+        ]
+      }
+    ]
+  }
+]

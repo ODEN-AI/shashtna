@@ -7,7 +7,7 @@ import { AppTile } from "@/app/components/apps/AppTile";
 import s from "@/app/components/home/home.module.css";
 import { LinkButton } from "@/app/ui/Button";
 import { EmptyState, ErrorState } from "@/app/ui/States";
-import { getActiveApps, platformsOf, type CatalogApp } from "@/src/server/catalog";
+import { getActiveApps, platformName, platformsOf, type CatalogApp } from "@/src/server/catalog";
 import { getI18n } from "@/src/server/i18n";
 
 export const dynamic = "force-dynamic";
@@ -17,10 +17,6 @@ export const metadata: Metadata = {
   description: "تحميل Shashtna Player والتطبيقات المدعومة لكل منصة، مع خطوات الإعداد.",
   alternates: { canonical: "/apps" },
 };
-
-// Platform names as customers say them (the catalogue stores codes such as ANDROID).
-const PLATFORM_NAMES: Record<string, string> = { ANDROID_TV: "Android TV", ANDROID: "Android", IOS: "iOS", WINDOWS: "Windows" };
-const platformName = (platform: string) => PLATFORM_NAMES[platform.toUpperCase().replace(/[\s-]+/g, "_")] ?? platform;
 
 /**
  * Apps in the site's navy direction: a head with one link per platform and

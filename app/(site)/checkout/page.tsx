@@ -92,6 +92,13 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     DEVICE_PURCHASE: [t("تأكيد شراء الجهاز", "Confirm device purchase"), t("راجع الجهاز وأكّد الطلب.", "Review the device and confirm the order.")],
   };
 
+  // Back goes to the plan's details (with the renewal or upgrade), so the
+  // choice is kept; "Change" in the form goes to the full plans list.
+  const backHref =
+    plan && mode !== "DEVICE_PURCHASE"
+      ? `/plans/${encodeURIComponent(plan.slug)}${subscription && mode !== "NEW" ? `?${mode === "RENEW" ? "renew" : "upgrade"}=${subscription.id}` : ""}`
+      : choosePath;
+
   const steps = [
     t("تأكيد الطلب", "Confirm"),
     t("الدفع", "Payment"),
@@ -103,9 +110,9 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     <div className={`${s.home} -mt-[80px] pt-[80px] pb-32 lg:pb-16`}>
       <div className={s.wrap}>
         <header className={c.head}>
-          <Link href={choosePath} className={c.back}>
+          <Link href={backHref} className={c.back}>
             <ArrowRight size={16} className="ltr:rotate-180" aria-hidden />
-            {mode === "DEVICE_PURCHASE" ? t("الأجهزة", "Devices") : t("الباقات", "Plans")}
+            {mode === "DEVICE_PURCHASE" ? t("الأجهزة", "Devices") : t("تفاصيل الباقة", "Plan details")}
           </Link>
           <h1 className={c.title}>{titles[mode][0]}</h1>
           <p className={c.lead}>{titles[mode][1]}</p>

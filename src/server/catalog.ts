@@ -190,3 +190,10 @@ export function platformsOf(apps: CatalogApp[]) {
 
   return [...map.entries()].map(([platform, items]) => ({ platform, apps: items }));
 }
+
+// Platform names as customers say them (the catalogue stores codes such as ANDROID).
+const PLATFORM_NAMES: Record<string, string> = { ANDROID_TV: "Android TV", ANDROID: "Android", IOS: "iOS", WINDOWS: "Windows" };
+
+export function platformName(platform: string) {
+  return PLATFORM_NAMES[platform.toUpperCase().replace(/[\s-]+/g, "_")] ?? platform;
+}

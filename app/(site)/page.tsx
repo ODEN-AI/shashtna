@@ -15,6 +15,7 @@ import {
   getActiveApps,
   getActiveDevices,
   getActivePackages,
+  platformName,
   platformsOf,
   type CatalogDevice,
   type CatalogPackage,
@@ -39,9 +40,6 @@ export const metadata: Metadata = {
 
 // The VIP picture when no device has one of its own (Shashtna's VIP art).
 const VIP_ART = "/brand/vip-art.jpg";
-
-// Platform names as customers say them (the catalogue stores codes such as ANDROID).
-const PLATFORM_NAMES: Record<string, string> = { ANDROID_TV: "Android TV", ANDROID: "Android", IOS: "iOS", WINDOWS: "Windows" };
 
 /**
  * Homepage: customer strip → stage (headline, the ad on a TV, live prices) →
@@ -74,7 +72,7 @@ export default async function HomePage() {
   };
 
   const platforms = platformsOf(apps).filter((item) => item.platform !== "—");
-  const platformNames = platforms.map((item) => PLATFORM_NAMES[item.platform.toUpperCase().replace(/[\s-]+/g, "_")] ?? item.platform);
+  const platformNames = platforms.map((item) => platformName(item.platform));
   const vipArt = vipDevices.find((device) => device.imageUrl)?.imageUrl ?? VIP_ART;
 
   const viewer = await getViewer(user);

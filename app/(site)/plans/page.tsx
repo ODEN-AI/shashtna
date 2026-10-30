@@ -47,12 +47,13 @@ function cheapestDeviceByPackage(devices: CatalogDevice[]) {
  */
 export default async function PlansPage({ searchParams }: { searchParams: Promise<{ renew?: string; upgrade?: string }> }) {
   const [{ t, lang }, params] = await Promise.all([getI18n(), searchParams]);
+  // A card opens the plan's details, whose "Subscribe now" goes to checkout.
   // Renewals and upgrades start on the subscription page and pick the plan
-  // here; checkout (which checks ownership) receives both.
+  // here; both carry through to checkout (which checks ownership).
   const renewId = positiveId(params.renew);
   const upgradeId = positiveId(params.upgrade);
-  const checkoutHref = (pkg: CatalogPackage) =>
-    `/checkout?plan=${encodeURIComponent(pkg.slug)}${renewId ? `&renew=${renewId}` : upgradeId ? `&upgrade=${upgradeId}` : ""}`;
+  const detailsHref = (pkg: CatalogPackage) =>
+    `/plans/${encodeURIComponent(pkg.slug)}${renewId ? `?renew=${renewId}` : upgradeId ? `?upgrade=${upgradeId}` : ""}`;
 
   let packages: CatalogPackage[] | null = null;
   let devices: CatalogDevice[] = [];
@@ -76,7 +77,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
     renewalPrice: pkg.renewalPrice,
     durationMonths: pkg.durationMonths,
     imageUrl: pkg.imageUrl,
-    href: checkoutHref(pkg),
+    href: detailsHref(pkg),
     deviceFrom: deviceFrom.get(pkg.id) ?? null,
   });
 

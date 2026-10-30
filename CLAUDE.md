@@ -164,6 +164,15 @@ Never use `db update` or `db init` on any shared database; they are for a throwa
   - Only extend a subscription of the **same service and customer**.
   - VIP renewals are exactly 3 months.
 
+**Loyalty points («نقاط شاشتنا»)** (`src/lib/loyalty.ts` pure rules, `src/server/loyalty.ts` database side, `docs/loyalty.md`):
+- **Off by default** (`loyalty.enabled` in Admin → Settings). While off: no earning, no redemption, no customer UI; orders completed then never earn later. No backfill: the only pre-launch points are the one-time seed (`scripts/loyalty/seed.mjs`, `--check` counts only).
+- **Earning:** IPTV `NEW`/`RENEW`/`UPGRADE` orders with price > 0 that reach `COMPLETED` earn 1 point per 1,000 IQD of the order's stored price (rounded down), or the option's `packageOption.pointsEarned`. Never devices, VIP or reward orders. Points unlock after `loyalty.pendingDays`; the whole balance expires `loyalty.expiryMonths` after the latest IPTV expiry (written on read, no cron).
+- **Rewards:** a free IPTV renewal (3 or 6 months, lengths picked in Settings) for `loyalty.reward3mPoints` / `reward6mPoints`. Created only by `redeemReward` as a 0-price `RENEW` order with `loyaltyReward = true` (never through `createOrder`/`saveOrder`; `requestType` stays one of the four). One open reward at a time, one redemption per `loyalty.cooldownDays`.
+- **Owner only:** approving a reward (SUBMITTED → PAID, no payment step), manual `ADJUST`/`REVERSE` with a reason. Activation is the normal renewal path at price 0 and the reward's length. A rejected/cancelled reward returns its points (`REDEEM_RETURN`).
+- **Ledger:** `loyaltyEntry` is append-only with a unique `idempotencyKey` and a `rule` snapshot; `loyaltyAccount.balance` always equals the sum of its entries (reconciliation in Admin → Shashtna Points). Rule changes apply to future entries only.
+- **Finance:** reward orders are excluded from revenue, sales counts, average order value, product rows and the analyst fact pack; they are reported separately.
+- **VIP and IPTV never mix:** VIP is out of the program in v1.
+
 ### Prices — where values come from
 
 The database is the only source of truth at runtime. **No price below is a
@@ -280,15 +289,10 @@ Your memory of Prisma is likely wrong for this version.
 - **Business changes:** prices, packages, business rules, and anything customer-visible in copy or pricing.
 - **Other:** changes to `api/mobile` or `api/console` contracts, new dependencies, and deleting files.
 
-## Known risk (temporary note, 2026-10-23 — re-verify before acting, then update or delete)
+## Known risk (temporary note, re-verified 2026-10-30 — update or delete when it no longer applies)
 
-- **Verified:** `main` (since `541dc3d`, PR #5) contains code that requires migrations `20261016T0559_package_duration_unit` and `20261017T1832_package_renewal_price`. Without them, package queries fail with `column package.durationUnit does not exist`. This was reproduced locally.
-- **Reported by the owner, not verified here:**
-  - Production does not have these migrations yet (last applied: `20261001T2236_console_device`).
-  - An earlier deploy is currently published.
+- **Resolved:** production has `20261016T0559_package_duration_unit`, `20261017T1832_package_renewal_price` and `20261030T1021_package_options` (applied 2026-10-30 with the owner's approval through `scripts/db/production-migrate.mjs`; marker `5a6b23eee534`, recorded in PR #6).
+- **Pending:** `20261030T1747_loyalty_points` (PR for `feat/loyalty-points`) is not on production. Code that reads `loyaltyEntry`, `loyaltyAccount`, `packageOption.pointsEarned` or `subscriptionRequest.loyaltyReward` must not be published before it is applied (owner approval).
 - **Unverified:**
   - What Netlify publishes now.
   - Whether a merge to `main` deploys automatically.
-- **Until the owner confirms the migrations are applied:**
-  - Don't publish `main` or merge further schema-dependent changes.
-  - Don't run anything against production.

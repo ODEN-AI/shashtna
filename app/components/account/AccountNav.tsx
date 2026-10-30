@@ -15,7 +15,8 @@ import {
 
 import { useLanguage } from "@/app/components/LanguageProvider";
 import { signOut } from "@/app/components/site/SiteHeader";
-import { cn } from "@/app/ui/cn";
+
+import a from "./account.module.css";
 
 export function AccountNav({ unread, name }: { unread: number; name: string }) {
   const pathname = usePathname();
@@ -38,46 +39,37 @@ export function AccountNav({ unread, name }: { unread: number; name: string }) {
       : [item.href, ...(item.also ?? [])].some((href) => pathname === href || pathname.startsWith(`${href}/`));
 
   return (
-    <nav aria-label={t("قائمة الحساب", "Account menu")} className="surface edge-light sticky top-24 rounded-panel p-3">
-      <div className="border-b border-line px-3 pb-4 pt-2">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-ink">{t("حسابي", "My Shashtna")}</p>
-        <p className="mt-1 truncate font-bold text-ink">{name}</p>
+    <nav aria-label={t("قائمة الحساب", "Account menu")} className={a.nav}>
+      <div className={a.who}>
+        <span className={a.avatar} aria-hidden>
+          {Array.from(name.trim())[0] ?? "?"}
+        </span>
+        <span className="min-w-0">
+          <small>{t("حسابي", "My Shashtna")}</small>
+          <b>{name}</b>
+        </span>
       </div>
-      <ul className="mt-2 space-y-0.5">
+      <ul className={a.navList}>
         {items.map((item) => {
           const Icon = item.icon;
-          const active = isActive(item);
 
           return (
             <li key={item.href}>
-              <Link
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition",
-                  active
-                    ? "bg-brand/15 text-ink before:absolute before:inset-y-2.5 before:start-0 before:w-0.5 before:rounded-full before:bg-glow"
-                    : "text-ink-2 hover:bg-surface-2 hover:text-ink",
-                )}
-              >
-                <Icon size={18} className={active ? "text-brand-ink" : "text-ink-3"} aria-hidden />
+              <Link href={item.href} aria-current={isActive(item) ? "page" : undefined} className={a.navLink}>
+                <Icon size={19} aria-hidden />
                 <span className="flex-1">{item.label}</span>
-                {item.badge ? (
-                  <span className="nums rounded-full bg-brand px-2 py-0.5 text-xs font-bold text-white">{item.badge}</span>
-                ) : null}
+                {item.badge ? <span className={`${a.count} nums`}>{item.badge}</span> : null}
               </Link>
             </li>
           );
         })}
       </ul>
-      <button
-        type="button"
-        onClick={signOut}
-        className="mt-2 flex h-11 w-full items-center gap-3 rounded-xl border-t border-line px-3 pt-2 text-sm font-semibold text-ink-3 transition hover:text-danger"
-      >
-        <LogOut size={18} aria-hidden />
-        {t("تسجيل الخروج", "Sign out")}
-      </button>
+      <div className={a.signOut}>
+        <button type="button" onClick={signOut} className={a.navLink}>
+          <LogOut size={19} aria-hidden />
+          {t("تسجيل الخروج", "Sign out")}
+        </button>
+      </div>
     </nav>
   );
 }

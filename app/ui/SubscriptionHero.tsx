@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { CalendarClock, PackageSearch, RefreshCw, Sparkles, Tv } from "lucide-react";
 
+import a from "@/app/components/account/account.module.css";
 import { formatDate, type Lang } from "@/src/lib/i18n";
 import { ORDER_STATUS_LABELS } from "@/src/lib/order-status";
 import {
@@ -10,7 +12,6 @@ import type { Order } from "@/src/server/orders";
 import type { CustomerSubscription } from "@/src/server/subscriptions";
 
 import { StatusBadge } from "./Badge";
-import { LinkButton } from "./Button";
 import { ProgressRing } from "./ProgressRing";
 
 export function renewHref(subscription: CustomerSubscription) {
@@ -89,28 +90,23 @@ export function SubscriptionHero({
   }
 
   return (
-    <section className="surface-raised relative overflow-hidden rounded-panel p-6 sm:p-8">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-24 end-0 h-64 w-2/3 bg-[radial-gradient(closest-side,rgba(25,81,252,0.3),transparent)]"
-      />
-      <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+    <section className={`${a.hero} ${state === "EXPIRING" ? a.heroWarn : state === "EXPIRED" ? a.heroDanger : ""}`} data-testid="subscription-hero" data-state={state}>
+      <div className={a.heroIn}>
         <div className="min-w-0">
-          <p className="text-sm text-ink-3">
-            {isAr ? `هلا ${firstName} 👋` : `Hi ${firstName} 👋`}
-          </p>
-          <h1 className="mt-2 text-2xl font-bold text-ink sm:text-3xl">{headline}</h1>
+          <p className={a.hello}>{isAr ? `هلا ${firstName} 👋` : `Hi ${firstName} 👋`}</p>
+          <h1 className={a.headline}>{headline}</h1>
 
           {showSubscription && subscription ? (
-            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-ink-2">
+            <div className={a.facts}>
               <StatusBadge
                 status={subscription.state}
                 label={isAr ? SUBSCRIPTION_STATE_LABELS[subscription.state].ar : SUBSCRIPTION_STATE_LABELS[subscription.state].en}
               />
-              <span className="font-semibold text-ink">{subscription.packageName}</span>
-              <span className="text-ink-3">·</span>
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarClock size={15} aria-hidden className="text-ink-3" />
+              <span className={a.fact} dir="auto">
+                {subscription.packageName}
+              </span>
+              <span className={a.fact}>
+                <CalendarClock size={15} aria-hidden />
                 {isAr ? "ينتهي في " : "Expires "}
                 <span className="nums">{formatDate(subscription.expiryDate, lang)}</span>
               </span>
@@ -118,42 +114,46 @@ export function SubscriptionHero({
           ) : null}
 
           {state === "PENDING" && openOrder ? (
-            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-ink-2">
+            <div className={a.facts}>
               <StatusBadge
                 status={openOrder.status}
                 label={isAr ? ORDER_STATUS_LABELS[openOrder.status].ar : ORDER_STATUS_LABELS[openOrder.status].en}
               />
-              <span className="font-semibold text-ink">{openOrder.serviceName}</span>
-              <span className="nums text-ink-3">{openOrder.number}</span>
+              <span className={a.fact} dir="auto">
+                {openOrder.serviceName}
+              </span>
+              <span className={`${a.fact} nums`}>{openOrder.number}</span>
             </div>
           ) : null}
 
           {state === "NONE" ? (
-            <p className="mt-3 max-w-lg text-sm leading-7 text-ink-2">
+            <p className={a.heroText}>
               {isAr
                 ? "ما عندك اشتراك حاليًا. اختار باقة تناسبك وفريقنا يفعّلها إلك بعد إتمام الطلب."
                 : "You don't have a subscription yet. Pick a plan and our team activates it once your order is complete."}
             </p>
           ) : null}
 
-          <div className="mt-6 flex flex-wrap gap-2">
-            <LinkButton href={primary.href} size="lg">
+          <div className={a.heroActions}>
+            <Link href={primary.href} className={`${a.btn} ${a.btnWhite}`}>
               {primary.icon}
               {primary.label}
-            </LinkButton>
+            </Link>
             {secondary ? (
-              <LinkButton href={secondary.href} variant="secondary" size="lg">
+              <Link href={secondary.href} className={`${a.btn} ${a.btnGlass}`}>
                 {secondary.label}
-              </LinkButton>
+              </Link>
             ) : null}
           </div>
         </div>
 
         {showSubscription && subscription && state !== "NONE" ? (
-          <ProgressRing value={subscription.remainingFraction} tone={tone} size={128}>
-            <span className="nums text-3xl font-bold text-ink">{subscription.daysRemaining}</span>
-            <span className="text-xs text-ink-3">{isAr ? "يوم متبقي" : "days left"}</span>
-          </ProgressRing>
+          <div className={a.ring}>
+            <ProgressRing value={subscription.remainingFraction} tone={tone} size={148} stroke={10}>
+              <span className={`${a.ringValue} nums`}>{subscription.daysRemaining}</span>
+              <span className={a.ringLabel}>{isAr ? "يوم متبقي" : "days left"}</span>
+            </ProgressRing>
+          </div>
         ) : null}
       </div>
     </section>

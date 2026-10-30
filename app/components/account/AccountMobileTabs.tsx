@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useLanguage } from "@/app/components/LanguageProvider";
-import { cn } from "@/app/ui/cn";
+
+import a from "./account.module.css";
 
 /** Section switcher for the account area on phones (the sidebar is desktop-only). */
 export function AccountMobileTabs({ unread }: { unread: number }) {
@@ -22,8 +23,8 @@ export function AccountMobileTabs({ unread }: { unread: number }) {
   ];
 
   return (
-    <nav aria-label={t("أقسام الحساب", "Account sections")} className="scrollbar-none -mx-4 mb-5 overflow-x-auto px-4 lg:hidden">
-      <ul className="flex w-max gap-2">
+    <nav aria-label={t("أقسام الحساب", "Account sections")} className={a.tabs}>
+      <ul>
         {items.map((item) => {
           const active = item.exact
             ? pathname === item.href
@@ -31,16 +32,9 @@ export function AccountMobileTabs({ unread }: { unread: number }) {
 
           return (
             <li key={item.href}>
-              <Link
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition",
-                  active ? "border-brand/60 bg-brand/15 text-ink" : "border-line bg-surface text-ink-3",
-                )}
-              >
+              <Link href={item.href} aria-current={active ? "page" : undefined} className={a.tab}>
                 {item.label}
-                {item.badge ? <span className="nums rounded-full bg-brand px-1.5 text-white">{item.badge}</span> : null}
+                {item.badge ? <span className={`${a.count} nums`}>{item.badge}</span> : null}
               </Link>
             </li>
           );

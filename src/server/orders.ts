@@ -17,6 +17,7 @@ import { resolveOrderOption } from "@/src/lib/package-options";
 import { packageOptions } from "@/src/server/package-options";
 import { snapshotForOrder } from "@/src/server/costs";
 import { awardForOrder, returnReward } from "@/src/server/loyalty";
+import { isFullAccess } from "@/src/lib/system";
 
 export const REQUEST_TYPES = ["NEW", "RENEW", "UPGRADE", "DEVICE_PURCHASE"] as const;
 export type RequestType = (typeof REQUEST_TYPES)[number];
@@ -467,7 +468,7 @@ export async function updateOrderStatus(
       return { ok: false as const, error: "طلب المكافأة ما يحتاج دفع." };
     }
 
-    if ((target === "PAID" || target === "FULFILLING" || target === "COMPLETED") && String(actor.role).toUpperCase() !== "OWNER") {
+    if ((target === "PAID" || target === "FULFILLING" || target === "COMPLETED") && !isFullAccess(actor.role)) {
       return { ok: false as const, error: "الموافقة على طلبات مكافأة النقاط للمالك فقط." };
     }
   }

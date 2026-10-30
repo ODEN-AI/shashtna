@@ -71,6 +71,7 @@ Newest first. Details are in the linked documents.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-31 | "Owner only" means full access (`OWNER` or legacy `ADMIN`), matching `src/lib/roles.ts` | The owner's own account is `ADMIN` ("مدير (كامل الصلاحيات)") and cannot change its own role |
 | 2026-10-31 | Supplier orders only for customers who already have an account; the admin cannot create accounts | Owner (no new account path for now) |
 | 2026-10-31 | No estimated cost backfill for old orders: they stay «تكلفة غير معروفة» and are reported separately | Owner: every cost figure must be a recorded one |
 | 2026-10-31 | Costs are snapshotted on the order at completion (credit cents, IQD at the latest purchase's rate, the purchase used); credit purchases are append-only | Rates change with each purchase; past profit must never move |
@@ -97,6 +98,7 @@ Newest first.
 
 | Date | PR / commit | Change | Checks |
 |---|---|---|---|
+| 2026-10-31 | fix: full-access checks | Owner-only actions (loyalty approvals and adjustments, panel credit, supplier orders, cost settings) now accept every full-access role (`OWNER` and the legacy `ADMIN`, via `isFullAccess`). The owner's account is `ADMIN` and was refused | 213/213 unit (TZ=UTC); tsc, lint, build clean |
 | 2026-10-31 | `feat/real-costs` (PR to `main`, open) | Real costs and supplier orders: `creditPurchase`, `packageOption.creditCostCents`, order channel / supplier share / cost snapshot; owner pages; profit by channel; analyst aggregates | `npm test` 212/213 (the 1 failure is the clock-dependent domain test above; 12/12 with `TZ=UTC`); tsc, ESLint, build clean; `scripts/integration/costs.mts` 9/9; e2e loyalty 13/13, package-options 17/17; pages checked in the browser |
 | 2026-10-31 | migration `20261030T2329_real_costs` | Planned and applied on the local database only (8 additive operations); not on production | `migration check`, `db verify` (local) |
 | 2026-10-31 | `scripts/loyalty/seed.mjs` | Launch seed on production, owner-approved: 40 customers × 10 points | `--check` before (40 eligible, worst case $13.33); after: 40 already seeded, 0 to seed |

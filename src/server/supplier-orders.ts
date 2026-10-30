@@ -7,6 +7,7 @@ import { orderRef } from "@/src/lib/order-status";
 import { addMonthsClamped, formatDurationAr } from "@/src/lib/subscription-duration";
 import { logActivity } from "@/src/server/activity";
 import { notify } from "@/src/server/notifications";
+import { isFullAccess } from "@/src/lib/system";
 
 /**
  * A subscription the supplier made from his own panel for a customer who came
@@ -32,7 +33,7 @@ function receiptNumber() {
 export type SupplierOrderResult = { ok: true; orderId: number; subscriptionId: number } | { ok: false; status: number; error: string };
 
 export async function createSupplierSubscription(actor: Actor, userId: number, raw: Record<string, unknown>): Promise<SupplierOrderResult> {
-  if (String(actor.role).toUpperCase() !== "OWNER") {
+  if (!isFullAccess(actor.role)) {
     return { ok: false, status: 403, error: "تسجيل اشتراك المورّد للمالك فقط." };
   }
 

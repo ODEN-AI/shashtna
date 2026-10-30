@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { assertStaff, getSessionUser } from "@/src/server/auth";
 import { adjust, awardMissing, reverseOrder, setAccountStatus } from "@/src/server/loyalty";
 import { updateOrderStatus } from "@/src/server/orders";
+import { isFullAccess } from "@/src/lib/system";
 
 /**
  * Admin → Shashtna Points actions. Approving or rejecting a reward order,
@@ -22,7 +23,7 @@ async function owner() {
   // "customers" is held by every role that may see a balance; the owner check is what matters.
   const staff = await assertStaff("customers").catch(() => null);
 
-  if (!staff || String(staff.role).toUpperCase() !== "OWNER") throw new Error("FORBIDDEN");
+  if (!staff || !isFullAccess(staff.role)) throw new Error("FORBIDDEN");
 
   return staff;
 }

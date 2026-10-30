@@ -14,7 +14,7 @@ Status marks: ✅ done (with evidence) · 🔄 in progress · ⏳ planned · ⏸
   `20261030T1747_loyalty_points`; `prisma db verify` passed.
 - **«نقاط شاشتنا» (loyalty points)** is deployed and **switched off** (`loyalty.enabled = off`). Reward options are set
   (Star10 3 months / 6 months). The launch seed ran on 2026-10-31: 40 customers × 10 points = 400 points.
-  Next: the owner switches the program on.
+  The owner switched the program on (2026-10-31).
 - **Deploy Previews use production** (database, `AUTH_SECRET`, Blobs; an owner decision recorded in
   PR #6). Treat any preview as production.
 
@@ -24,9 +24,9 @@ Long-term direction, in order. A phase is marked done only with evidence.
 
 | # | Phase | Status | Evidence / notes |
 |---|---|---|---|
-| 1 | Stabilize the foundation (site, data, orders, payments, activation, deploys) | 🔄 | Schema and code in sync on production (marker `0395c5c66aa0`). Open: see "Known risks" |
-| 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | ⏳ | Supplier costs are not stored in the database |
-| 3 | Complete the customer and admin experience | 🔄 | Redesign (PR #6) ✅; loyalty (PR #7) ✅ deployed, off |
+| 1 | Stabilize the foundation (site, data, orders, payments, activation, deploys) | ✅ | Schema and code in sync on production (marker `0395c5c66aa0`). Open: see "Known risks" |
+| 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | ⏳ | Next up: real costs (panel credit per option at the IQD rate of each purchase, currently 900 IQD per credit-dollar) and orders via the supplier (supplier share recorded, no points) |
+| 3 | Complete the customer and admin experience | 🔄 | Redesign (PR #6) ✅; loyalty (PR #7) ✅ live since 2026-10-31. Next: discounts, plan groups and digital platforms |
 | 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | ⏳ | — |
 | 5 | SHASHTNA AI CORE and agents (Customer, Operations, Finance, Marketing) with scoped tools | ⏳ | An AI business analyst exists (aggregates only) |
 | 6 | Business intelligence and data-driven growth | ⏳ | Finance/BI dashboard exists (PR #4) |
@@ -36,7 +36,7 @@ Long-term direction, in order. A phase is marked done only with evidence.
 
 | Item | Status | Where |
 |---|---|---|
-| Launch «نقاط شاشتنا»: reward options ✅ → `seed --check` ✅ → seed ✅ (40 customers, 400 points) → owner enables ⏳ → announcement ⏳ | 🔄 | Admin → Settings → نقاط شاشتنا; `scripts/loyalty/`; `docs/loyalty.md` |
+| Launch «نقاط شاشتنا»: reward options ✅ → `seed --check` ✅ → seed ✅ (40 customers, 400 points) → owner enables ✅ (2026-10-31) → announcement ⏳ | 🔄 | Admin → Settings → نقاط شاشتنا; `scripts/loyalty/`; `docs/loyalty.md` |
 | Progress documentation (this file and the `CLAUDE.md` rule) | 🔄 | this branch |
 
 ## Known risks
@@ -63,6 +63,9 @@ Newest first. Details are in the linked documents.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-31 | Next work, in order: real costs and supplier orders (phase 2), then discounts, then admin-managed plan groups on /plans (Netflix, beIN, Disney+, Apple…; colours per group; delivery by code, ready account or the customer's e-mail; few points) | Owner + council; costs first so new features report real profit |
+| 2026-10-31 | Supplier-referred customers: handled by chat, the supplier provides the subscription from his panel, the 2-year offer is 15,000 IQD split 10,000 supplier / 5,000 owner; recorded in the admin, no loyalty points | Owner |
+| 2026-10-31 | Panel credit costs 900 IQD per credit-dollar (last purchase: $200 for 180,000 IQD); a free 3-month reward costs 900 IQD | Owner |
 | 2026-10-31 | Owner accepts three open risks: unrotated database password, previews writing to production, the Windows-only script bug | Owner |
 | 2026-10-30 | Launch announcement postponed; wording still open: «4 تجديدات والخامسة مجاناً» is only always true at a 24-point threshold, while the current threshold is 30 | Owner |
 | 2026-10-30 | Customers who subscribed outside the site get no points; the owner's account role is `OWNER` (approves rewards) | Owner |

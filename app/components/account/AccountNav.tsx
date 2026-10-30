@@ -6,6 +6,7 @@ import {
   AppWindow,
   Bell,
   CircleUserRound,
+  Gift,
   Headphones,
   House,
   LogOut,
@@ -18,7 +19,7 @@ import { signOut } from "@/app/components/site/SiteHeader";
 
 import a from "./account.module.css";
 
-export function AccountNav({ unread, name }: { unread: number; name: string }) {
+export function AccountNav({ unread, name, points = false }: { unread: number; name: string; points?: boolean }) {
   const pathname = usePathname();
   const { t } = useLanguage();
 
@@ -27,6 +28,7 @@ export function AccountNav({ unread, name }: { unread: number; name: string }) {
     { href: "/dashboard", label: t("الرئيسية", "Home"), icon: House },
     { href: "/subscriptions", label: t("اشتراكي", "Subscription"), icon: Tv },
     { href: "/orders", label: t("الطلبات", "Orders"), icon: ReceiptText, also: ["/receipts"] },
+    ...(points ? [{ href: "/points", label: t("نقاط شاشتنا", "Shashtna Points"), icon: Gift }] : []),
     { href: "/notifications", label: t("الإشعارات", "Notifications"), icon: Bell, badge: unread },
     { href: "/account/devices", label: t("الأجهزة والتطبيقات", "Devices & apps"), icon: AppWindow },
     { href: "/support", label: t("الدعم الفني", "Support"), icon: Headphones },

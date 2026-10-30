@@ -10,6 +10,8 @@ import { formatOrderNumber } from "@/src/lib/order-status";
 import { db } from "@/src/prisma/db";
 import { requireCustomer } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
+import { pointsLabel } from "@/src/lib/loyalty";
+import { getLoyaltyRules, orderLoyalty } from "@/src/server/loyalty";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "إيصال" };
@@ -26,7 +28,14 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
     notFound();
   }
 
-  const { t, lang } = await getI18n();
+  const [{ t, lang }, order, loyaltyRules, points] = await Promise.all([
+    getI18n(),
+    receipt.orderId ? db.orm.public.SubscriptionRequest.first({ id: receipt.orderId, userId: user.id }) : null,
+    getLoyaltyRules(),
+    receipt.orderId ? orderLoyalty(receipt.orderId).catch(() => null) : null,
+  ]);
+  const reward = Boolean(order?.loyaltyReward);
+  const amount = reward ? `${t("مكافأة نقاط", "Points reward")} — ${formatPrice(0, lang)}` : formatPrice(receipt.price, lang);
 
   const rows = [
     { label: t("رقم الإيصال", "Receipt number"), value: <span className="nums" dir="ltr">{receipt.receiptNumber}</span> },
@@ -37,7 +46,13 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
     { label: t("المدة", "Duration"), value: receipt.durationLabel },
     receipt.bonusYears > 0 ? { label: t("مدة إضافية", "Bonus"), value: `${receipt.bonusYears} ${t("سنة", "year(s)")}` } : null,
     receipt.orderId ? { label: t("رقم الطلب", "Order"), value: <span className="nums">{formatOrderNumber(receipt.orderId)}</span> } : null,
-    { label: t("الحالة", "Status"), value: receipt.status === "PAID" ? t("مدفوع", "Paid") : receipt.status },
+    { label: t("الحالة", "Status"), value: reward ? t("مكافأة نقاط", "Points reward") : receipt.status === "PAID" ? t("مدفوع", "Paid") : receipt.status },
+    points && loyaltyRules.enabled
+      ? {
+          label: t("نقاط شاشتنا", "Shashtna Points"),
+          value: `+${pointsLabel(points.points, lang)} (${{ PENDING: t("معلّقة", "pending"), CONFIRMED: t("مثبتة", "confirmed"), REVERSED: t("مسحوبة", "reversed") }[points.state]})`,
+        }
+      : null,
   ].filter(Boolean) as { label: string; value: React.ReactNode }[];
 
   return (
@@ -56,7 +71,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
             <LogoImage className="h-14" />
             <p className="text-xs font-semibold text-ink-3">{t("إيصال دفع", "Payment receipt")}</p>
           </div>
-          <p className="nums text-3xl font-bold text-ink print:text-black">{formatPrice(receipt.price, lang)}</p>
+          <p className="nums text-end text-2xl font-bold text-ink sm:text-3xl print:text-black">{amount}</p>
         </header>
         <dl className="mt-6 divide-y divide-line">
           {rows.map((row) => (

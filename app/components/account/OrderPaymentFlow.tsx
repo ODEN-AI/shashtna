@@ -30,6 +30,15 @@ export function OrderPaymentFlow({
 }) {
   const t = (ar: string, en: string) => (lang === "ar" ? ar : en);
 
+  // A points reward is never paid for: no transfer details, no proof upload.
+  if (order.loyaltyReward && (stage === "PAYMENT_PENDING" || stage === "UNDER_REVIEW")) {
+    return (
+      <Notice tone="info" title={t("مكافأة نقاط", "Points reward")}>
+        {t("هذا الطلب مجاني بنقاطك. فريقنا يراجعه ويفعّل التجديد.", "This order is free with your points. Our team reviews it and activates the renewal.")}
+      </Notice>
+    );
+  }
+
   if (stage === "PAYMENT_PENDING") {
     return (
       <div className="space-y-5">

@@ -21,6 +21,7 @@ import { LinkButton } from "@/app/ui/Button";
 import { Card, CardHeader } from "@/app/ui/Card";
 import { cn } from "@/app/ui/cn";
 import { OrderPaymentFlow } from "@/app/components/account/OrderPaymentFlow";
+import { PointsCard } from "@/app/components/account/PointsCard";
 import { OrderJourney } from "@/app/ui/OrderJourney";
 import { monthlyEquivalent } from "@/app/ui/PackageCard";
 import { EmptyState, Notice } from "@/app/ui/States";
@@ -32,6 +33,7 @@ import { listCustomerActivity } from "@/src/server/activity";
 import { requireCustomer } from "@/src/server/auth";
 import { getActiveApps, getActivePackages } from "@/src/server/catalog";
 import { getLiveAnnouncements } from "@/src/server/content";
+import { getLoyalty } from "@/src/server/loyalty";
 import { getI18n } from "@/src/server/i18n";
 import { audienceMatches } from "@/src/lib/promotions";
 import { countUnreadNotifications, ensureRenewalReminders } from "@/src/server/notifications";
@@ -58,7 +60,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const trackedOrder = highlighted ?? openOrders[0];
   const justCreated = Boolean(highlighted) && params.created === "1";
 
-  const [{ t, lang }, activity, tickets, unread, apps, packages, dashboardNotices, settings, proofs] = await Promise.all([
+  const [{ t, lang }, activity, tickets, unread, apps, packages, dashboardNotices, settings, proofs, loyalty] = await Promise.all([
     getI18n(),
     listCustomerActivity(user.id, 6).catch(() => []),
     listTicketsForUser(user.id).catch(() => []),
@@ -68,6 +70,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     getLiveAnnouncements("WEBSITE", "DASHBOARD").catch(() => []),
     getSettings(),
     proofUploadTimes(trackedOrder ? [trackedOrder.id] : []),
+    getLoyalty(user.id).catch(() => null),
   ]);
 
   // Dashboard notices honour their audience like every other placement.
@@ -146,6 +149,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </ul>
       </nav>
 
+      {loyalty?.enabled ? <PointsCard view={loyalty} t={t} lang={lang} /> : null}
+
       {trackedOrder && stage ? (
         <section id="current-order" data-testid="current-order" data-order-id={trackedOrder.id} className="scroll-mt-24">
           <Card className={cn("p-6", justCreated && "ring-2 ring-glow/60")}>
@@ -160,7 +165,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               }
             />
             <div className="mt-6">
-              <OrderJourney stage={stage} lang={lang} />
+              <OrderJourney stage={stage} lang={lang} reward={trackedOrder.loyaltyReward} />
             </div>
             <div className="mt-6">
               <OrderPaymentFlow

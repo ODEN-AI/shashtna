@@ -25,6 +25,8 @@ import {
   type CatalogPackage,
 } from "@/src/server/catalog";
 import { getI18n } from "@/src/server/i18n";
+import { orderPointValue } from "@/src/lib/loyalty";
+import { getLoyaltyRules } from "@/src/server/loyalty";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +114,11 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
   const deviceFrom = devices.length ? Math.min(...devices.map((device) => device.price)) : null;
   const others = data.packages.filter((pkg) => pkg.serviceType === plan.serviceType && pkg.id !== plan.id);
   const platforms = platformsOf(data.apps).filter((item) => item.platform !== "—");
+  // «هذا الطلب يعطيك X نقطة»: IPTV only, while the program is on. A renewal earns on its renewal price.
+  const loyalty = isVip ? null : await getLoyaltyRules();
+  const points = loyalty?.enabled
+    ? Object.fromEntries(plan.options.map((option) => [option.id, orderPointValue(renewId ? (option.renewalPrice ?? option.price) : option.price, option.pointsEarned)]))
+    : null;
   const paymentFaq = FAQ.filter((item) => item.topic === "payment" || item.id === "activation");
   const art = plan.imageUrl ?? (isVip ? VIP_ART : null);
 
@@ -156,6 +163,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
               isVip={isVip}
               deviceFrom={deviceFrom}
               hasOthers={others.length > 0}
+              points={points}
             />
 
             {renewId || upgradeId ? (

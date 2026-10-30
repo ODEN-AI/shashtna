@@ -1,11 +1,18 @@
 import { Check } from "lucide-react";
 
 import type { Lang } from "@/src/lib/i18n";
-import { journeySteps, type JourneyStepKey, type OrderStage } from "@/src/lib/order-journey";
+import { journeySteps, rewardJourneySteps, type JourneyStepKey, type OrderStage } from "@/src/lib/order-journey";
 
 import { cn } from "./cn";
 
 type Note = { ar: string; en: string };
+
+function rewardNote(key: string, state: string): Note {
+  if (state === "done") return { ar: "تم", en: "Done" };
+  if (state === "upcoming") return { ar: "بعدين", en: "Next" };
+
+  return key === "APPROVE" ? { ar: "فريقنا يراجع طلبك", en: "Our team is reviewing it" } : { ar: "قيد التفعيل", en: "Being activated" };
+}
 
 /** One line under each step describing where it stands for this order. */
 function stepNote(key: JourneyStepKey, stage: OrderStage): Note {
@@ -37,13 +44,13 @@ function stepNote(key: JourneyStepKey, stage: OrderStage): Note {
  * The four-step purchase journey (choose → pay → upload proof → review &
  * activation). Vertical on phones, horizontal from `sm` up.
  */
-export function OrderJourney({ stage, lang, className }: { stage: OrderStage; lang: Lang; className?: string }) {
-  const steps = journeySteps(stage);
+export function OrderJourney({ stage, lang, className, reward = false }: { stage: OrderStage; lang: Lang; className?: string; reward?: boolean }) {
+  const steps = reward ? rewardJourneySteps(stage) : journeySteps(stage);
 
   return (
-    <ol className={cn("grid gap-0 sm:grid-cols-4 sm:gap-2", className)} data-testid="order-journey" data-stage={stage}>
+    <ol className={cn("grid gap-0 sm:gap-2", reward ? "sm:grid-cols-3" : "sm:grid-cols-4", className)} data-testid="order-journey" data-stage={stage}>
       {steps.map((step, index) => {
-        const note = stepNote(step.key, stage);
+        const note = reward ? rewardNote(step.key, step.state) : stepNote(step.key as JourneyStepKey, stage);
         const last = index === steps.length - 1;
 
         return (

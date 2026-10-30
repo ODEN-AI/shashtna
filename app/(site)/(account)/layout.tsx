@@ -7,6 +7,7 @@ import { AccountNav } from "@/app/components/account/AccountNav";
 import s from "@/app/components/home/home.module.css";
 import { ToneShell } from "@/app/components/site/ToneShell";
 import { getSessionUser } from "@/src/server/auth";
+import { getLoyaltyRules } from "@/src/server/loyalty";
 import { countUnreadNotifications } from "@/src/server/notifications";
 
 // Private area: never indexed.
@@ -23,13 +24,13 @@ export default async function AccountLayout({ children }: { children: React.Reac
     redirect("/login?redirect=/dashboard");
   }
 
-  const unread = await countUnreadNotifications(user.id).catch(() => 0);
+  const [unread, loyalty] = await Promise.all([countUnreadNotifications(user.id).catch(() => 0), getLoyaltyRules()]);
 
   return (
     <ToneShell>
       <div className={`${s.wrap} ${a.area}`}>
         <aside className={a.side}>
-          <AccountNav unread={unread} name={user.name} />
+          <AccountNav unread={unread} name={user.name} points={loyalty.enabled} />
         </aside>
         <div className="min-w-0">
           <AccountMobileTabs unread={unread} />

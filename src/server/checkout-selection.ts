@@ -1,4 +1,5 @@
-import { getActiveDevices, getActivePackages, type CatalogDevice, type CatalogPackage } from "@/src/server/catalog";
+import { optionIdParam } from "@/src/lib/package-options";
+import { getActiveDevices, getActivePackages, type CatalogDevice, type CatalogOption, type CatalogPackage } from "@/src/server/catalog";
 import { getSettings, safeExternalUrl, whatsappLink } from "@/src/server/settings";
 import { getSubscriptionForUser, type CustomerSubscription } from "@/src/server/subscriptions";
 
@@ -13,13 +14,15 @@ import { getSubscriptionForUser, type CustomerSubscription } from "@/src/server/
 export type CheckoutMode = "NEW" | "RENEW" | "UPGRADE" | "DEVICE_PURCHASE";
 export type ContactOption = "TELEGRAM" | "WHATSAPP" | "FACEBOOK" | "PHONE";
 
-export type CheckoutParams = { plan?: unknown; device?: unknown; renew?: unknown; upgrade?: unknown; type?: unknown };
+export type CheckoutParams = { plan?: unknown; option?: unknown; device?: unknown; renew?: unknown; upgrade?: unknown; type?: unknown };
 
 export type CheckoutSelection =
   | {
       ok: true;
       mode: CheckoutMode;
       plan: CatalogPackage | null;
+      /** The length (and price) being ordered: the one chosen, else the plan's default. Null for a device purchase. */
+      option: CatalogOption | null;
       /** Fixed device for a device purchase. */
       device: CatalogDevice | null;
       /** Compatible VIP devices to choose from (VIP new/upgrade orders). */
@@ -113,6 +116,22 @@ export async function resolveCheckoutSelection(
     return { ok: false, reason: "CHOOSE_AGAIN", choosePath };
   }
 
+  // A requested length must be one this plan sells right now; a stale or
+  // edited link goes back to the plan's page to choose again, never to a
+  // different length.
+  const optionGiven = params.option !== undefined && params.option !== null && params.option !== "";
+  const requestedOption = optionGiven ? optionIdParam(params.option) : null;
+  let option: CatalogOption | null = null;
+
+  if (mode !== "DEVICE_PURCHASE" && plan) {
+    option = optionGiven ? (plan.options.find((item) => item.id === requestedOption) ?? null) : (plan.options[0] ?? null);
+
+    if (!option) {
+      const carry = subscription ? `?${mode === "RENEW" ? "renew" : "upgrade"}=${subscription.id}` : "";
+      return { ok: false, reason: "CHOOSE_AGAIN", choosePath: `/plans/${encodeURIComponent(plan.slug)}${carry}` };
+    }
+  }
+
   const compatibleDevices =
     mode !== "DEVICE_PURCHASE" && mode !== "RENEW" && plan?.serviceType === "VIP"
       ? devices.filter((item) => item.packageIds.includes(plan.id))
@@ -125,6 +144,7 @@ export async function resolveCheckoutSelection(
     ok: true,
     mode,
     plan: mode === "DEVICE_PURCHASE" ? null : (plan ?? null),
+    option,
     device,
     devices: compatibleDevices,
     initialDeviceId: compatibleDevices.some((item) => item.id === deviceParam)

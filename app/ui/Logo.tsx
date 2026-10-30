@@ -36,7 +36,8 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function LogoImage({ className }: { className?: string }) {
+/** `plain` drops the blue drop shadow (the site header and footer); every other use keeps it. */
+export function LogoImage({ className, plain = false }: { className?: string; plain?: boolean }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -48,17 +49,18 @@ export function LogoImage({ className }: { className?: string }) {
       height={256}
       decoding="async"
       className={cn(
-        "aspect-square w-auto shrink-0 rounded-full object-contain shadow-[0_8px_24px_rgb(55_129_252/0.35)]",
+        "aspect-square w-auto shrink-0 rounded-full object-contain",
+        !plain && "shadow-[0_8px_24px_rgb(55_129_252/0.35)]",
         className ?? "h-11",
       )}
     />
   );
 }
 
-export function Logo({ href = "/", className }: { href?: string; className?: string }) {
+export function Logo({ href = "/", className, plain }: { href?: string; className?: string; plain?: boolean }) {
   return (
     <Link href={href} className="flex shrink-0 items-center rounded-full" aria-label="شاشتنا — Shashtna">
-      <LogoImage className={className} />
+      <LogoImage className={className} plain={plain} />
     </Link>
   );
 }

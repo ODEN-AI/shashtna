@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@netlify/blobs";
 
+import { BLOB_STORES, imageReadStoreNames } from "@/src/lib/blob-stores";
+
 export const dynamic = "force-dynamic";
 
 export async function GET(
@@ -28,16 +30,19 @@ export async function GET(
       );
     }
 
-    const store =
-      getStore("shashtna-media");
+    // This deploy's store first; a namespaced test deploy may also read
+    // (never write) images uploaded in production. Keys are random.
+    let result: { data: ArrayBuffer; metadata: Record<string, unknown> } | null = null;
 
-    const result =
-      await store.getWithMetadata(
-        decodedKey,
-        {
-          type: "arrayBuffer",
-        }
-      );
+    for (const name of imageReadStoreNames(BLOB_STORES.media)) {
+      result = await getStore(name).getWithMetadata(decodedKey, {
+        type: "arrayBuffer",
+      });
+
+      if (result?.data) {
+        break;
+      }
+    }
 
     if (!result?.data) {
       return new NextResponse(

@@ -1145,7 +1145,7 @@ export default function AdminPackagesPage() {
                                     </p>
                                   </div>
 
-                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-500 dark:bg-slate-700 dark:text-slate-300">
+                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-500 dark:bg-slate-700 dark:text-slate-300">
                                     {
                                       device.serviceType
                                     }
@@ -1322,7 +1322,7 @@ export default function AdminPackagesPage() {
 
                       <div className="absolute right-4 top-4 flex gap-2">
                         <span
-                          className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
+                          className={`rounded-full px-3 py-1.5 text-xs font-black ${
                             serviceType ===
                             "VIP"
                               ? "bg-cyan-600 text-white"
@@ -1335,7 +1335,7 @@ export default function AdminPackagesPage() {
                         </span>
 
                         <span
-                          className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
+                          className={`rounded-full px-3 py-1.5 text-xs font-black ${
                             pkg.isActive
                               ? "bg-emerald-500 text-white"
                               : "bg-slate-900/80 text-white"
@@ -1437,7 +1437,7 @@ export default function AdminPackagesPage() {
                                       key={
                                         device.id
                                       }
-                                      className="rounded-full bg-white px-3 py-1.5 text-[10px] font-black text-slate-600 shadow-sm dark:bg-slate-900 dark:text-slate-300"
+                                      className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-600 shadow-sm dark:bg-slate-900 dark:text-slate-300"
                                     >
                                       {
                                         device.name
@@ -1448,7 +1448,7 @@ export default function AdminPackagesPage() {
 
                               {relatedDevices.length >
                                 4 && (
-                                <span className="rounded-full bg-white px-3 py-1.5 text-[10px] font-black text-slate-500 shadow-sm dark:bg-slate-900 dark:text-slate-400">
+                                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-500 shadow-sm dark:bg-slate-900 dark:text-slate-400">
                                   +
                                   {relatedDevices.length -
                                     4}
@@ -1456,7 +1456,7 @@ export default function AdminPackagesPage() {
                               )}
                             </div>
                           ) : (
-                            <p className="mt-2 text-[11px] font-semibold text-slate-400">
+                            <p className="mt-2 text-xs font-semibold text-slate-400">
                               لا توجد أجهزة مرتبطة بهذه الباقة.
                             </p>
                           )}

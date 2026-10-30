@@ -19,6 +19,8 @@ export const POST = withMobileUser(async ({ request, user }) => {
   const result = await createOrder(user.id, {
     requestType: body.requestType,
     planSlug: body.planSlug,
+    // Optional (additive): newer app builds send the chosen length; older ones get the default.
+    optionId: body.optionId,
     deviceId: body.deviceId,
     subscriptionId: body.subscriptionId,
     // As on the website checkout: the contact method chosen for this order (createOrder

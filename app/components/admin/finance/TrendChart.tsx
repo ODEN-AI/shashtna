@@ -157,7 +157,7 @@ export function TrendChart({
 
           <div className="mt-2 flex">
             {data.map((point, index) => (
-              <span key={point.key} className="nums flex-1 truncate text-center text-[10px] text-ink-3">
+              <span key={point.key} className="nums flex-1 truncate text-center text-xs text-ink-3">
                 {index % labelEvery === 0 ? point.label : ""}
               </span>
             ))}

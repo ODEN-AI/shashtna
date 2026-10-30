@@ -102,7 +102,7 @@ function Nav({ groups, counts, onNavigate }: { groups: AdminNavGroup[]; counts: 
     <nav aria-label={language === "ar" ? "قائمة الإدارة" : "Admin navigation"} className="space-y-6">
       {groups.map((group) => (
         <div key={group.en}>
-          <p className="px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-ink-3">{group[language]}</p>
+          <p className="px-3 text-xs font-bold uppercase tracking-[0.16em] text-ink-3">{group[language]}</p>
           <ul className="mt-2 space-y-0.5">
             {group.items.map((item) => {
               const Icon = ICONS[item.icon] ?? Inbox;
@@ -123,7 +123,7 @@ function Nav({ groups, counts, onNavigate }: { groups: AdminNavGroup[]; counts: 
                     <Icon size={17} className={active ? "text-brand-ink" : "text-ink-3"} aria-hidden />
                     <span className="flex-1 truncate">{item[language]}</span>
                     {badge ? (
-                      <span className="nums rounded-full bg-glow/15 px-2 py-0.5 text-[11px] font-bold text-glow">{badge}</span>
+                      <span className="nums rounded-full bg-glow/15 px-2 py-0.5 text-xs font-bold text-glow">{badge}</span>
                     ) : null}
                   </Link>
                 </li>
@@ -241,18 +241,18 @@ export function AdminShell({
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={cn("relative flex w-full flex-col items-center gap-1 rounded-2xl px-1 py-2.5 text-[11px] font-semibold transition", active ? "bg-brand/18 text-ink" : "text-ink-3 hover:bg-surface-2 hover:text-ink")}
+                className={cn("relative flex w-full flex-col items-center gap-1 rounded-2xl px-1 py-2.5 text-xs font-semibold transition", active ? "bg-brand/18 text-ink" : "text-ink-3 hover:bg-surface-2 hover:text-ink")}
               >
                 <Icon size={20} className={active ? "text-brand-ink" : undefined} aria-hidden />
                 <span className="max-w-full truncate">{item.short[language]}</span>
-                {badge ? <span className="nums absolute end-2 top-1.5 min-w-4 rounded-full bg-glow px-1 text-center text-[10px] font-bold leading-4 text-navy">{badge}</span> : null}
+                {badge ? <span className="nums absolute end-2 top-1.5 min-w-4 rounded-full bg-glow px-1 text-center text-xs font-bold leading-4 text-navy">{badge}</span> : null}
               </Link>
             );
           })}
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className={cn("flex w-full flex-col items-center gap-1 rounded-2xl px-1 py-2.5 text-[11px] font-semibold transition", inMore ? "bg-brand/18 text-ink" : "text-ink-3 hover:bg-surface-2 hover:text-ink")}
+            className={cn("flex w-full flex-col items-center gap-1 rounded-2xl px-1 py-2.5 text-xs font-semibold transition", inMore ? "bg-brand/18 text-ink" : "text-ink-3 hover:bg-surface-2 hover:text-ink")}
             aria-haspopup="dialog"
             aria-expanded={open}
           >
@@ -334,13 +334,13 @@ export function AdminShell({
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={cn("relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold", active ? "text-ink" : "text-ink-3")}
+                  className={cn("relative flex h-16 flex-col items-center justify-center gap-1 text-xs font-semibold", active ? "text-ink" : "text-ink-3")}
                 >
                   <span className={cn("grid h-8 w-12 place-items-center rounded-full transition", active && "bg-brand/22")}>
                     <Icon size={20} className={active ? "text-brand-ink" : undefined} aria-hidden />
                   </span>
                   <span className="max-w-full truncate px-1">{item.short[language]}</span>
-                  {badge ? <span className="nums absolute top-1.5 ms-7 min-w-4 rounded-full bg-glow px-1 text-center text-[10px] font-bold leading-4 text-navy">{badge}</span> : null}
+                  {badge ? <span className="nums absolute top-1.5 ms-7 min-w-4 rounded-full bg-glow px-1 text-center text-xs font-bold leading-4 text-navy">{badge}</span> : null}
                 </Link>
               </li>
             );
@@ -351,7 +351,7 @@ export function AdminShell({
               onClick={() => setOpen(true)}
               aria-haspopup="dialog"
               aria-expanded={open}
-              className={cn("flex h-16 w-full flex-col items-center justify-center gap-1 text-[11px] font-semibold", inMore ? "text-ink" : "text-ink-3")}
+              className={cn("flex h-16 w-full flex-col items-center justify-center gap-1 text-xs font-semibold", inMore ? "text-ink" : "text-ink-3")}
               data-testid="console-more"
             >
               <span className={cn("grid h-8 w-12 place-items-center rounded-full transition", inMore && "bg-brand/22")}>

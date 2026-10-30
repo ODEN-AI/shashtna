@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { Check, Clock, Download, LifeBuoy, MonitorPlay } from "lucide-react";
+import { Check, Clock, Download, LifeBuoy } from "lucide-react";
 
+import h from "@/app/components/site/help.module.css";
+import { ToneShell } from "@/app/components/site/ToneShell";
 import { Badge } from "@/app/ui/Badge";
 import { LinkButton } from "@/app/ui/Button";
-import { Container, Eyebrow, SectionHeading } from "@/app/ui/Page";
+import s from "@/app/components/home/home.module.css";
+import { Container, SectionHeading } from "@/app/ui/Page";
 import { Notice } from "@/app/ui/States";
-import { getActiveApps, safeHref } from "@/src/server/catalog";
+import { getActiveApps, platformName, safeHref } from "@/src/server/catalog";
 import { getI18n } from "@/src/server/i18n";
 import { getSettings } from "@/src/server/settings";
 
@@ -37,15 +40,15 @@ export default async function PlayerPage() {
       ];
 
   return (
-    <>
-      <section className="bg-cinema border-b border-line">
-        <Container className="grid items-center gap-10 py-14 sm:py-20 lg:grid-cols-[1.2fr_1fr]">
+    <ToneShell>
+      <Container>
+        <section className={`${h.hero} ${h.heroSplit}`}>
           <div>
-            <Eyebrow>Shashtna Player</Eyebrow>
-            <h1 className="mt-4 text-balance text-4xl font-bold leading-tight text-ink sm:text-5xl">
+            <p className={s.kicker}>Shashtna Player</p>
+            <h1 className={`${h.title} text-balance`}>
               {t("المشغل الرسمي لشاشتنا", "The official Shashtna player")}
             </h1>
-            <p className="mt-5 max-w-xl text-[15px] leading-8 text-ink-2">
+            <p className={h.lead}>
               {t(
                 "Shashtna Player هو تطبيق شاشتنا لأندرويد وأندرويد TV. سجّل دخولك بحسابك أو ببيانات اشتراكك حسب ما يطلب التطبيق، وشاهد على تلفزيونك أو موبايلك.",
                 "Shashtna Player is Shashtna's app for Android and Android TV. Sign in with your account or your subscription details, as the app asks, and watch on your TV or phone.",
@@ -73,7 +76,7 @@ export default async function PlayerPage() {
             {playerApps.length ? (
               <p className="mt-6 text-xs text-ink-3">
                 {t("متوفر على: ", "Available on: ")}
-                {[...new Set(playerApps.map((app) => app.platform))].join("، ")}
+                {[...new Set(playerApps.map((app) => platformName(app.platform)))].join(t("، ", ", "))}
                 {primary?.version ? (
                   <>
                     {" · "}
@@ -83,15 +86,14 @@ export default async function PlayerPage() {
               </p>
             ) : null}
           </div>
-          <div className="surface-raised flex aspect-[4/3] items-center justify-center rounded-panel">
-            <span className="flex h-24 w-24 items-center justify-center rounded-[1.75rem] bg-gradient-to-b from-sky to-brand-strong text-white shadow-brand">
-              <MonitorPlay size={44} aria-hidden />
-            </span>
+          <div className={h.playerArt}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/shashtna-mark-256.webp" alt="" />
           </div>
-        </Container>
-      </section>
+        </section>
+      </Container>
 
-      <Container className="grid gap-12 py-14 lg:grid-cols-2">
+      <Container className="grid gap-12 pt-10 lg:grid-cols-2">
         <section>
           <SectionHeading eyebrow={t("الإعداد", "Setup")} title={t("شلون تبدأ", "How to get started")} />
           <ol className="mt-6 space-y-3">
@@ -146,6 +148,6 @@ export default async function PlayerPage() {
           </div>
         </section>
       </Container>
-    </>
+    </ToneShell>
   );
 }

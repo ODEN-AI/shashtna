@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, MessageCircle, Send, Sparkles } from "lucide-react";
 import { FormEvent, useId, useMemo, useState } from "react";
+import s from "@/app/components/home/home.module.css";
+import v from "@/app/components/site/services.module.css";
+
 import { useLanguage } from "../../components/LanguageProvider";
 import { submitServiceLead } from "../actions";
 
@@ -121,168 +124,120 @@ ${details || "Not provided yet"}`;
   };
 
   return (
-    <main dir={isArabic ? "rtl" : "ltr"} className="min-h-[calc(100vh-1px)] overflow-hidden">
-      <section className="relative border-b border-slate-200/70 dark:border-slate-800/70">
-        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute left-1/2 top-0 h-[480px] w-[760px] -translate-x-1/2 -translate-y-1/3 rounded-full bg-blue-500/[0.10] blur-3xl dark:bg-blue-500/[0.11]" />
-          <div className="absolute right-0 top-20 h-64 w-64 rounded-full bg-cyan-400/[0.08] blur-3xl" />
-        </div>
+    // -mt-[80px]/pt-[80px]: the navy ground runs up behind the floating header.
+    <div dir={isArabic ? "rtl" : "ltr"} className={`${s.home} -mt-[80px] pt-[80px] pb-16`}>
+      <div className={s.wrap}>
+        <Link href="/services" className={v.back}>
+          <ArrowLeft size={16} className={isArabic ? "rotate-180" : ""} aria-hidden />
+          {isArabic ? "العودة إلى الخدمات" : "Back to services"}
+        </Link>
 
-        <div className="mx-auto max-w-6xl px-5 pb-16 pt-10 lg:px-8 lg:pb-24 lg:pt-16">
-          <Link
-            href="/services"
-            className="inline-flex items-center gap-2 text-sm font-black text-slate-500 transition hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
-          >
-            <ArrowLeft size={16} className={isArabic ? "" : "rotate-180"} />
-            {isArabic ? "العودة إلى الخدمات" : "Back to services"}
-          </Link>
+        <div className={v.request}>
+          <section className={v.requestSide} aria-labelledby="request-title">
+            <span className={v.badge}>
+              <Sparkles size={15} aria-hidden />
+              {isArabic ? "شاشتنا للحلول الرقمية" : "Shashtna Digital Solutions"}
+            </span>
+            <h1 id="request-title" className={v.title}>
+              {isArabic ? "خلّينا نناقش" : "Let’s discuss"}
+              <span className={s.hl}>{isArabic ? "مشروعك." : "your project."}</span>
+            </h1>
+            <p className={v.lead}>
+              {isArabic
+                ? "أرسل لنا فكرة مشروعك والمتطلبات الأساسية، ونكمل النقاش معك ونحدد النطاق والخطوات والتسعير المناسب."
+                : "Send us the idea and key requirements. We’ll discuss the scope, next steps and a suitable quote with you."}
+            </p>
+            <ul className={v.points}>
+              {[
+                isArabic ? "فهم المتطلبات" : "Understand the requirements",
+                isArabic ? "تحديد نطاق واضح" : "Define a clear scope",
+                isArabic ? "اقتراح الحل المناسب" : "Recommend the right solution",
+                isArabic ? "عرض سعر مخصص" : "Custom project quote",
+              ].map((item) => (
+                <li key={item}>
+                  <span className={v.tick}>
+                    <CheckCircle2 size={14} aria-hidden />
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </section>
 
-          <div className="mt-10 grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-            <div className="pt-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-blue-50/70 px-4 py-2 text-[11px] font-black tracking-[0.18em] text-blue-700 shadow-sm backdrop-blur-xl dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
-                <Sparkles size={14} />
-                {isArabic ? "شاشتنا للحلول الرقمية" : "SHASHTNA DIGITAL SOLUTIONS"}
+          <form onSubmit={submit} className={v.form}>
+            <div className={v.fields}>
+              <Field label={isArabic ? "الاسم" : "Name"} value={name} onChange={setName} placeholder={isArabic ? "اسمك" : "Your name"} required />
+              <Field label={isArabic ? "رقم التواصل" : "Contact number"} value={phone} onChange={setPhone} placeholder={isArabic ? "رقم الهاتف أو WhatsApp" : "Phone or WhatsApp"} required />
+
+              <SelectField
+                label={isArabic ? "نوع المشروع" : "Project type"}
+                value={projectType}
+                onChange={setProjectType}
+                options={projectTypes}
+              />
+              <SelectField
+                label={isArabic ? "الميزانية التقريبية" : "Approx. budget"}
+                value={budget}
+                onChange={setBudget}
+                options={budgets}
+              />
+
+              <div className={v.wide}>
+                <Field label={isArabic ? "المدة المطلوبة" : "Required timeline"} value={timeline} onChange={setTimeline} placeholder={isArabic ? "مثلاً: خلال شهر" : "e.g. within one month"} />
               </div>
 
-              <h1 className="mt-7 text-4xl font-black leading-tight tracking-tight text-slate-950 dark:text-white sm:text-5xl">
-                {isArabic ? (
-                  <>
-                    خلّينا نناقش
-                    <span className="block bg-gradient-to-r from-blue-700 via-blue-500 to-cyan-500 bg-clip-text text-transparent dark:from-blue-400 dark:via-cyan-300 dark:to-cyan-400">
-                      مشروعك.
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    Let’s discuss
-                    <span className="block bg-gradient-to-r from-blue-700 via-blue-500 to-cyan-500 bg-clip-text text-transparent dark:from-blue-400 dark:via-cyan-300 dark:to-cyan-400">
-                      your project.
-                    </span>
-                  </>
-                )}
-              </h1>
-
-              <p className="mt-6 max-w-xl text-sm leading-8 text-slate-500 dark:text-slate-400 sm:text-base">
-                {isArabic
-                  ? "أرسل لنا فكرة مشروعك والمتطلبات الأساسية، ونكمل النقاش معك ونحدد النطاق والخطوات والتسعير المناسب."
-                  : "Send us the idea and key requirements. We’ll discuss the scope, next steps and a suitable quote with you."}
-              </p>
-
-              <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                {[
-                  isArabic ? "فهم المتطلبات" : "Understand the requirements",
-                  isArabic ? "تحديد نطاق واضح" : "Define a clear scope",
-                  isArabic ? "اقتراح الحل المناسب" : "Recommend the right solution",
-                  isArabic ? "عرض سعر مخصص" : "Custom project quote",
-                ].map((item) => (
-                  <div key={item} className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
-                    <CheckCircle2 size={16} className="shrink-0 text-blue-600 dark:text-blue-400" />
-                    {item}
-                  </div>
-                ))}
+              <div className={v.wide}>
+                <label htmlFor={detailsId} className={v.label}>
+                  {isArabic ? "تفاصيل المشروع" : "Project details"}
+                </label>
+                <textarea
+                  id={detailsId}
+                  value={details}
+                  onChange={(event) => setDetails(event.target.value)}
+                  rows={7}
+                  placeholder={isArabic ? "اشرح فكرتك، الوظائف المطلوبة، وأي تفاصيل تساعدنا نفهم المشروع." : "Describe the idea, required features and anything that helps us understand the project."}
+                  className={v.input}
+                />
               </div>
             </div>
 
-            <form
-              onSubmit={submit}
-              className="rounded-[30px] border border-slate-200/80 bg-white/80 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/70 dark:shadow-black/25 sm:p-8"
-            >
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label={isArabic ? "الاسم" : "Name"} value={name} onChange={setName} placeholder={isArabic ? "اسمك" : "Your name"} required />
-                <Field label={isArabic ? "رقم التواصل" : "Contact number"} value={phone} onChange={setPhone} placeholder={isArabic ? "رقم الهاتف أو WhatsApp" : "Phone or WhatsApp"} required />
+            {error ? (
+              <p role="alert" className={v.alert}>
+                {error}
+              </p>
+            ) : null}
 
-                <SelectField
-                  label={isArabic ? "نوع المشروع" : "Project type"}
-                  value={projectType}
-                  onChange={setProjectType}
-                  options={projectTypes}
-                />
-                <SelectField
-                  label={isArabic ? "الميزانية التقريبية" : "Approx. budget"}
-                  value={budget}
-                  onChange={setBudget}
-                  options={budgets}
-                />
-
-                <div className="sm:col-span-2">
-                  <Field label={isArabic ? "المدة المطلوبة" : "Required timeline"} value={timeline} onChange={setTimeline} placeholder={isArabic ? "مثلاً: خلال شهر" : "e.g. within one month"} />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label htmlFor={detailsId} className="text-xs font-black text-slate-700 dark:text-slate-200">
-                    {isArabic ? "تفاصيل المشروع" : "Project details"}
-                  </label>
-                  <textarea
-                    id={detailsId}
-                    value={details}
-                    onChange={(event) => setDetails(event.target.value)}
-                    rows={7}
-                    placeholder={isArabic ? "اشرح فكرتك، الوظائف المطلوبة، وأي تفاصيل تساعدنا نفهم المشروع." : "Describe the idea, required features and anything that helps us understand the project."}
-                    className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-950/50 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              {error ? (
-                <p role="alert" className="mt-5 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-400">
-                  {error}
-                </p>
-              ) : null}
-
-              {sent ? (
-                <div role="status" className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center">
-                  <p className="text-sm font-black text-emerald-400">
-                    {isArabic ? "وصلنا طلبك وراح نتواصل وياك." : "We received your request and will get in touch."}
-                  </p>
-                  <a
-                    href={telegramHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-black text-white transition hover:bg-blue-700"
-                  >
-                    <Send size={16} />
-                    {isArabic ? "كمّل النقاش على Telegram" : "Continue on Telegram"}
-                  </a>
-                </div>
-              ) : null}
-
-              <button
-                type="submit"
-                disabled={saving || sent}
-                className="mt-6 flex w-full disabled:cursor-not-allowed disabled:opacity-60 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-4 text-sm font-black text-white shadow-xl shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700"
-              >
-                <Send size={17} />
-                {saving
-                  ? isArabic ? "جاري الإرسال..." : "Sending..."
-                  : isArabic ? "إرسال ومناقشة المشروع" : "Send & discuss the project"}
-              </button>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <a
-                  href={MESSENGER_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-800 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100 dark:hover:border-blue-500/30 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
-                >
-                  <MessageCircle size={16} />
-                  {isArabic ? "مراسلة عبر Facebook" : "Message on Facebook"}
-                </a>
-                <a
-                  href={TELEGRAM_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-black text-blue-700 transition hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/15"
-                >
-                  <Send size={16} />
-                  {isArabic ? "فتح Telegram" : "Open Telegram"}
+            {sent ? (
+              <div role="status" className={v.sent}>
+                <p>{isArabic ? "وصلنا طلبك وراح نتواصل وياك." : "We received your request and will get in touch."}</p>
+                <a href={telegramHref} target="_blank" rel="noopener noreferrer" className={`${s.btn} ${s.btnPrimary}`}>
+                  <Send size={17} aria-hidden />
+                  {isArabic ? "كمّل النقاش على Telegram" : "Continue on Telegram"}
                 </a>
               </div>
+            ) : null}
 
-            </form>
-          </div>
+            <button type="submit" disabled={saving || sent} className={`${s.btn} ${s.btnPrimary} ${v.submit}`}>
+              <Send size={18} aria-hidden />
+              {saving
+                ? isArabic ? "جاري الإرسال..." : "Sending..."
+                : isArabic ? "إرسال ومناقشة المشروع" : "Send & discuss the project"}
+            </button>
+
+            <div className={v.channels}>
+              <a href={MESSENGER_URL} target="_blank" rel="noopener noreferrer" className={`${s.btn} ${s.btnGhost}`}>
+                <MessageCircle size={17} aria-hidden />
+                {isArabic ? "مراسلة عبر Facebook" : "Message on Facebook"}
+              </a>
+              <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className={`${s.btn} ${s.btnGhost}`}>
+                <Send size={17} aria-hidden />
+                {isArabic ? "فتح Telegram" : "Open Telegram"}
+              </a>
+            </div>
+          </form>
         </div>
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }
 
@@ -303,14 +258,14 @@ function Field({
 
   return (
     <div>
-      <label htmlFor={id} className="text-xs font-black text-slate-700 dark:text-slate-200">{label}</label>
+      <label htmlFor={id} className={v.label}>{label}</label>
       <input
         id={id}
         required={required}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-950/50 dark:text-white"
+        className={v.input}
       />
     </div>
   );
@@ -331,13 +286,8 @@ function SelectField({
 
   return (
     <div>
-      <label htmlFor={id} className="text-xs font-black text-slate-700 dark:text-slate-200">{label}</label>
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-950/50 dark:text-white"
-      >
+      <label htmlFor={id} className={v.label}>{label}</label>
+      <select id={id} value={value} onChange={(event) => onChange(event.target.value)} className={v.input}>
         {options.map((option) => (
           <option key={option} value={option}>
             {option}

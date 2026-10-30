@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Power, Save, Trash2 } from "lucide-react";
+import { Loader2, Plus, Power, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 
@@ -93,16 +93,24 @@ function FormFooter({ busy, error, label }: { busy: boolean; error: string; labe
 
 // ------------------------------------------------------------------ packages
 
+/** One length the package is sold in, as the form edits it (text fields hold what the admin typed). */
+export type PackageOptionValues = {
+  id?: number;
+  durationMonths: number;
+  durationUnit: DurationUnit;
+  durationLabel: string;
+  price: number | "";
+  renewalPrice: number | null;
+  isActive: boolean;
+};
+
 export type PackageFormValues = {
   id?: number;
   name: string;
   slug: string;
   serviceType: "IPTV" | "VIP";
-  price: number | "";
-  renewalPrice: number | null;
-  durationMonths: number;
-  durationUnit: DurationUnit;
-  durationLabel: string;
+  /** Every length with its own price; VIP packages have exactly one (3 months). */
+  options: PackageOptionValues[];
   description: string;
   specifications: string;
   notes: string | null;
@@ -117,22 +125,158 @@ function customLabel(label: string, months: number) {
   return generated.includes(label.trim()) ? "" : label;
 }
 
-export function PackageForm({ initial, devices, slugLocked }: { initial: PackageFormValues; devices: (Option & { serviceType: string })[]; slugLocked?: boolean }) {
+/** An option row as typed in the form (strings until the server validates them). */
+type OptionRow = { key: string; id?: number; amount: string; unit: DurationUnit; label: string; price: string; renewal: string; isActive: boolean };
+
+let rowSeed = 0;
+
+function optionRow(option: PackageOptionValues): OptionRow {
+  const length = durationValue(option.durationMonths, option.durationUnit);
+
+  return {
+    key: option.id !== undefined ? `id-${option.id}` : `new-${(rowSeed += 1)}`,
+    id: option.id,
+    amount: String(length.value),
+    unit: length.unit,
+    label: customLabel(option.durationLabel, option.durationMonths),
+    price: String(option.price),
+    renewal: option.renewalPrice === null ? "" : String(option.renewalPrice),
+    isActive: option.isActive,
+  };
+}
+
+function blankOption(serviceType: "IPTV" | "VIP"): PackageOptionValues {
+  return serviceType === "VIP"
+    ? { durationMonths: 3, durationUnit: "MONTH", durationLabel: "", price: "", renewalPrice: null, isActive: true }
+    : { durationMonths: 1, durationUnit: "YEAR", durationLabel: "", price: "", renewalPrice: null, isActive: true };
+}
+
+const MAX_ROWS = 12;
+
+/**
+ * The lengths a package is sold in, each with its own price, renewal price
+ * and on/off switch. Add, edit or remove rows; nothing is saved until the
+ * package form is. A removed length that past orders used is kept inactive
+ * by the server so their history stays linked.
+ */
+function OptionsEditor({ vip, rows, setRows }: { vip: boolean; rows: OptionRow[]; setRows: (update: (rows: OptionRow[]) => OptionRow[]) => void }) {
   const { t, language } = useLanguage();
+  const update = (key: string, patch: Partial<OptionRow>) => setRows((list) => list.map((row) => (row.key === key ? { ...row, ...patch } : row)));
+
+  return (
+    <div className="space-y-3" data-testid="package-options">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <p className="text-sm font-bold text-ink">{t("المدد والأسعار", "Lengths and prices")}</p>
+          <p className="text-xs leading-5 text-ink-3">
+            {vip
+              ? t("باقات VIP مدتها 3 أشهر دائمًا، والتجديد كذلك 3 أشهر.", "VIP packages always run 3 months, and so do VIP renewals.")
+              : t("كل مدة بسعرها. العميل يختار المدة قبل الدفع، والطلبات السابقة تحتفظ بمدتها وسعرها.", "Each length has its own price. Customers pick one before paying; past orders keep theirs.")}
+          </p>
+        </div>
+        {vip ? null : (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={rows.length >= MAX_ROWS}
+            onClick={() => setRows((list) => [...list, optionRow({ ...blankOption("IPTV"), durationMonths: 1, durationUnit: "MONTH" })])}
+            data-testid="package-option-add"
+          >
+            <Plus size={15} aria-hidden />
+            {t("إضافة مدة", "Add a length")}
+          </Button>
+        )}
+      </div>
+
+      <ol className="space-y-3">
+        {rows.map((row, index) => {
+          const amount = /^\d+$/.test(row.amount.trim()) ? Number(row.amount.trim()) : row.amount;
+          const preview = vip ? ({ ok: true, months: 3 } as const) : parseDuration(amount, row.unit);
+          const price = /^\d+$/.test(row.price.trim()) ? Number(row.price.trim()) : null;
+          const id = `opt-${row.key}`;
+
+          return (
+            <li key={row.key} className={cn("rounded-2xl border bg-surface-2 p-3 sm:p-4", row.isActive ? "border-line" : "border-dashed border-line opacity-80")} data-testid="package-option" data-option-id={row.id ?? ""}>
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                {vip ? (
+                  <Field label={t("المدة", "Length")} htmlFor={`${id}-length`}>
+                    <Input id={`${id}-length`} value={t("3 أشهر", "3 months")} readOnly aria-readonly />
+                  </Field>
+                ) : (
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
+                    <Field label={t(`المدة ${index + 1}`, `Length ${index + 1}`)} htmlFor={`${id}-amount`} required>
+                      <Input id={`${id}-amount`} inputMode="numeric" dir="ltr" value={row.amount} onChange={(event) => update(row.key, { amount: event.target.value })} data-testid="package-option-duration" />
+                    </Field>
+                    <Field label={t("الوحدة", "Unit")} htmlFor={`${id}-unit`}>
+                      <Select id={`${id}-unit`} value={row.unit} onChange={(event) => update(row.key, { unit: event.target.value === "YEAR" ? "YEAR" : "MONTH" })} data-testid="package-option-unit">
+                        <option value="MONTH">{t("أشهر", "Months")}</option>
+                        <option value="YEAR">{t("سنوات", "Years")}</option>
+                      </Select>
+                    </Field>
+                  </div>
+                )}
+                <Field label={t("السعر (د.ع)", "Price (IQD)")} htmlFor={`${id}-price`} required>
+                  <Input id={`${id}-price`} inputMode="numeric" dir="ltr" value={row.price} onChange={(event) => update(row.key, { price: event.target.value })} data-testid="package-option-price" />
+                </Field>
+                <Field label={t("سعر التجديد (د.ع)", "Renewal price (IQD)")} htmlFor={`${id}-renewal`} hint={t("فارغ = نفس السعر.", "Empty = same price.")}>
+                  <Input id={`${id}-renewal`} inputMode="numeric" dir="ltr" value={row.renewal} onChange={(event) => update(row.key, { renewal: event.target.value })} data-testid="package-option-renewal" />
+                </Field>
+              </div>
+
+              {vip ? null : (
+                <Field label={t("تسمية المدة (اختياري)", "Length label (optional)")} htmlFor={`${id}-label`} className="mt-3">
+                  <Input id={`${id}-label`} value={row.label} onChange={(event) => update(row.key, { label: event.target.value })} placeholder={preview.ok ? formatDuration(preview.months, "ar") : ""} maxLength={40} />
+                </Field>
+              )}
+
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <p className={cn("text-sm", preview.ok ? "text-ink-2" : "font-semibold text-danger")} aria-live="polite" data-testid="package-option-preview">
+                  {preview.ok
+                    ? t(
+                        `${formatDuration(preview.months, "ar")}${price !== null ? ` بسعر ${formatPrice(price, language)} — حوالي ${formatPrice(monthlyPrice(price, preview.months), language)} شهريًا` : ""}`,
+                        `${formatDuration(preview.months, "en")}${price !== null ? ` for ${formatPrice(price, language)} — about ${formatPrice(monthlyPrice(price, preview.months), language)} a month` : ""}`,
+                      )
+                    : preview.error}
+                </p>
+                <div className="flex items-center gap-3">
+                  <Checkbox name={`${id}-active`} checked={row.isActive} onChange={(event) => update(row.key, { isActive: event.target.checked })} label={t("متاحة للبيع", "On sale")} data-testid="package-option-active" />
+                  {vip ? null : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={rows.length <= 1}
+                      onClick={() => setRows((list) => list.filter((item) => item.key !== row.key))}
+                      aria-label={t(`حذف المدة ${index + 1}`, `Remove length ${index + 1}`)}
+                      data-testid="package-option-remove"
+                    >
+                      <Trash2 size={15} aria-hidden />
+                      {t("حذف", "Remove")}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+export function PackageForm({ initial, devices, slugLocked }: { initial: PackageFormValues; devices: (Option & { serviceType: string })[]; slugLocked?: boolean }) {
+  const { t } = useLanguage();
   const toast = useToast();
   const router = useRouter();
   const [serviceType, setServiceType] = useState(initial.serviceType);
-  const startDuration = durationValue(initial.durationMonths, initial.durationUnit);
-  const [amount, setAmount] = useState(String(startDuration.value));
-  const [unit, setUnit] = useState<DurationUnit>(startDuration.unit);
-  const [price, setPrice] = useState(String(initial.price));
+  const [rows, setRows] = useState<OptionRow[]>(() => (initial.options.length ? initial.options : [blankOption(initial.serviceType)]).map(optionRow));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const editing = initial.id !== undefined;
   const vip = serviceType === "VIP";
-  // Live preview with the same rules the server applies.
-  const preview = parseDuration(/^\d+$/.test(amount.trim()) ? Number(amount.trim()) : amount, unit);
-  const previewPrice = /^\d+$/.test(price.trim()) ? Number(price.trim()) : null;
+  // VIP is sold for three months only: one length, whatever was listed before.
+  const shown = vip ? rows.slice(0, 1) : rows;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -141,10 +285,15 @@ export function PackageForm({ initial, devices, slugLocked }: { initial: Package
       name: text(form, "name"),
       slug: text(form, "slug"),
       serviceType,
-      price: priceValue(form.get("price")),
-      // Empty = renewals cost the normal price.
-      renewalPrice: text(form, "renewalPrice") === "" ? null : priceValue(form.get("renewalPrice")),
-      ...(vip ? {} : { durationValue: priceValue(form.get("durationValue")), durationUnit: unit, durationLabel: text(form, "durationLabel") }),
+      // Every length with its own price; the server validates each one.
+      options: shown.map((row) => ({
+        ...(row.id !== undefined ? { id: row.id } : {}),
+        ...(vip ? {} : { durationValue: priceValue(row.amount), durationUnit: row.unit, durationLabel: row.label.trim() }),
+        price: priceValue(row.price),
+        // Empty = renewals of this length cost its normal price.
+        renewalPrice: row.renewal.trim() === "" ? null : priceValue(row.renewal),
+        isActive: row.isActive,
+      })),
       description: text(form, "description"),
       specifications: text(form, "specifications"),
       notes: text(form, "notes") || null,
@@ -201,45 +350,8 @@ export function PackageForm({ initial, devices, slugLocked }: { initial: Package
               <option value="VIP">VIP</option>
             </Select>
           </Field>
-          <Field label={t("السعر (د.ع)", "Price (IQD)")} htmlFor="pkg-price" required hint={t("رقم صحيح بالدينار. الطلبات والاشتراكات السابقة تحتفظ بسعرها ومدتها.", "Whole dinars. Past orders and subscriptions keep their own price and duration.")}>
-            <Input id="pkg-price" name="price" inputMode="numeric" dir="ltr" value={price} onChange={(event) => setPrice(event.target.value)} data-testid="package-price" />
-          </Field>
-          <Field
-            label={t("سعر التجديد (د.ع)", "Renewal price (IQD)")}
-            htmlFor="pkg-renewal-price"
-            hint={vip ? t("سعر طلب تجديد VIP (بدون جهاز). فارغ = نفس السعر العادي.", "Price of a VIP renewal order (no device). Empty = the normal price.") : t("اختياري. فارغ = التجديد بنفس السعر العادي.", "Optional. Empty = renewals cost the normal price.")}
-          >
-            <Input id="pkg-renewal-price" name="renewalPrice" inputMode="numeric" dir="ltr" defaultValue={initial.renewalPrice ?? ""} data-testid="package-renewal-price" />
-          </Field>
-          {vip ? (
-            <p className="rounded-xl bg-white/[0.03] px-3 py-3 text-sm text-ink-3 sm:col-span-2">{t("باقات VIP مدتها 3 أشهر دائمًا، والتجديد كذلك 3 أشهر.", "VIP packages always run 3 months, and so do VIP renewals.")}</p>
-          ) : (
-            <>
-              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
-                <Field label={t("المدة", "Duration")} htmlFor="pkg-duration" required>
-                  <Input id="pkg-duration" name="durationValue" inputMode="numeric" dir="ltr" value={amount} onChange={(event) => setAmount(event.target.value)} data-testid="package-duration" />
-                </Field>
-                <Field label={t("الوحدة", "Unit")} htmlFor="pkg-unit">
-                  <Select id="pkg-unit" value={unit} onChange={(event) => setUnit(event.target.value === "YEAR" ? "YEAR" : "MONTH")} data-testid="package-duration-unit">
-                    <option value="MONTH">{t("أشهر", "Months")}</option>
-                    <option value="YEAR">{t("سنوات", "Years")}</option>
-                  </Select>
-                </Field>
-              </div>
-              <Field label={t("تسمية المدة (اختياري)", "Duration label (optional)")} htmlFor="pkg-label" hint={t("فارغ = تسمية تلقائية مثل «6 أشهر» أو «سنتان».", "Empty = automatic, e.g. “6 أشهر” or “سنتان”.")}>
-                <Input id="pkg-label" name="durationLabel" defaultValue={customLabel(initial.durationLabel, initial.durationMonths)} placeholder={preview.ok ? formatDuration(preview.months, "ar") : ""} maxLength={40} />
-              </Field>
-              <p className={cn("rounded-xl px-3 py-2.5 text-sm sm:col-span-2", preview.ok ? "bg-white/[0.03] text-ink-2" : "bg-danger/10 font-semibold text-danger")} data-testid="package-duration-preview" aria-live="polite">
-                {preview.ok
-                  ? t(
-                      `يشتري العميل ${formatDuration(preview.months, "ar")} (${preview.months} شهر)${previewPrice !== null ? ` بسعر ${formatPrice(previewPrice, language)} — حوالي ${formatPrice(monthlyPrice(previewPrice, preview.months), language)} شهريًا` : ""}.`,
-                      `Customers buy ${formatDuration(preview.months, "en")} (${preview.months} months)${previewPrice !== null ? ` for ${formatPrice(previewPrice, language)} — about ${formatPrice(monthlyPrice(previewPrice, preview.months), language)} a month` : ""}.`,
-                    )
-                  : preview.error}
-              </p>
-            </>
-          )}
         </div>
+        <OptionsEditor vip={vip} rows={shown} setRows={setRows} />
         <Checkbox name="isActive" defaultChecked={initial.isActive} label={t("فعّالة — تظهر للعملاء ويمكن شراؤها", "Active — visible to customers and purchasable")} />
       </Group>
 

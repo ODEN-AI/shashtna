@@ -2,6 +2,7 @@ import { getStore } from "@netlify/blobs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { BLOB_STORES, blobStoreName } from "@/src/lib/blob-stores";
 import { db } from "@/src/prisma/db";
 import { isUnpaid, orderRef } from "@/src/lib/order-status";
 import { checkProofBytes, type ProofType } from "@/src/lib/payment-proof";
@@ -18,7 +19,9 @@ import { logActivity } from "@/src/server/activity";
  * exists. Uploading a proof never changes the order status: staff verify the
  * transfer and mark the order paid themselves.
  */
-const STORE_NAME = "shashtna-payment-proofs";
+// Namespaced per deploy (SHASHTNA_BLOB_NAMESPACE); never falls back to the
+// shared store, because order ids overlap between databases.
+const STORE_NAME = BLOB_STORES.paymentProofs;
 const LOCAL_DIR = path.join(process.cwd(), ".data", "payment-proofs");
 export const PROOF_UPLOADED = "PAYMENT_PROOF_UPLOADED";
 
@@ -31,7 +34,7 @@ type StoredMeta = { contentType: ProofType; uploadedAt: string };
 async function writeProof(orderId: number, bytes: Uint8Array, meta: StoredMeta) {
   if (shouldUseBlobStorage()) {
     const blob = new Blob([bytes.slice().buffer as ArrayBuffer], { type: meta.contentType });
-    await getStore(STORE_NAME).set(key(orderId), blob, { metadata: meta });
+    await getStore(blobStoreName(STORE_NAME)).set(key(orderId), blob, { metadata: meta });
     return;
   }
 
@@ -44,7 +47,7 @@ export async function readPaymentProof(
   orderId: number,
 ): Promise<{ data: ArrayBuffer; contentType: ProofType } | null> {
   if (shouldUseBlobStorage()) {
-    const result = await getStore(STORE_NAME).getWithMetadata(key(orderId), { type: "arrayBuffer" });
+    const result = await getStore(blobStoreName(STORE_NAME)).getWithMetadata(key(orderId), { type: "arrayBuffer" });
 
     if (!result?.data) {
       return null;

@@ -13,6 +13,8 @@ import { logActivity } from "@/src/server/activity";
 import { notify } from "@/src/server/notifications";
 import { normalizeServiceType } from "@/src/server/catalog";
 import { planOrderPrice } from "@/src/lib/catalogue";
+import { resolveOrderOption } from "@/src/lib/package-options";
+import { packageOptions } from "@/src/server/package-options";
 
 export const REQUEST_TYPES = ["NEW", "RENEW", "UPGRADE", "DEVICE_PURCHASE"] as const;
 export type RequestType = (typeof REQUEST_TYPES)[number];
@@ -41,6 +43,7 @@ export function serializeOrder(row: NonNullable<OrderRow>, options: { staff?: bo
     serviceType: String(row.serviceType ?? "IPTV").toUpperCase(),
     serviceName: row.serviceName,
     planSlug: row.planSlug,
+    packageOptionId: row.packageOptionId ?? null,
     price: row.price,
     durationMonths: row.durationMonths,
     durationLabel: row.durationLabel,
@@ -64,6 +67,8 @@ export function serializeOrder(row: NonNullable<OrderRow>, options: { staff?: bo
 export type CreateOrderInput = {
   requestType: unknown;
   planSlug?: unknown;
+  /** The package option (length + price) chosen; without it, the package's default option. */
+  optionId?: unknown;
   deviceId?: unknown;
   subscriptionId?: unknown;
   contactMethod?: unknown;
@@ -96,6 +101,9 @@ function positiveInt(value: unknown) {
  * Creates (or, for a repeated submission, updates) a customer order.
  *
  * Business rules are the ones the site used before the redesign:
+ * - The length and price come from the package option the customer chose
+ *   (one of the package's active options, checked here); without a choice,
+ *   the package's default option. The client never sends the price.
  * - VIP new subscriptions need a compatible, active VIP device; the price is
  *   plan + device.
  * - Renewals cost the package's renewal price when set (VIP), else its price.
@@ -151,6 +159,7 @@ export async function createOrder(
 
     return saveOrder(userId, {
       planSlug: `device:${device.slug}`,
+      packageOptionId: null,
       requestType: "DEVICE_PURCHASE",
       serviceType: "DEVICE",
       serviceName: device.name,
@@ -181,6 +190,14 @@ export async function createOrder(
   }
 
   const serviceType = normalizeServiceType(plan.serviceType);
+
+  const chosen = resolveOrderOption(await packageOptions(plan.id), input.optionId);
+
+  if (!chosen.ok) {
+    return fail(400, chosen.error);
+  }
+
+  const option = chosen.option;
 
   let subscriptionId: number | null = null;
 
@@ -254,9 +271,10 @@ export async function createOrder(
     requestType,
     serviceType,
     serviceName: plan.name,
-    price: planOrderPrice(plan, requestType, deviceFields.devicePrice),
-    durationMonths: plan.durationMonths,
-    durationLabel: plan.durationLabel,
+    packageOptionId: option.id,
+    price: planOrderPrice(option, requestType, deviceFields.devicePrice),
+    durationMonths: option.durationMonths,
+    durationLabel: option.durationLabel,
     subscriptionId,
     ...deviceFields,
     ...common,
@@ -265,6 +283,7 @@ export async function createOrder(
 
 type OrderFields = {
   planSlug: string;
+  packageOptionId?: number | null;
   requestType: string;
   serviceType: string;
   serviceName: string;

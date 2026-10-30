@@ -61,6 +61,7 @@ export async function POST(request: Request) {
     const result = await createOrder(auth.userId, {
       requestType: body.requestType,
       planSlug: body.planSlug,
+      optionId: body.optionId,
       deviceId: body.deviceId,
       subscriptionId: body.subscriptionId,
       contactMethod: body.contactMethod,

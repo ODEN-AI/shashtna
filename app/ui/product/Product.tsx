@@ -17,12 +17,22 @@ import { cn } from "@/app/ui/cn";
 
 export type ProductKind = "iptv" | "vip" | "device" | "player" | "offer";
 
+// Flat service fields: IPTV is cobalt, VIP and its devices are warm black
+// with champagne, the player and offers sit on the neutral surface.
 const STAGE: Record<ProductKind, string> = {
-  iptv: "from-brand-strong via-brand-mid to-brand",
-  vip: "from-vip-1 via-vip-2 to-vip-3",
-  device: "from-navy via-vip-1 to-vip-2",
-  player: "from-navy via-brand-strong to-sky",
-  offer: "from-brand-strong via-navy to-canvas",
+  iptv: "bg-iptv",
+  vip: "bg-vip-field",
+  device: "bg-vip-soft",
+  player: "bg-brand-strong",
+  offer: "bg-surface-2",
+};
+
+const GLYPH_TONE: Record<ProductKind, string> = {
+  iptv: "text-white",
+  vip: "text-vip",
+  device: "text-vip",
+  player: "text-white",
+  offer: "text-ink",
 };
 
 const GLYPH: Record<ProductKind, typeof Tv> = {
@@ -45,22 +55,21 @@ export function ProductEmblem({ kind, className, floating }: { kind: ProductKind
     <div
       aria-hidden
       className={cn(
-        "relative flex aspect-square items-center justify-center rounded-[30%] border border-white/25 bg-gradient-to-br shadow-[0_12px_36px_rgb(25_81_252/0.45)]",
+        "relative flex aspect-square items-center justify-center rounded-[30%] border",
+        kind === "vip" || kind === "device" ? "border-vip/30" : "border-white/20",
         STAGE[kind],
         floating && "animate-float",
         className ?? "w-28",
       )}
     >
-      <span className="absolute inset-0 rounded-[30%] bg-[radial-gradient(55%_55%_at_28%_18%,rgb(203_233_253/0.45),transparent)]" />
-      <span className="absolute inset-[13%] rounded-full border border-glow/35" />
-      <Glyph className="relative h-[40%] w-[40%] text-white" strokeWidth={1.8} />
+      <Glyph className={cn("relative h-[40%] w-[40%]", GLYPH_TONE[kind])} strokeWidth={1.8} />
     </div>
   );
 }
 
 /**
  * The dominant visual band. With an image it fills the stage (cover, or
- * contain for devices/posters) over the product gradient; without one it
+ * contain for devices/posters) over the service field; without one it
  * shows the floating emblem. Children render over the lower edge (badges,
  * name) on a scrim.
  */
@@ -82,8 +91,7 @@ export function ProductStage({
   children?: ReactNode;
 }) {
   return (
-    <div className={cn("relative isolate overflow-hidden bg-gradient-to-br", STAGE[kind], className ?? "aspect-[16/10]")}>
-      <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(70%_60%_at_80%_0%,rgb(203_233_253/0.28),transparent_65%)]" />
+    <div className={cn("relative isolate overflow-hidden", STAGE[kind], className ?? "aspect-[16/10]")}>
       {imageUrl ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -144,7 +152,7 @@ export function FeatureList({ features, max = 3, className }: { features: string
     <ul className={cn("space-y-2", className)}>
       {shown.map((feature) => (
         <li key={feature} className="flex items-start gap-2.5 text-sm leading-6 text-ink-2">
-          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky/20 text-glow">
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-ink">
             <Check size={12} strokeWidth={3} aria-hidden />
           </span>
           <span>{feature}</span>
@@ -163,7 +171,7 @@ export function FeatureChips({ items, className }: { items: string[]; className?
   return (
     <ul className={cn("flex flex-wrap gap-1.5", className)}>
       {items.map((item) => (
-        <li key={item} className="rounded-full border border-line-strong bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-ink-2">
+        <li key={item} className="rounded-full border border-line-strong bg-surface-2 px-2.5 py-1 text-xs font-semibold text-ink-2">
           {item}
         </li>
       ))}
@@ -218,9 +226,9 @@ export function ProductCta({
 }) {
   const classes = cn(
     "group/cta inline-flex h-12 items-center justify-between gap-3 rounded-2xl ps-5 pe-1.5 text-sm font-bold transition active:scale-[0.98]",
-    emphasis === "primary" && "bg-gradient-to-l from-brand to-brand-mid text-white shadow-brand hover:brightness-110",
-    emphasis === "secondary" && "border border-line-strong bg-surface-2 text-ink hover:border-brand/60",
-    emphasis === "light" && "bg-white text-navy shadow-glow hover:bg-glow",
+    emphasis === "primary" && "bg-brand text-white hover:bg-brand-strong",
+    emphasis === "secondary" && "border border-line-strong bg-surface-2 text-ink hover:border-ink-3",
+    emphasis === "light" && "bg-white text-canvas hover:bg-glow",
     className,
   );
   const content = (
@@ -230,7 +238,7 @@ export function ProductCta({
         aria-hidden
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition group-hover/cta:-translate-x-0.5 ltr:group-hover/cta:translate-x-0.5",
-          emphasis === "light" ? "bg-navy text-white" : "bg-white/15",
+          emphasis === "light" ? "bg-canvas text-white" : "bg-white/15",
         )}
       >
         <ArrowLeft size={17} className="ltr:rotate-180" />

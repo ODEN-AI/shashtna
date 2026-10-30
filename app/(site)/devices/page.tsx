@@ -1,9 +1,14 @@
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
+import d from "@/app/components/devices/devices.module.css";
+import { VipDeviceCard } from "@/app/components/devices/VipDeviceCard";
+import s from "@/app/components/home/home.module.css";
 import { LinkButton } from "@/app/ui/Button";
-import { DeviceCard } from "@/app/ui/DeviceCard";
-import { Container, Eyebrow } from "@/app/ui/Page";
+import { cn } from "@/app/ui/cn";
 import { EmptyState, ErrorState } from "@/app/ui/States";
+import { formatPrice } from "@/src/lib/i18n";
 import {
   getActiveDevices,
   getActivePackages,
@@ -20,6 +25,14 @@ export const metadata: Metadata = {
   alternates: { canonical: "/devices" },
 };
 
+// The VIP picture when a device has none of its own.
+const VIP_ART = "/brand/vip-art.jpg";
+
+/**
+ * VIP devices in the site's navy direction, with the VIP chapter's gold:
+ * a head with the lowest device price and Shashtna's VIP art, then one
+ * product card per device. Every name, price and plan comes from the catalogue.
+ */
 export default async function DevicesPage() {
   const { t, lang } = await getI18n();
 
@@ -32,43 +45,71 @@ export default async function DevicesPage() {
     console.error("DEVICES_PAGE_ERROR:", error);
   }
 
-  return (
-    <>
-      <section className="bg-cinema border-b border-line">
-        <Container className="py-14 sm:py-20">
-          <Eyebrow>{t("شاهد على", "Watch on")}</Eyebrow>
-          <h1 className="mt-4 text-balance text-4xl font-bold leading-tight text-ink sm:text-5xl">
-            {t("أجهزة VIP", "VIP devices")}
-          </h1>
-          <p className="mt-5 max-w-2xl text-[15px] leading-8 text-ink-2">
-            {t(
-              "أجهزة مخصصة لباقات VIP. اطلب الجهاز ويا باقة VIP متوافقة، أو اشتريه لوحده.",
-              "Dedicated devices for VIP plans. Order one with a compatible VIP plan, or buy it on its own.",
-            )}
-          </p>
-        </Container>
-      </section>
+  const devices = data?.devices ?? [];
+  // Two devices or fewer get wider cards, so no empty column is left on wide screens.
+  const narrow = devices.length > 0 && devices.length < 3;
+  const deviceFrom = devices.length ? Math.min(...devices.map((device) => device.price)) : null;
+  const headArt = devices.find((device) => device.imageUrl)?.imageUrl ?? VIP_ART;
 
-      <Container className="py-14">
+  return (
+    // -mt-[80px]/pt-[80px]: the navy ground runs up behind the floating header.
+    <div className={`${s.home} -mt-[80px] pt-[80px] pb-16`}>
+      <div className={s.wrap}>
+        <section className={d.head} aria-labelledby="devices-title">
+          <div>
+            <p className={s.kicker} style={{ color: "var(--gold)" }}>
+              {t("لباقات VIP", "For VIP plans")}
+            </p>
+            <h1 id="devices-title" className={d.title}>
+              {t("أجهزة VIP", "VIP devices")}
+            </h1>
+            <p className={d.lead}>
+              {t(
+                "أجهزة مخصصة لباقات VIP. اطلب الجهاز ويا باقة VIP متوافقة، أو اشتريه لوحده.",
+                "Dedicated devices for VIP plans. Order one with a compatible VIP plan, or buy it on its own.",
+              )}
+            </p>
+            <div className={d.headActions}>
+              {deviceFrom !== null ? (
+                <span className={`${d.from} nums`} data-testid="devices-from">
+                  {t(`الأجهزة تبدأ من ${formatPrice(deviceFrom, lang)}.`, `Devices from ${formatPrice(deviceFrom, lang)}.`)}
+                </span>
+              ) : null}
+              <Link href="/plans#vip" className={`${d.btn} ${d.btnGhost}`}>
+                {t("باقات VIP", "VIP plans")}
+                <ArrowLeft size={18} className="ltr:rotate-180" aria-hidden />
+              </Link>
+            </div>
+          </div>
+          <div className={d.headArt}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={headArt} alt="" />
+          </div>
+        </section>
+
         {data === null ? (
-          <ErrorState
-            title={t("تعذر تحميل الأجهزة", "Devices couldn't be loaded")}
-            action={<LinkButton href="/devices" variant="secondary">{t("إعادة المحاولة", "Try again")}</LinkButton>}
-          />
+          <div className={s.section}>
+            <ErrorState
+              title={t("تعذر تحميل الأجهزة", "Devices couldn't be loaded")}
+              action={<LinkButton href="/devices" variant="secondary">{t("إعادة المحاولة", "Try again")}</LinkButton>}
+            />
+          </div>
         ) : data.devices.length === 0 ? (
-          <EmptyState
-            title={t("ماكو أجهزة متوفرة حاليًا", "No devices available right now")}
-            description={t("تكدر تسأل فريقنا عن التوفر.", "Ask our team about availability.")}
-            action={<LinkButton href="/help/contact" variant="secondary">{t("تواصل ويانا", "Contact us")}</LinkButton>}
-          />
+          <div className={s.section}>
+            <EmptyState
+              title={t("ماكو أجهزة متوفرة حاليًا", "No devices available right now")}
+              description={t("تكدر تسأل فريقنا عن التوفر.", "Ask our team about availability.")}
+              action={<LinkButton href="/help/contact" variant="secondary">{t("تواصل ويانا", "Contact us")}</LinkButton>}
+            />
+          </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className={cn(d.grid, narrow && d.gridNarrow)}>
             {data.devices.map((device) => (
-              <DeviceCard key={device.id} device={device} plans={data.plans} lang={lang} />
+              <VipDeviceCard key={device.id} device={device} plans={data.plans} lang={lang} vipArt={VIP_ART} />
             ))}
           </div>
         )}
-      </Container>
-    </>
+      </div>
+    </div>
   );
 }

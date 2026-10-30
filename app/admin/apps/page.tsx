@@ -1101,7 +1101,7 @@ function Field({
         </label>
 
         {hint && (
-          <span className="text-[11px] font-semibold text-slate-400">
+          <span className="text-xs font-semibold text-slate-400">
             {hint}
           </span>
         )}
@@ -1140,12 +1140,12 @@ function AppCard({
 
         <div className="absolute left-4 top-4">
           {app.isActive ? (
-            <span className="flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1.5 text-[11px] font-black text-white">
+            <span className="flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1.5 text-xs font-black text-white">
               <CheckCircle2 size={13} />
               منشور
             </span>
           ) : (
-            <span className="flex items-center gap-1.5 rounded-full bg-slate-800/90 px-3 py-1.5 text-[11px] font-black text-white">
+            <span className="flex items-center gap-1.5 rounded-full bg-slate-800/90 px-3 py-1.5 text-xs font-black text-white">
               <XCircle size={13} />
               مخفي
             </span>

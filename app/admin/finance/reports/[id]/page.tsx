@@ -45,7 +45,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
           <Link href="/admin/finance/reports" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-ink hover:text-ink print:hidden">
             <ArrowRight size={14} className="ltr:rotate-180" aria-hidden /> {t("التقارير", "Reports")}
           </Link>
-          <p className="mt-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-glow">
+          <p className="mt-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-glow">
             <Sparkles size={14} aria-hidden /> Shashtna AI Analyst · {generatorLabel(stored.generator, lang)}
           </p>
           <h1 className="nums mt-2 max-w-4xl text-h2 font-extrabold leading-tight text-ink" dir={stored.lang === "ar" ? "rtl" : "ltr"} data-testid="report-headline">

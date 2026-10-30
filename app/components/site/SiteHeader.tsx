@@ -7,7 +7,6 @@ import {
   Bell,
   ChevronDown,
   CircleUserRound,
-  Headphones,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -16,7 +15,6 @@ import {
 } from "lucide-react";
 
 import { useLanguage } from "@/app/components/LanguageProvider";
-import { buttonClass } from "@/app/ui/Button";
 import { cn } from "@/app/ui/cn";
 import { Logo } from "@/app/ui/Logo";
 
@@ -45,12 +43,14 @@ export async function signOut() {
  * architecture. Digital Services is a separate business surface and lives
  * in the footer, not here. Paths are contracts (mobile deep links, Player
  * config) — labels may change, hrefs may not.
+ *
+ * Each destination appears once: the logo is the way home, the player sits
+ * under "Watch on", and VIP devices is its own item.
  */
 function useNav(): NavGroup[] {
   const { t } = useLanguage();
 
   return [
-    { label: t("الرئيسية", "Home"), href: "/" },
     { label: t("الباقات", "Plans"), href: "/plans" },
     {
       label: t("شاهد على", "Watch on"),
@@ -59,11 +59,9 @@ function useNav(): NavGroup[] {
         { href: "/watch/player", label: "Shashtna Player", description: t("المشغل الرسمي لشاشتنا", "The official Shashtna player") },
         { href: "/apps", label: t("التطبيقات", "Apps"), description: t("روابط التحميل وطريقة الإعداد", "Downloads and setup guides") },
         { href: "/watch", label: t("الأجهزة المدعومة", "Supported devices"), description: t("اختار جهازك وشوف شنو تحتاج", "Pick your device and see what you need") },
-        { href: "/devices", label: t("أجهزة VIP", "VIP devices"), description: t("أجهزة جاهزة لتجربة VIP", "Ready-made devices for VIP") },
       ],
     },
-    { label: t("المشغّل", "Player"), href: "/watch/player" },
-    { label: t("الأجهزة", "Devices"), href: "/devices" },
+    { label: t("أجهزة VIP", "VIP devices"), href: "/devices" },
     {
       label: t("المساعدة", "Help"),
       href: "/help",
@@ -85,15 +83,16 @@ function isActive(pathname: string, href: string) {
   return path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
 }
 
-function DesktopMenu({ group, pathname, topLevel }: { group: NavGroup; pathname: string; topLevel: string[] }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLLIElement>(null);
+/**
+ * One open desktop dropdown at a time (the nav menus and the account menu
+ * share it). Escape closes it and returns focus to its button; a click or
+ * focus outside closes it; so does moving to another page.
+ */
+function useDropdown<T extends HTMLElement>(name: string, openMenu: string | null, setOpenMenu: (name: string | null) => void) {
+  const open = openMenu === name;
+  const ref = useRef<T>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
-  // A dropdown lights up for its own pages, but not for pages that also have
-  // their own top-level item (Player, Devices), so one item is active at a time.
-  const active = group.items
-    ? group.items.some((item) => !topLevel.includes(item.href) && isActive(pathname, item.href))
-    : isActive(pathname, group.href);
 
   useEffect(() => {
     if (!open) {
@@ -102,23 +101,66 @@ function DesktopMenu({ group, pathname, topLevel }: { group: NavGroup; pathname:
 
     const onPointer = (event: PointerEvent) => {
       if (!ref.current?.contains(event.target as Node)) {
-        setOpen(false);
+        setOpenMenu(null);
       }
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setOpen(false);
+        setOpenMenu(null);
+        buttonRef.current?.focus();
+      }
+    };
+    const onFocus = (event: FocusEvent) => {
+      if (!ref.current?.contains(event.target as Node)) {
+        setOpenMenu(null);
       }
     };
 
     document.addEventListener("pointerdown", onPointer);
     document.addEventListener("keydown", onKey);
+    document.addEventListener("focusin", onFocus);
 
     return () => {
       document.removeEventListener("pointerdown", onPointer);
       document.removeEventListener("keydown", onKey);
+      document.removeEventListener("focusin", onFocus);
     };
-  }, [open]);
+  }, [open, setOpenMenu]);
+
+  const button = {
+    ref: buttonRef,
+    type: "button" as const,
+    "aria-expanded": open,
+    "aria-controls": menuId,
+    onClick: () => setOpenMenu(open ? null : name),
+  };
+
+  return { open, ref, menuId, button, close: () => setOpenMenu(null) };
+}
+
+const dropdownPanel =
+  "animate-fade-up absolute top-14 z-50 rounded-[22px] bg-[#0b1738]/95 p-2 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)] ring-1 ring-[rgba(160,190,255,0.14)] backdrop-blur-xl";
+
+// The site's pill controls (the homepage direction): a glowing royal-blue
+// action and quiet translucent rounds for everything else.
+const primaryPill =
+  "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#3d6bff,#1f4fff)] px-5 font-bold text-white shadow-[0_10px_30px_-8px_rgba(31,79,255,0.7)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-8px_rgba(31,79,255,0.85)] active:scale-[0.97]";
+const quietRound =
+  "inline-flex h-11 items-center justify-center rounded-full bg-white/[0.06] text-ink-2 ring-1 ring-[rgba(160,190,255,0.12)] transition hover:bg-white/[0.11] hover:text-ink";
+
+function DesktopMenu({
+  group,
+  pathname,
+  openMenu,
+  setOpenMenu,
+}: {
+  group: NavGroup;
+  pathname: string;
+  openMenu: string | null;
+  setOpenMenu: (name: string | null) => void;
+}) {
+  const { open, ref, menuId, button, close } = useDropdown<HTMLLIElement>(group.href, openMenu, setOpenMenu);
+  const active = group.items ? group.items.some((item) => isActive(pathname, item.href)) : isActive(pathname, group.href);
 
   if (!group.items) {
     return (
@@ -127,8 +169,8 @@ function DesktopMenu({ group, pathname, topLevel }: { group: NavGroup; pathname:
           href={group.href}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "relative inline-flex h-10 items-center whitespace-nowrap rounded-xl px-2.5 text-sm font-semibold transition xl:px-3",
-            active ? "text-ink after:absolute after:inset-x-2.5 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-glow" : "text-ink-2 hover:bg-white/5 hover:text-ink",
+            "relative inline-flex h-11 items-center whitespace-nowrap rounded-full px-4 font-semibold transition",
+            active ? "bg-white/10 text-ink" : "text-ink-2 hover:bg-white/5 hover:text-ink",
           )}
         >
           {group.label}
@@ -140,30 +182,25 @@ function DesktopMenu({ group, pathname, topLevel }: { group: NavGroup; pathname:
   return (
     <li ref={ref} className="relative">
       <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={menuId}
-        onClick={() => setOpen((value) => !value)}
+        {...button}
         className={cn(
-          "inline-flex h-10 items-center gap-1 whitespace-nowrap rounded-xl px-2.5 text-sm font-semibold transition xl:px-3",
-          active || open ? "text-ink" : "text-ink-2 hover:bg-white/5 hover:text-ink",
+          "relative inline-flex h-11 items-center gap-1 whitespace-nowrap rounded-full px-4 font-semibold transition",
+          active || open ? "bg-white/10 text-ink" : "text-ink-2 hover:bg-white/5 hover:text-ink",
         )}
       >
         {group.label}
         <ChevronDown size={15} className={cn("transition", open && "rotate-180")} aria-hidden />
       </button>
       {open ? (
-        <div
-          id={menuId}
-          className="glass-strong animate-fade-up absolute start-0 top-12 z-50 w-80 rounded-2xl p-2"
-        >
+        <div id={menuId} className={cn(dropdownPanel, "start-0 w-80")}>
           <ul>
             {group.items.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="block rounded-xl px-3 py-2.5 transition hover:bg-white/8"
+                  onClick={close}
+                  aria-current={isActive(pathname, item.href) && !item.href.includes("#") ? "page" : undefined}
+                  className="block rounded-2xl px-3 py-2.5 transition hover:bg-white/8"
                 >
                   <span className="block text-sm font-bold text-ink">{item.label}</span>
                   <span className="mt-0.5 block text-xs text-ink-3">{item.description}</span>
@@ -177,6 +214,58 @@ function DesktopMenu({ group, pathname, topLevel }: { group: NavGroup; pathname:
   );
 }
 
+/** Signed-in customers: My Shashtna, the admin console (staff only) and sign out, in one menu. */
+function AccountMenu({
+  user,
+  openMenu,
+  setOpenMenu,
+}: {
+  user: NonNullable<HeaderUser>;
+  openMenu: string | null;
+  setOpenMenu: (name: string | null) => void;
+}) {
+  const { t } = useLanguage();
+  const { open, ref, menuId, button, close } = useDropdown<HTMLDivElement>("account", openMenu, setOpenMenu);
+  const item = "flex h-11 w-full items-center gap-2.5 rounded-xl px-3 text-sm font-semibold transition";
+
+  return (
+    <div ref={ref} className="relative max-sm:hidden">
+      <button {...button} className={primaryPill}>
+        <LayoutDashboard size={16} aria-hidden />
+        {t("حسابي", "My Shashtna")}
+        <ChevronDown size={15} className={cn("transition", open && "rotate-180")} aria-hidden />
+      </button>
+      {open ? (
+        <div id={menuId} className={cn(dropdownPanel, "end-0 w-60")}>
+          <p className="truncate px-3 pb-2 pt-1 text-xs text-ink-3">{user.name}</p>
+          <ul>
+            <li>
+              <Link href="/dashboard" onClick={close} className={cn(item, "text-ink hover:bg-white/8")}>
+                <LayoutDashboard size={16} aria-hidden />
+                {t("حسابي", "My Shashtna")}
+              </Link>
+            </li>
+            {user.isStaff ? (
+              <li>
+                <Link href="/admin" onClick={close} className={cn(item, "text-ink hover:bg-white/8")}>
+                  <ShieldCheck size={16} aria-hidden />
+                  {t("لوحة الإدارة", "Admin console")}
+                </Link>
+              </li>
+            ) : null}
+            <li className="mt-1 border-t border-line pt-1">
+              <button type="button" onClick={signOut} className={cn(item, "text-ink-2 hover:bg-white/8 hover:text-danger")}>
+                <LogOut size={16} aria-hidden />
+                {t("تسجيل الخروج", "Sign out")}
+              </button>
+            </li>
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function LanguageToggle({ className }: { className?: string }) {
   const { language, toggleLanguage } = useLanguage();
 
@@ -185,7 +274,8 @@ function LanguageToggle({ className }: { className?: string }) {
       type="button"
       onClick={toggleLanguage}
       className={cn(
-        "inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-line px-3 text-xs font-bold text-ink-2 transition hover:border-line-strong hover:text-ink",
+        quietRound,
+        "min-w-11 px-3 font-bold",
         className,
       )}
       aria-label={language === "ar" ? "Switch to English" : "التبديل إلى العربية"}
@@ -207,11 +297,11 @@ function NotificationsBell({ unread }: { unread: number }) {
       href="/notifications"
       aria-label={label}
       aria-current={pathname === "/notifications" ? "page" : undefined}
-      className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line text-ink-2 transition hover:border-line-strong hover:text-ink"
+      className={cn(quietRound, "relative w-11")}
     >
       <Bell size={18} aria-hidden />
       {unread ? (
-        <span className="nums absolute -end-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white ring-2 ring-canvas">
+        <span className="nums absolute -end-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-xs font-bold text-white ring-2 ring-canvas">
           {unread > 9 ? "9+" : unread}
         </span>
       ) : null}
@@ -224,7 +314,16 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
   const nav = useNav();
   const { t } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [menuPath, setMenuPath] = useState(pathname);
+
+  // A new page closes whatever menu was open.
+  if (menuPath !== pathname) {
+    setMenuPath(pathname);
+    setOpenMenu(null);
+    setMobileOpen(false);
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -235,16 +334,44 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // While the phone menu is open the page underneath does not scroll, and the
+  // customer bottom bar (which reads data-menu-open) steps aside.
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
 
+    if (mobileOpen) {
+      document.body.dataset.menuOpen = "true";
+    } else {
+      delete document.body.dataset.menuOpen;
+    }
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+      }
+    };
+
+    if (mobileOpen) {
+      document.addEventListener("keydown", onKey);
+    }
+
     return () => {
       document.body.style.overflow = "";
+      delete document.body.dataset.menuOpen;
+      document.removeEventListener("keydown", onKey);
     };
   }, [mobileOpen]);
 
+  const closeMobile = () => setMobileOpen(false);
+  const mobileLink = (active: boolean) =>
+    cn(
+      "flex h-12 items-center rounded-full px-4 text-base font-bold hover:bg-white/5",
+      active ? "bg-white/10 text-ink" : "text-ink",
+    );
+
   return (
-    <header className="sticky top-0 z-40">
+    // Same frame as the homepage sections: 1320px wide, clamp(16px, 3.4vw, 48px) margins.
+    <header className="sticky top-0 z-40 mx-auto w-full max-w-[1320px] px-[clamp(16px,3.4vw,48px)] pt-3">
       {/*
         Background layer. The glass (backdrop-filter) lives on this sibling,
         never on <header> itself: an element with backdrop-filter becomes the
@@ -255,7 +382,7 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
         aria-hidden
         className={cn(
           "pointer-events-none absolute inset-0 -z-10 transition-[background-color,opacity] duration-300",
-          mobileOpen ? "border-b border-line bg-canvas" : scrolled ? "glass-bar" : "bg-transparent",
+          mobileOpen ? "bg-[#040a1c]" : "bg-transparent",
         )}
       />
       <a
@@ -264,60 +391,46 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
       >
         {t("تخطَّ إلى المحتوى", "Skip to content")}
       </a>
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      {/* The floating pill bar; it firms up once the page scrolls under it. */}
+      <div
+        className={cn(
+          "flex h-[68px] w-full items-center justify-between gap-4 rounded-full ps-3 pe-2.5 ring-1 ring-[rgba(160,190,255,0.12)] backdrop-blur-xl transition-[background-color,box-shadow] duration-300",
+          scrolled || mobileOpen ? "bg-[#071131]/90 shadow-[0_14px_40px_-18px_#000]" : "bg-[#071131]/60",
+        )}
+      >
         <div className="flex items-center gap-4 xl:gap-6">
-          <Logo />
+          <Logo plain />
           <nav aria-label={t("القائمة الرئيسية", "Main navigation")} className="hidden lg:block">
             <ul className="flex items-center gap-0.5 xl:gap-1">
               {nav.map((group) => (
-                <DesktopMenu
-                  key={group.href}
-                  group={group}
-                  pathname={pathname}
-                  topLevel={nav.filter((item) => !item.items).map((item) => item.href)}
-                />
+                <DesktopMenu key={group.href} group={group} pathname={pathname} openMenu={openMenu} setOpenMenu={setOpenMenu} />
               ))}
             </ul>
           </nav>
         </div>
 
+        {/* Language, then the account actions, kept apart from the navigation. */}
         <div className="flex items-center gap-2">
           <LanguageToggle className="max-sm:hidden" />
+          <span aria-hidden className="mx-0.5 hidden h-6 w-px bg-white/10 sm:block" />
           {user ? (
             <>
               <NotificationsBell unread={unread} />
-              {user.isStaff ? (
-                <Link href="/admin" className={buttonClass("ghost", "sm", "max-lg:hidden")}>
-                  <ShieldCheck size={16} aria-hidden />
-                  {t("الإدارة", "Admin")}
-                </Link>
-              ) : null}
-              <Link href="/dashboard" className={buttonClass("primary", "sm", "max-sm:hidden")}>
-                <LayoutDashboard size={16} aria-hidden />
-                {t("حسابي", "My Shashtna")}
-              </Link>
-              <button
-                type="button"
-                onClick={signOut}
-                className={buttonClass("ghost", "sm", "max-lg:hidden")}
-                aria-label={t("تسجيل الخروج", "Sign out")}
-              >
-                <LogOut size={16} aria-hidden />
-              </button>
+              <AccountMenu user={user} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </>
           ) : (
             <>
-              <Link href="/login" className={buttonClass("ghost", "sm", "max-sm:hidden")}>
+              <Link href="/login" className="inline-flex h-11 items-center rounded-full px-4 font-semibold text-ink-2 transition hover:bg-white/5 hover:text-ink max-sm:hidden">
                 {t("تسجيل الدخول", "Log in")}
               </Link>
-              <Link href="/plans" className={buttonClass("primary", "sm")}>
+              <Link href="/plans" className={primaryPill}>
                 {t("ابدأ الآن", "Get started")}
               </Link>
             </>
           )}
           <button
             type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line text-ink-2 transition hover:text-ink lg:hidden"
+            className={cn(quietRound, "w-11 lg:hidden")}
             aria-expanded={mobileOpen}
             aria-controls="mobile-menu"
             aria-label={mobileOpen ? t("إغلاق القائمة", "Close menu") : t("فتح القائمة", "Open menu")}
@@ -331,76 +444,93 @@ export function SiteHeader({ user, unread = 0 }: { user: HeaderUser; unread?: nu
       {mobileOpen ? (
         <div
           id="mobile-menu"
-          className="fixed inset-x-0 bottom-0 top-16 z-40 overflow-y-auto border-t border-line bg-canvas px-4 pb-10 pt-4 lg:hidden"
+          className="fixed inset-x-0 bottom-0 top-[86px] z-40 overflow-y-auto bg-[#040a1c] px-4 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-4 lg:hidden"
         >
           <nav aria-label={t("القائمة الرئيسية", "Main navigation")}>
             <ul className="space-y-1">
-              {nav.map((group) => (
-                <li key={group.href}>
-                  <Link
-                    href={group.href}
-                    onClick={() => setMobileOpen(false)}
-                    aria-current={isActive(pathname, group.href) ? "page" : undefined}
-                    className={cn(
-                      "flex h-12 items-center rounded-xl px-3 text-base font-bold hover:bg-surface-2",
-                      isActive(pathname, group.href) ? "bg-brand/15 text-ink" : "text-ink",
+              {nav.map((group) =>
+                group.items ? (
+                  <li key={group.href} className="pt-2">
+                    {/* Help keeps its own page; Watch on's page is "Supported devices" below. */}
+                    {group.items.some((item) => item.href === group.href) ? (
+                      <p className="flex h-10 items-center px-3 text-sm font-bold text-ink-3">{group.label}</p>
+                    ) : (
+                      <Link
+                        href={group.href}
+                        onClick={closeMobile}
+                        aria-current={pathname === group.href ? "page" : undefined}
+                        className={mobileLink(pathname === group.href)}
+                      >
+                        {group.label}
+                      </Link>
                     )}
-                  >
-                    {group.label}
-                  </Link>
-                  {group.items ? (
                     <ul className="mb-2 ms-3 border-s border-line ps-3">
-                      {group.items.map((item) => (
-                        <li key={item.href}>
-                          <Link
-                            href={item.href}
-                            onClick={() => setMobileOpen(false)}
-                            className="flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-ink-2 hover:bg-surface-2 hover:text-ink"
-                          >
-                            {item.label}
-                          </Link>
-                        </li>
-                      ))}
+                      {group.items.map((item) => {
+                        const active = isActive(pathname, item.href) && !item.href.includes("#");
+
+                        return (
+                          <li key={item.href}>
+                            <Link
+                              href={item.href}
+                              onClick={closeMobile}
+                              aria-current={active ? "page" : undefined}
+                              className={cn(
+                                "flex min-h-11 items-center rounded-full px-4 text-sm font-semibold hover:bg-white/5 hover:text-ink",
+                                active ? "bg-white/10 text-ink" : "text-ink-2",
+                              )}
+                            >
+                              {item.label}
+                            </Link>
+                          </li>
+                        );
+                      })}
                     </ul>
-                  ) : null}
-                </li>
-              ))}
+                  </li>
+                ) : (
+                  <li key={group.href}>
+                    <Link
+                      href={group.href}
+                      onClick={closeMobile}
+                      aria-current={isActive(pathname, group.href) ? "page" : undefined}
+                      className={mobileLink(isActive(pathname, group.href))}
+                    >
+                      {group.label}
+                    </Link>
+                  </li>
+                ),
+              )}
             </ul>
           </nav>
 
           <div className="mt-6 space-y-2 border-t border-line pt-6">
             {user ? (
               <>
-                <Link href="/dashboard" onClick={() => setMobileOpen(false)} className={buttonClass("primary", "lg", "w-full")}>
+                <Link href="/dashboard" onClick={closeMobile} className={cn(primaryPill, "h-13 w-full")}>
                   <LayoutDashboard size={18} aria-hidden />
                   {t("حسابي", "My Shashtna")}
                 </Link>
                 {user.isStaff ? (
-                  <Link href="/admin" onClick={() => setMobileOpen(false)} className={buttonClass("secondary", "lg", "w-full")}>
+                  <Link href="/admin" onClick={closeMobile} className={cn(quietRound, "h-13 w-full gap-2 font-bold text-ink")}>
                     <ShieldCheck size={18} aria-hidden />
                     {t("لوحة الإدارة", "Admin console")}
                   </Link>
                 ) : null}
-                <button type="button" onClick={signOut} className={buttonClass("ghost", "lg", "w-full")}>
+                <button type="button" onClick={signOut} className={cn(quietRound, "h-13 w-full gap-2 font-bold")}>
                   <LogOut size={18} aria-hidden />
                   {t("تسجيل الخروج", "Sign out")}
                 </button>
               </>
             ) : (
               <>
-                <Link href="/register" onClick={() => setMobileOpen(false)} className={buttonClass("primary", "lg", "w-full")}>
+                <Link href="/login" onClick={closeMobile} className={cn(quietRound, "h-13 w-full gap-2 font-bold text-ink")}>
+                  {t("تسجيل الدخول", "Sign in")}
+                </Link>
+                <Link href="/register" onClick={closeMobile} className={cn(quietRound, "h-13 w-full gap-2 font-bold")}>
                   <CircleUserRound size={18} aria-hidden />
                   {t("إنشاء حساب", "Create account")}
                 </Link>
-                <Link href="/login" onClick={() => setMobileOpen(false)} className={buttonClass("secondary", "lg", "w-full")}>
-                  {t("تسجيل الدخول", "Sign in")}
-                </Link>
               </>
             )}
-            <Link href="/help/contact" onClick={() => setMobileOpen(false)} className={buttonClass("ghost", "lg", "w-full")}>
-              <Headphones size={18} aria-hidden />
-              {t("الدعم الفني", "Support")}
-            </Link>
             <LanguageToggle className="w-full" />
           </div>
         </div>

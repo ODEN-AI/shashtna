@@ -400,19 +400,19 @@ function BusinessSnapshot({ data, lang }: { data: Dashboard; lang: Lang }) {
             <div className="space-y-4">
               <dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <div className="rounded-2xl bg-white/[0.03] p-3">
-                  <dt className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-3"><span className="h-2 w-2 rounded-[2px] bg-viz-revenue" aria-hidden />{t("الإيرادات", "Revenue")}</dt>
+                  <dt className="flex items-center gap-1.5 text-xs font-semibold text-ink-3"><span className="h-2 w-2 rounded-[2px] bg-viz-revenue" aria-hidden />{t("الإيرادات", "Revenue")}</dt>
                   <dd className="nums mt-1 text-base font-bold text-ink">{money(finance.revenue.amount, lang)}</dd>
                 </div>
                 <div className="rounded-2xl bg-white/[0.03] p-3">
-                  <dt className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-3"><span className="h-2 w-2 rounded-[2px] bg-viz-expenses" aria-hidden />{t("المصاريف", "Expenses")}</dt>
+                  <dt className="flex items-center gap-1.5 text-xs font-semibold text-ink-3"><span className="h-2 w-2 rounded-[2px] bg-viz-expenses" aria-hidden />{t("المصاريف", "Expenses")}</dt>
                   <dd className="nums mt-1 text-base font-bold text-ink">{finance.expenses.recorded ? money(finance.expenses.amount, lang) : t("غير مسجلة", "Not recorded")}</dd>
                 </div>
                 <div className="rounded-2xl bg-white/[0.03] p-3">
-                  <dt className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-3"><span className="h-0.5 w-3 rounded-full bg-viz-profit" aria-hidden />{t("صافي الربح", "Net profit")}</dt>
+                  <dt className="flex items-center gap-1.5 text-xs font-semibold text-ink-3"><span className="h-0.5 w-3 rounded-full bg-viz-profit" aria-hidden />{t("صافي الربح", "Net profit")}</dt>
                   <dd className="nums mt-1 text-base font-bold text-ink">{finance.profit.status === "ok" ? money(finance.profit.amount, lang) : t("غير مكتمل", "Incomplete")}</dd>
                 </div>
               </dl>
-              <p className="text-[11px] text-ink-3">{t("الأرقام أعلاه لهذا الشهر؛ الرسم لآخر 30 يوم.", "Figures above are this month; the chart covers the last 30 days.")}</p>
+              <p className="text-xs text-ink-3">{t("الأرقام أعلاه لهذا الشهر؛ الرسم لآخر 30 يوم.", "Figures above are this month; the chart covers the last 30 days.")}</p>
               <TrendChart
                 data={finance.trend.points.map((point) => ({ ...point, label: bucketLabel(point.key, "day", lang) }))}
                 showProfit={finance.expenses.recorded}
@@ -496,7 +496,7 @@ function CustomerSnapshot({ data, lang, className }: { data: Dashboard; lang: La
 function Figure({ label, value, tone }: { label: string; value: number | null; tone?: "warning" }) {
   return (
     <div className="rounded-2xl bg-white/[0.03] p-3">
-      <dt className="text-[11px] font-semibold text-ink-3">{label}</dt>
+      <dt className="text-xs font-semibold text-ink-3">{label}</dt>
       <dd className={cn("nums mt-1 text-xl font-bold", value === null ? "text-ink-3" : tone === "warning" && value ? "text-warning" : "text-ink")}>{value ?? "—"}</dd>
     </div>
   );

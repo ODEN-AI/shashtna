@@ -75,7 +75,7 @@ export default async function Customer360Page({ params }: { params: Promise<{ id
       <header className="bg-finance-hero relative overflow-hidden rounded-[2rem] border border-white/12 p-5 sm:p-7" data-testid="c360-identity">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white/70">
               <UserRound size={13} aria-hidden /> Customer 360 · <span className="nums">#{customer.id}</span>
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -179,7 +179,7 @@ export default async function Customer360Page({ params }: { params: Promise<{ id
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-[11px] text-ink-3">{t("هذه البيانات لا تُحمَّل لدورك.", "This data isn't loaded for your role.")}</p>
+              <p className="mt-3 text-xs text-ink-3">{t("هذه البيانات لا تُحمَّل لدورك.", "This data isn't loaded for your role.")}</p>
             </SectionCard>
           ) : null}
         </div>
@@ -375,7 +375,7 @@ async function Orders({ data }: { data: Customer360 }) {
       )}
       {orders.ok && orders.data.length > 10 ? <p className="mt-2 text-xs text-ink-3">{t(`و ${orders.data.length - 10} طلب أقدم`, `and ${orders.data.length - 10} older orders`)}</p> : null}
       {data.can("orders") ? (
-        <p className="mt-3 text-[11px] text-ink-3">
+        <p className="mt-3 text-xs text-ink-3">
           <Workflow size={11} className="me-1 inline" aria-hidden />
           {t("تغيير حالة الطلب والتحقق من الدفع يتم من صفحة الطلب أو مركز العمليات.", "Status changes and payment checks happen on the order page or in the Operations Center.")}
         </p>

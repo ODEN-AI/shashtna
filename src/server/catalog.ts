@@ -1,16 +1,31 @@
 import { db } from "@/src/prisma/db";
+import { defaultOption } from "@/src/lib/package-options";
 import { safeHref } from "@/src/lib/safe-href";
+import { optionsByPackage } from "@/src/server/package-options";
+
+/** One length a package is sold in, with its own price. */
+export type CatalogOption = {
+  id: number;
+  durationMonths: number;
+  durationLabel: string;
+  price: number;
+  /** Price of a renewal order for this length; null = same as price. */
+  renewalPrice: number | null;
+};
 
 export type CatalogPackage = {
   id: number;
   name: string;
   slug: string;
   serviceType: "IPTV" | "VIP";
+  /** price, renewalPrice and duration* are the package's default option (its shortest one). */
   price: number;
   /** Price of a renewal order; null = same as price. */
   renewalPrice: number | null;
   durationMonths: number;
   durationLabel: string;
+  /** Every length on sale, shortest first (at least one). */
+  options: CatalogOption[];
   description: string;
   features: string[];
   notes: string | null;
@@ -77,23 +92,41 @@ export async function getActivePackages(): Promise<CatalogPackage[]> {
     db.orm.public.Package.where({ isActive: true }).all(),
     salesByPackageName(),
   ]);
+  const optionMap = await optionsByPackage(packages.map((pkg) => pkg.id));
 
-  const mapped = packages.map((pkg) => ({
-    id: pkg.id,
-    name: pkg.name,
-    slug: pkg.slug,
-    serviceType: normalizeServiceType(pkg.serviceType),
-    price: pkg.price,
-    renewalPrice: pkg.renewalPrice ?? null,
-    durationMonths: pkg.durationMonths,
-    durationLabel: pkg.durationLabel,
-    description: pkg.description,
-    features: splitLines(pkg.specifications),
-    notes: pkg.notes,
-    imageUrl: safeHref(pkg.imageUrl),
-    salesCount: sales.get(pkg.name.trim()) ?? 0,
-    isPopular: false,
-  }));
+  const mapped = packages.flatMap((pkg) => {
+    const onSale = (optionMap.get(pkg.id) ?? []).filter((option) => option.isActive);
+    const main = defaultOption(onSale);
+
+    // A package with no length on sale can't be bought: it isn't listed.
+    if (!main) return [];
+
+    return [
+      {
+        id: pkg.id,
+        name: pkg.name,
+        slug: pkg.slug,
+        serviceType: normalizeServiceType(pkg.serviceType),
+        price: main.price,
+        renewalPrice: main.renewalPrice,
+        durationMonths: main.durationMonths,
+        durationLabel: main.durationLabel,
+        options: onSale.map((option) => ({
+          id: option.id,
+          durationMonths: option.durationMonths,
+          durationLabel: option.durationLabel,
+          price: option.price,
+          renewalPrice: option.renewalPrice,
+        })),
+        description: pkg.description,
+        features: splitLines(pkg.specifications),
+        notes: pkg.notes,
+        imageUrl: safeHref(pkg.imageUrl),
+        salesCount: sales.get(pkg.name.trim()) ?? 0,
+        isPopular: false,
+      },
+    ];
+  });
 
   // One "most popular" badge per service type, only when there are real sales.
   for (const type of ["IPTV", "VIP"] as const) {
@@ -189,4 +222,11 @@ export function platformsOf(apps: CatalogApp[]) {
   }
 
   return [...map.entries()].map(([platform, items]) => ({ platform, apps: items }));
+}
+
+// Platform names as customers say them (the catalogue stores codes such as ANDROID).
+const PLATFORM_NAMES: Record<string, string> = { ANDROID_TV: "Android TV", ANDROID: "Android", IOS: "iOS", WINDOWS: "Windows" };
+
+export function platformName(platform: string) {
+  return PLATFORM_NAMES[platform.toUpperCase().replace(/[\s-]+/g, "_")] ?? platform;
 }

@@ -4,3 +4,5 @@ src/prisma/ops.json linguist-generated
 src/prisma/migration.json linguist-generated
 migrations/snapshots/**/contract.json linguist-generated
 migrations/snapshots/**/contract.d.ts linguist-generated
+# Compared byte for byte with scripts/console-routes.ts output (tests/console-contract.test.ts).
+shells/mobile/android/app/src/main/assets/console-routes.txt text eol=lf

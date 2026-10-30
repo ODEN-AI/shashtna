@@ -1,0 +1,232 @@
+[
+  {
+    "id": "table.packageOption",
+    "label": "Create table \"packageOption\"",
+    "summary": "Creates table \"packageOption\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "packageOption"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"packageOption\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"packageOption\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"packageOption\"",
+        "sql": "CREATE TABLE \"public\".\"packageOption\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"durationLabel\" text NOT NULL,\n  \"durationMonths\" int4 NOT NULL,\n  \"durationUnit\" text DEFAULT 'MONTH' NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"packageId\" int4 NOT NULL,\n  \"price\" int4 NOT NULL,\n  \"renewalPrice\" int4,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"packageOption\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"packageOption\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.packageOptionId",
+    "label": "Add column \"packageOptionId\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "packageOptionId",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"packageOptionId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "packageOptionId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"packageOptionId\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"packageOptionId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"packageOptionId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "packageOptionId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.packageOption.packageOption_packageId_durationMonths_key",
+    "label": "Add unique constraint on \"packageOption\" (packageId, durationMonths)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "packageOption_packageId_durationMonths_key",
+        "table": "packageOption"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"packageOption_packageId_durationMonths_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "packageOption_packageId_durationMonths_key",
+          "public",
+          "\"public\".\"packageOption\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"packageOption_packageId_durationMonths_key\"",
+        "sql": "ALTER TABLE \"public\".\"packageOption\" ADD CONSTRAINT \"packageOption_packageId_durationMonths_key\" UNIQUE (\"packageId\", \"durationMonths\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"packageOption_packageId_durationMonths_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "packageOption_packageId_durationMonths_key",
+          "public",
+          "\"public\".\"packageOption\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.packageOption.packageOption_packageId_idx_51f866f4",
+    "label": "Create index \"packageOption_packageId_idx_51f866f4\" on \"packageOption\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "packageOption_packageId_idx_51f866f4",
+        "table": "packageOption"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"packageOption_packageId_idx_51f866f4\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"packageOption_packageId_idx_51f866f4\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"packageOption_packageId_idx_51f866f4\"",
+        "sql": "CREATE INDEX \"packageOption_packageId_idx_51f866f4\" ON \"public\".\"packageOption\" (\"packageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"packageOption_packageId_idx_51f866f4\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"packageOption_packageId_idx_51f866f4\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.packageOption.packageOption_packageId_fkey",
+    "label": "Add foreign key \"packageOption_packageId_fkey\" on \"packageOption\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "packageOption_packageId_fkey",
+        "table": "packageOption"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"packageOption_packageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "packageOption_packageId_fkey",
+          "public",
+          "\"public\".\"packageOption\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"packageOption_packageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"packageOption\"\nADD CONSTRAINT \"packageOption_packageId_fkey\"\nFOREIGN KEY (\"packageId\")\nREFERENCES \"public\".\"package\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"packageOption_packageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "packageOption_packageId_fkey",
+          "public",
+          "\"public\".\"packageOption\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "data.public.packageOption.backfill_from_package",
+    "label": "Give every existing package one option with its current length and prices",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "packageOption"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "packages without an option get one copied from their length, label, price and renewal price",
+        "sql": "INSERT INTO \"public\".\"packageOption\" (\"packageId\", \"durationMonths\", \"durationUnit\", \"durationLabel\", \"price\", \"renewalPrice\", \"isActive\", \"createdAt\", \"updatedAt\") SELECT p.\"id\", p.\"durationMonths\", p.\"durationUnit\", p.\"durationLabel\", p.\"price\", p.\"renewalPrice\", true, now(), now() FROM \"public\".\"package\" p WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"packageOption\" o WHERE o.\"packageId\" = p.\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every package has an option with its own length and price",
+        "sql": "SELECT NOT EXISTS (SELECT 1 FROM \"public\".\"package\" p WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"packageOption\" o WHERE o.\"packageId\" = p.\"id\" AND o.\"durationMonths\" = p.\"durationMonths\" AND o.\"price\" = p.\"price\")) AS \"result\""
+      }
+    ]
+  }
+]

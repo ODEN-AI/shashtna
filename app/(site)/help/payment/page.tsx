@@ -33,7 +33,7 @@ export default async function PaymentPage() {
           "Payment at Shashtna is by manual transfer: you send the order amount, upload a screenshot as proof, and our team reviews it before activating your subscription.",
         )}
       />
-      <Container className="grid gap-8 py-14 lg:grid-cols-[1.3fr_1fr]">
+      <Container className="grid gap-8 pt-7 lg:grid-cols-[1.3fr_1fr]">
         <div className="space-y-8">
           <section className="surface rounded-panel p-6 sm:p-8">
             <h2 className="text-xl font-bold text-ink">{t("مراحل الطلب", "Order stages")}</h2>

@@ -126,9 +126,9 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
                   <details className="group" data-testid="audit-row" data-action={event.action}>
                     <summary className="cursor-pointer list-none text-ink">
                       {event.summary}
-                      <span className="nums block text-[11px] text-ink-3" dir="ltr">{event.action}{event.entityId ? ` · ${event.entityType} #${event.entityId}` : ""}</span>
+                      <span className="nums block text-xs text-ink-3" dir="ltr">{event.action}{event.entityId ? ` · ${event.entityType} #${event.entityId}` : ""}</span>
                     </summary>
-                    {event.details ? <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-white/[0.03] p-2 text-[11px] leading-5 text-ink-2" dir="ltr" data-testid="audit-details">{event.details}</pre> : null}
+                    {event.details ? <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-white/[0.03] p-2 text-xs leading-5 text-ink-2" dir="ltr" data-testid="audit-details">{event.details}</pre> : null}
                   </details>
                 ),
               },

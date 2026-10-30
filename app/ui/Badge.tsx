@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "./cn";
 
-export type Tone = "neutral" | "brand" | "success" | "warning" | "danger" | "info" | "glow";
+export type Tone = "neutral" | "brand" | "success" | "warning" | "danger" | "info" | "glow" | "vip";
 
 const tones: Record<Tone, string> = {
   neutral: "border-line-strong bg-surface-3 text-ink-2",
@@ -12,7 +12,13 @@ const tones: Record<Tone, string> = {
   danger: "border-danger/30 bg-danger/10 text-danger",
   info: "border-info/30 bg-info/10 text-info",
   glow: "border-glow/30 bg-glow/10 text-glow",
+  vip: "border-vip/35 bg-vip/10 text-vip",
 };
+
+/** The service's own badge tone: IPTV is brand blue, VIP is champagne. */
+export function serviceTone(serviceType: string | null | undefined): Tone {
+  return String(serviceType ?? "").toUpperCase() === "VIP" ? "vip" : "brand";
+}
 
 export function Badge({
   tone = "neutral",

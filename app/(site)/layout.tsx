@@ -17,10 +17,11 @@ export default async function SiteLayout({
   return (
     <div className="flex min-h-screen flex-col overflow-x-clip">
       <SiteHeader user={user ? { name: user.name, isStaff: user.isStaff } : null} unread={unread} />
-      <main id="main" className={user ? "flex-1 pb-safe lg:pb-0" : "flex-1"}>
+      {/* The footer keeps the room under the page for the bottom navigation. */}
+      <main id="main" className="flex-1">
         {children}
       </main>
-      <SiteFooter />
+      <SiteFooter bottomNav={Boolean(user)} />
       {user ? <CustomerBottomNav /> : null}
       <EntryExperience />
     </div>

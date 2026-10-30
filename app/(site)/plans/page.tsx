@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { Crown, Info, Tv } from "lucide-react";
+import Link from "next/link";
 
+import s from "@/app/components/home/home.module.css";
+import { PlanCards } from "@/app/components/plans/PlanCards";
 import { LinkButton } from "@/app/ui/Button";
-import { PackageCard } from "@/app/ui/PackageCard";
-import { Container, Eyebrow, SectionHeading } from "@/app/ui/Page";
-import { EmptyState, ErrorState, Notice } from "@/app/ui/States";
+import { EmptyState, ErrorState } from "@/app/ui/States";
 import { FAQ } from "@/src/content/help";
 import { formatPrice } from "@/src/lib/i18n";
-import { formatDuration, monthlyPrice } from "@/src/lib/subscription-duration";
-import { getActivePackages, type CatalogPackage } from "@/src/server/catalog";
+import { getActiveDevices, getActivePackages, type CatalogDevice, type CatalogPackage } from "@/src/server/catalog";
 import { getI18n } from "@/src/server/i18n";
 
 export const dynamic = "force-dynamic";
@@ -19,202 +18,194 @@ export const metadata: Metadata = {
   alternates: { canonical: "/plans" },
 };
 
+// The VIP picture when a VIP package has no image of its own.
+const VIP_ART = "/brand/vip-art.jpg";
+
 function positiveId(value: unknown) {
   const number = Number(value);
   return Number.isInteger(number) && number > 0 ? number : null;
 }
 
+/** Cheapest active device compatible with each VIP package (display only). */
+function cheapestDeviceByPackage(devices: CatalogDevice[]) {
+  const cheapest = new Map<number, number>();
+
+  for (const device of devices) {
+    for (const packageId of device.packageIds) {
+      const current = cheapest.get(packageId);
+      if (current === undefined || device.price < current) cheapest.set(packageId, device.price);
+    }
+  }
+
+  return cheapest;
+}
+
+/**
+ * The plans page in the site's navy direction. IPTV and VIP are separate
+ * services, so each has its own chapter and its own cards, never mixed.
+ * Every name, image, price and duration comes from the catalogue.
+ */
 export default async function PlansPage({ searchParams }: { searchParams: Promise<{ renew?: string; upgrade?: string }> }) {
   const [{ t, lang }, params] = await Promise.all([getI18n(), searchParams]);
+  // A card opens the plan's details, whose "Subscribe now" goes to checkout.
   // Renewals and upgrades start on the subscription page and pick the plan
-  // here; checkout (which checks ownership) receives both.
+  // here; both carry through to checkout (which checks ownership).
   const renewId = positiveId(params.renew);
   const upgradeId = positiveId(params.upgrade);
-  const checkoutHref = (pkg: CatalogPackage) =>
-    `/checkout?plan=${encodeURIComponent(pkg.slug)}${renewId ? `&renew=${renewId}` : upgradeId ? `&upgrade=${upgradeId}` : ""}`;
+  const detailsHref = (pkg: CatalogPackage) =>
+    `/plans/${encodeURIComponent(pkg.slug)}${renewId ? `?renew=${renewId}` : upgradeId ? `?upgrade=${upgradeId}` : ""}`;
 
   let packages: CatalogPackage[] | null = null;
+  let devices: CatalogDevice[] = [];
 
   try {
-    packages = await getActivePackages();
+    [packages, devices] = await Promise.all([getActivePackages(), getActiveDevices()]);
   } catch (error) {
     console.error("PLANS_PAGE_ERROR:", error);
   }
 
-  const groups = packages
-    ? [
-        {
-          key: "iptv",
-          icon: <Tv size={20} aria-hidden />,
-          title: t("باقات IPTV", "IPTV plans"),
-          description: t(
-            "قنوات رياضية وترفيهية وأفلام ومسلسلات عبر الإنترنت، تستخدمها على جهازك والتطبيق المناسب إلك. بعد التفعيل تستلم اسم مستخدم وكلمة مرور بحسابك.",
-            "Sports and entertainment channels, films and series online, on your own device and app. After activation you get a username and password in your account.",
-          ),
-          items: packages.filter((pkg) => pkg.serviceType === "IPTV"),
-        },
-        {
-          key: "vip",
-          icon: <Crown size={20} aria-hidden />,
-          title: t("باقات VIP", "VIP plans"),
-          description: t(
-            "تجربة مشاهدة مميزة مع جهاز VIP مخصص. عند الطلب تختار الجهاز المتوافق، وسعر الطلب يشمل الباقة والجهاز.",
-            "A premium experience with a dedicated VIP device. When ordering you pick a compatible device, and the order price covers the plan and the device.",
-          ),
-          items: packages.filter((pkg) => pkg.serviceType === "VIP"),
-        },
-      ]
-    : [];
-
+  const iptv = packages?.filter((pkg) => pkg.serviceType === "IPTV") ?? [];
+  const vip = packages?.filter((pkg) => pkg.serviceType === "VIP") ?? [];
+  const deviceFrom = cheapestDeviceByPackage(devices);
   const paymentFaq = FAQ.filter((item) => item.topic === "payment" || item.id === "activation");
+  const lowest = (list: CatalogPackage[]) => (list.length ? Math.min(...list.map((pkg) => pkg.price)) : null);
+  const card = (pkg: CatalogPackage) => ({
+    id: pkg.id,
+    name: pkg.name,
+    slug: pkg.slug,
+    price: pkg.price,
+    renewalPrice: pkg.renewalPrice,
+    durationMonths: pkg.durationMonths,
+    imageUrl: pkg.imageUrl,
+    href: detailsHref(pkg),
+    deviceFrom: deviceFrom.get(pkg.id) ?? null,
+    options: pkg.options,
+  });
 
   return (
-    <>
-      <section className="bg-cinema border-b border-line">
-        <Container className="py-14 text-center sm:py-20">
-          <Eyebrow>{t("باقات شاشتنا", "Shashtna plans")}</Eyebrow>
-          <h1 className="mx-auto mt-4 max-w-3xl text-balance text-4xl font-bold leading-tight text-ink sm:text-5xl">
-            {t("اختار الاشتراك المناسب إلك", "Choose the subscription that fits you")}
+    // -mt-[80px]/pt-[80px]: the navy ground runs up behind the floating header.
+    <div className={`${s.home} -mt-[80px] pt-[80px] pb-16`}>
+      <section className={s.wrap} aria-labelledby="plans-title">
+        <div className={s.pageHead}>
+          <p className={s.kicker}>{t("الباقات والأسعار", "Plans and prices")}</p>
+          <h1 id="plans-title" className={s.h1}>
+            {t("اختار باقتك", "Choose your plan")}
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-[15px] leading-8 text-ink-2">
+          <p className={`${s.lead} ${s.heroLead}`}>
             {t(
-              "كل الأسعار بالدينار العراقي وواضحة قبل الطلب. بعد تأكيد الطلب تدفع بالتحويل من حسابك وترفع إثبات الدفع.",
-              "All prices are in Iraqi dinars and shown before you order. After confirming, you pay by transfer from your account and upload the proof.",
+              "عدنا خدمتين منفصلتين: IPTV تشتغل على جهازك الحالي، وVIP تجي ويا جهاز مخصص. كل الأسعار بالدينار العراقي، والسعر اللي تشوفه هو اللي تحوّله.",
+              "We offer two separate services: IPTV runs on the device you already have, and VIP comes with a dedicated device. All prices are in Iraqi dinars, and the price you see is what you transfer.",
             )}
           </p>
           {renewId || upgradeId ? (
-            <Notice tone="info" className="mx-auto mt-6 max-w-xl text-start">
+            <p className={s.notice} role="status">
               {upgradeId
                 ? t("اختار الباقة الجديدة لترقية اشتراكك.", "Choose the new plan for your upgrade.")
                 : t("اختار مدة التجديد لاشتراكك.", "Choose the renewal plan for your subscription.")}
-            </Notice>
+            </p>
           ) : null}
-          {packages && packages.length ? (
-            <nav className="mt-8 flex justify-center gap-2" aria-label={t("أنواع الباقات", "Plan types")}>
-              {groups
-                .filter((group) => group.items.length)
-                .map((group) => (
-                  <LinkButton key={group.key} href={`#${group.key}`} variant="secondary" size="sm">
-                    {group.icon}
-                    {group.title}
-                  </LinkButton>
-                ))}
+          {iptv.length && vip.length ? (
+            <nav className={s.serviceSwitch} aria-label={t("الخدمات", "Services")}>
+              <a href="#iptv" className={s.pricePill}>
+                <span className={`${s.priceTag} nums`}>{t(`من ${formatPrice(lowest(iptv) ?? 0, lang)}`, `From ${formatPrice(lowest(iptv) ?? 0, lang)}`)}</span>
+                <span>
+                  <b>IPTV</b>
+                  <small>{t("على جهازك الحالي", "On the device you have")}</small>
+                </span>
+              </a>
+              <a href="#vip" className={s.pricePill}>
+                <span className={`${s.priceTag} ${s.priceTagVip} nums`}>{t(`من ${formatPrice(lowest(vip) ?? 0, lang)}`, `From ${formatPrice(lowest(vip) ?? 0, lang)}`)}</span>
+                <span>
+                  <b>VIP</b>
+                  <small>{t("ويا جهاز مخصص", "With a dedicated device")}</small>
+                </span>
+              </a>
             </nav>
           ) : null}
-        </Container>
+        </div>
       </section>
 
-      <Container className="py-14">
-        {packages === null ? (
+      {packages === null ? (
+        <div className={`${s.wrap} ${s.section}`}>
           <ErrorState
             title={t("تعذر تحميل الباقات", "Plans couldn't be loaded")}
             description={t("صار خطأ مؤقت. حدّث الصفحة بعد شوية.", "A temporary error occurred. Refresh the page shortly.")}
             action={<LinkButton href="/plans" variant="secondary">{t("إعادة المحاولة", "Try again")}</LinkButton>}
           />
-        ) : packages.length === 0 ? (
+        </div>
+      ) : packages.length === 0 ? (
+        <div className={`${s.wrap} ${s.section}`}>
           <EmptyState
             title={t("ماكو باقات منشورة حاليًا", "No plans are published right now")}
             description={t("راح تظهر الباقات هنا أول ما تنشر.", "Plans will appear here as soon as they're published.")}
             action={<LinkButton href="/help/contact" variant="secondary">{t("تواصل ويانا", "Contact us")}</LinkButton>}
           />
-        ) : (
-          <div className="space-y-20">
-            {groups
-              .filter((group) => group.items.length)
-              .map((group) => (
-                <section key={group.key} id={group.key} className="scroll-mt-24">
-                  <div className="flex items-start gap-4">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface-2 text-glow">
-                      {group.icon}
-                    </span>
-                    <div>
-                      <h2 className="text-2xl font-bold text-ink sm:text-3xl">{group.title}</h2>
-                      <p className="mt-2 max-w-3xl text-sm leading-7 text-ink-2">{group.description}</p>
-                    </div>
+        </div>
+      ) : (
+        <>
+          {iptv.length ? (
+            <section id="iptv" aria-labelledby="iptv-heading" className={`${s.wrap} scroll-mt-24`} style={{ marginTop: 28 }}>
+              <div className={`${s.chapter} ${s.chapterIptv}`}>
+                <div className={s.chapterHead}>
+                  <div>
+                    <h2 id="iptv-heading" className={s.chapterTitle}>
+                      IPTV
+                    </h2>
+                    <p className={s.lead} style={{ marginTop: 14 }}>
+                      {t(
+                        "قنوات وأفلام ومسلسلات على التلفزيون أو الموبايل اللي عندك. بعد التفعيل تستلم اسم مستخدم وكلمة مرور بحسابك.",
+                        "Channels, films and series on the TV or phone you already have. After activation you get a username and password in your account.",
+                      )}
+                    </p>
                   </div>
-                  <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                    {group.items.map((pkg) => (
-                      <PackageCard
-                        key={pkg.id}
-                        pkg={pkg}
-                        lang={lang}
-                        maxFeatures={8}
-                        href={checkoutHref(pkg)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))}
-
-            <section aria-labelledby="compare-heading">
-              <SectionHeading
-                eyebrow={t("المقارنة", "Compare")}
-                title={<span id="compare-heading">{t("كل الباقات جنب بعض", "All plans side by side")}</span>}
-              />
-              <div className="surface mt-8 overflow-x-auto rounded-card">
-                <table className="w-full min-w-[720px] text-sm">
-                  <thead>
-                    <tr className="border-b border-line text-xs text-ink-3">
-                      <th scope="col" className="px-4 py-3 text-start font-semibold">{t("الباقة", "Plan")}</th>
-                      <th scope="col" className="px-4 py-3 text-start font-semibold">{t("النوع", "Type")}</th>
-                      <th scope="col" className="px-4 py-3 text-start font-semibold">{t("المدة", "Duration")}</th>
-                      <th scope="col" className="px-4 py-3 text-start font-semibold">{t("السعر", "Price")}</th>
-                      <th scope="col" className="px-4 py-3 text-start font-semibold">{t("يعادل شهريًا", "Per month")}</th>
-                      <th scope="col" className="px-4 py-3 text-start font-semibold">{t("جهاز VIP", "VIP device")}</th>
-                      <th scope="col" className="px-4 py-3" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {packages.map((pkg) => (
-                      <tr key={pkg.id} className="border-b border-line/70 last:border-0">
-                        <th scope="row" className="px-4 py-3.5 text-start font-bold text-ink">{pkg.name}</th>
-                        <td className="px-4 py-3.5 text-ink-2">{pkg.serviceType}</td>
-                        <td className="nums px-4 py-3.5 text-ink-2" data-testid="compare-duration" data-months={pkg.durationMonths}>{formatDuration(pkg.durationMonths, lang)}</td>
-                        <td className="nums px-4 py-3.5 font-semibold text-ink" data-testid="compare-price">
-                          {formatPrice(pkg.price, lang)}
-                          {pkg.renewalPrice !== null && pkg.renewalPrice !== pkg.price ? (
-                            <span className="block text-xs font-normal text-ink-3" data-testid="compare-renewal-price">{t("التجديد: ", "Renewal: ")}{formatPrice(pkg.renewalPrice, lang)}</span>
-                          ) : null}
-                        </td>
-                        <td className="nums px-4 py-3.5 text-ink-3">{formatPrice(monthlyPrice(pkg.price, pkg.durationMonths), lang)}</td>
-                        <td className="px-4 py-3.5 text-ink-2">
-                          {pkg.serviceType === "VIP" ? t("مطلوب — يُختار عند الطلب", "Required — chosen at checkout") : "—"}
-                        </td>
-                        <td className="px-4 py-3.5 text-end">
-                          <LinkButton href={checkoutHref(pkg)} size="sm" variant="secondary">
-                            {t("اختيار", "Choose")}
-                          </LinkButton>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                </div>
+                <PlanCards lang={lang} service="IPTV" plans={iptv.map(card)} vipArt={VIP_ART} />
               </div>
-              <Notice tone="info" className="mt-4">
-                <span className="inline-flex items-start gap-2">
-                  <Info size={16} className="mt-1 shrink-0" aria-hidden />
-                  {t(
-                    "سعر باقات VIP الظاهر للباقة فقط؛ عند الطلب ينضاف سعر جهاز VIP اللي تختاره.",
-                    "VIP prices shown are for the plan only; the price of the VIP device you choose is added at checkout.",
-                  )}
-                </span>
-              </Notice>
             </section>
+          ) : null}
 
-            <section>
-              <SectionHeading eyebrow={t("قبل الطلب", "Before ordering")} title={t("الدفع والتفعيل", "Payment and activation")} />
-              <div className="mt-6 grid gap-3 md:grid-cols-3">
+          {vip.length ? (
+            <section id="vip" aria-labelledby="vip-heading" className={`${s.wrap} scroll-mt-24`} style={{ marginTop: 28 }}>
+              <div className={`${s.chapter} ${s.chapterVip}`}>
+                <div className={s.chapterHead}>
+                  <div>
+                    <h2 id="vip-heading" className={`${s.chapterTitle} ${s.gold}`}>
+                      VIP
+                    </h2>
+                    <p className={s.lead} style={{ marginTop: 14 }}>
+                      {t(
+                        "باقة ويا جهاز VIP مخصص تختاره عند الطلب. سعر الطلب يشمل الباقة والجهاز، والتجديد بعدين بدون جهاز.",
+                        "A plan with a dedicated VIP device you pick when ordering. The order covers the plan and the device; later renewals need no device.",
+                      )}
+                    </p>
+                  </div>
+                  <Link href="/devices" className={`${s.btn} ${s.btnGhost}`}>
+                    {t("شوف أجهزة VIP", "See VIP devices")}
+                  </Link>
+                </div>
+                <PlanCards lang={lang} service="VIP" plans={vip.map(card)} vipArt={VIP_ART} />
+              </div>
+            </section>
+          ) : null}
+
+          {paymentFaq.length ? (
+            <section className={`${s.wrap} ${s.section}`} aria-labelledby="pay-heading">
+              <p className={s.kicker}>{t("قبل ما تطلب", "Before you order")}</p>
+              <h2 id="pay-heading" className={s.h2}>
+                {t("الدفع والتفعيل", "Payment and activation")}
+              </h2>
+              <div className={s.infoGrid}>
                 {paymentFaq.map((item) => (
-                  <div key={item.id} className="surface rounded-card p-5">
-                    <h3 className="text-sm font-bold text-ink">{item.q[lang]}</h3>
-                    <p className="mt-2 text-sm leading-7 text-ink-2">{item.a[lang]}</p>
+                  <div key={item.id} className={`${s.card} ${s.infoCard}`}>
+                    <h3>{item.q[lang]}</h3>
+                    <p>{item.a[lang]}</p>
                   </div>
                 ))}
               </div>
             </section>
-          </div>
-        )}
-      </Container>
-    </>
+          ) : null}
+        </>
+      )}
+    </div>
   );
 }

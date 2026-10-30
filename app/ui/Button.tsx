@@ -3,29 +3,29 @@ import type { ComponentProps, ReactNode } from "react";
 
 import { cn } from "./cn";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger" | "glow" | "glass";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "glow" | "glass" | "vip" | "light";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-[background-color,color,box-shadow,transform] duration-200 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] select-none whitespace-nowrap";
+  "inline-flex items-center justify-center gap-2 rounded-xl font-bold transition-[background-color,color,border-color,transform] duration-150 ease-out disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97] select-none whitespace-nowrap";
 
 const variants: Record<Variant, string> = {
-  primary:
-    "bg-brand text-white shadow-brand hover:bg-brand-strong",
-  secondary:
-    "border border-line-strong bg-surface-2 text-ink hover:border-brand/60 hover:bg-surface-3",
+  primary: "bg-brand text-white hover:bg-brand-strong",
+  secondary: "border border-line-strong bg-surface-2 text-ink hover:border-ink-3 hover:bg-surface-3",
   ghost: "text-ink-2 hover:bg-surface-2 hover:text-ink",
-  danger:
-    "border border-danger/30 bg-danger/10 text-danger hover:bg-danger/20",
-  glow:
-    "bg-white text-navy hover:bg-glow shadow-glow",
-  // Translucent, for controls that sit on the hero/video. No blur (cheap).
-  glass:
-    "glass-soft text-ink hover:bg-white/10",
+  danger: "border border-danger/30 bg-danger/10 text-danger hover:bg-danger/20",
+  // White on dark grounds (the strongest call on a page).
+  glow: "bg-white text-canvas hover:bg-glow",
+  // For controls over a coloured field.
+  glass: "glass-soft text-white hover:bg-white/15",
+  // VIP actions: champagne with dark ink.
+  vip: "bg-vip text-vip-ink hover:brightness-105",
+  // On the IPTV cobalt field: white with the field's deep blue.
+  light: "bg-white text-iptv-deep hover:bg-iptv-ink",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-9 px-3.5 text-sm",
+  sm: "h-10 px-3.5 text-sm",
   md: "h-11 px-5 text-sm",
   lg: "h-13 px-7 text-base",
 };

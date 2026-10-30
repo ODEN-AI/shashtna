@@ -15,6 +15,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 
+import a from "@/app/components/account/account.module.css";
 import { StatusBadge } from "@/app/ui/Badge";
 import { LinkButton } from "@/app/ui/Button";
 import { Card, CardHeader } from "@/app/ui/Card";
@@ -133,14 +134,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       ) : null}
 
       <nav aria-label={t("إجراءات سريعة", "Quick actions")}>
-        <ul className="grid grid-cols-4 gap-2 sm:gap-3">
+        <ul className={a.quick}>
           {quickActions.map((action) => (
             <li key={action.href}>
-              <Link
-                href={action.href}
-                className="surface flex h-full flex-col items-center gap-2 rounded-card px-2 py-4 text-center text-xs font-semibold text-ink-2 transition hover:border-brand/50 hover:text-ink sm:text-sm"
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/15 text-brand-ink">{action.icon}</span>
+              <Link href={action.href} className={a.quickLink}>
+                <span className={a.quickIcon}>{action.icon}</span>
                 {action.label}
               </Link>
             </li>

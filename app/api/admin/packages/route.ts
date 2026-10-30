@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { catalogueImageUrl, isValidPrice, parseRenewalPrice } from "@/src/lib/catalogue";
 import { requireAdmin } from "@/src/lib/session";
+import { defaultOption, packageMirror, parsePackageOptions } from "@/src/lib/package-options";
 import { formatDurationAr, resolvePackageDuration } from "@/src/lib/subscription-duration";
 import { auditCatalogue } from "@/src/server/catalogue";
+import { describeOption, optionsByPackage } from "@/src/server/package-options";
 import {
   db,
   ensureDatabaseConnection,
@@ -28,6 +30,8 @@ type PackageBody = {
   imageUrl?: string | null;
   isActive?: boolean;
   deviceIds?: number[];
+  /** Lengths with their own prices. Without it, the package's price and duration make its one option. */
+  options?: unknown;
 };
 
 function normalizeServiceType(
@@ -71,6 +75,7 @@ export async function GET(request: Request) {
 
     const packages =
       await db.orm.public.Package.all();
+    const optionMap = await optionsByPackage(packages.map((pkg) => pkg.id));
 
     packages.sort((a, b) => {
       if (
@@ -122,6 +127,8 @@ export async function GET(request: Request) {
             pkg.imageUrl,
           isActive:
             pkg.isActive,
+          // Every length with its own price (parked ones, kept for past orders, are left out).
+          options: (optionMap.get(pkg.id) ?? []).filter((option) => option.durationMonths > 0),
           createdAt:
             pkg.createdAt,
           updatedAt:
@@ -173,8 +180,28 @@ export async function POST(
         body.serviceType
       );
 
+    const hasOptions =
+      body.options !== undefined;
+
+    const parsedOptions =
+      hasOptions ? parsePackageOptions(body.options, serviceType) : null;
+
+    if (parsedOptions && !parsedOptions.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: parsedOptions.error,
+        },
+        { status: 400 }
+      );
+    }
+
+    // With options, the package columns mirror its default (shortest active) option.
+    const mainOption =
+      parsedOptions?.ok ? defaultOption(parsedOptions.options) : null;
+
     const price =
-      body.price;
+      mainOption ? mainOption.price : body.price;
 
     const deviceIds =
       normalizeDeviceIds(
@@ -209,7 +236,7 @@ export async function POST(
 
     // Optional: empty = renewals cost the normal price.
     const renewalPrice =
-      parseRenewalPrice(body.renewalPrice);
+      mainOption ? ({ ok: true, value: mainOption.renewalPrice } as const) : parseRenewalPrice(body.renewalPrice);
 
     if (!renewalPrice.ok) {
       return NextResponse.json(
@@ -224,7 +251,9 @@ export async function POST(
 
     // Value + unit (months / years), whole numbers, 1 month to 5 years.
     const duration =
-      resolvePackageDuration(body, serviceType);
+      mainOption
+        ? ({ ok: true, ...packageMirror(mainOption), durationUnit: mainOption.durationUnit } as const)
+        : resolvePackageDuration(body, serviceType);
 
     if (!duration.ok) {
       return NextResponse.json(
@@ -354,6 +383,27 @@ export async function POST(
       );
 
     /*
+     * Save its lengths: the ones sent, or one made from the package's own
+     * price and duration (older clients send no options).
+     */
+    const lengths =
+      parsedOptions?.ok
+        ? parsedOptions.options
+        : [{ durationMonths, durationUnit, durationLabel, price, renewalPrice: renewalPrice.value, isActive: true }];
+
+    for (const option of lengths) {
+      await db.orm.public.PackageOption.create({
+        packageId: created.id,
+        durationMonths: option.durationMonths,
+        durationUnit: option.durationUnit,
+        durationLabel: option.durationLabel,
+        price: option.price,
+        renewalPrice: option.renewalPrice,
+        isActive: option.isActive,
+      });
+    }
+
+    /*
      * Save package/device relations.
      */
     if (deviceIds.length > 0) {
@@ -373,7 +423,10 @@ export async function POST(
       entityId: created.id,
       action: "PACKAGE_CREATED",
       summary: `Package created: ${name} (${serviceType}, ${price} IQD)`,
-      changes: deviceIds.length ? [`devices: ${deviceIds.join(", ")}`] : [],
+      changes: [
+        `lengths: ${lengths.map(describeOption).join("; ")}`,
+        ...(deviceIds.length ? [`devices: ${deviceIds.join(", ")}`] : []),
+      ],
     });
 
     return NextResponse.json(

@@ -12,6 +12,7 @@ import { cn } from "@/app/ui/cn";
 import { Dialog } from "@/app/ui/Dialog";
 import { Checkbox, Field, Input, Select, Textarea } from "@/app/ui/Field";
 import { useToast } from "@/app/ui/Toast";
+import { centsToDollars, dollarsToCents } from "@/src/lib/costs";
 import { formatPrice } from "@/src/lib/i18n";
 import { durationValue, formatDuration, monthlyPrice, parseDuration, type DurationUnit } from "@/src/lib/subscription-duration";
 
@@ -103,6 +104,8 @@ export type PackageOptionValues = {
   renewalPrice: number | null;
   /** Loyalty points an order of this length earns; null = price ÷ 1,000. */
   pointsEarned?: number | null;
+  /** Panel credit in US cents to activate this length; null = unknown. */
+  creditCostCents?: number | null;
   isActive: boolean;
 };
 
@@ -128,7 +131,7 @@ function customLabel(label: string, months: number) {
 }
 
 /** An option row as typed in the form (strings until the server validates them). */
-type OptionRow = { key: string; id?: number; amount: string; unit: DurationUnit; label: string; price: string; renewal: string; points: string; isActive: boolean };
+type OptionRow = { key: string; id?: number; amount: string; unit: DurationUnit; label: string; price: string; renewal: string; points: string; credit: string; isActive: boolean };
 
 let rowSeed = 0;
 
@@ -144,6 +147,7 @@ function optionRow(option: PackageOptionValues): OptionRow {
     price: String(option.price),
     renewal: option.renewalPrice === null ? "" : String(option.renewalPrice),
     points: typeof option.pointsEarned === "number" ? String(option.pointsEarned) : "",
+    credit: typeof option.creditCostCents === "number" ? centsToDollars(option.creditCostCents) : "",
     isActive: option.isActive,
   };
 }
@@ -198,6 +202,11 @@ function OptionsEditor({ vip, rows, setRows }: { vip: boolean; rows: OptionRow[]
           const preview = vip ? ({ ok: true, months: 3 } as const) : parseDuration(amount, row.unit);
           const price = /^\d+$/.test(row.price.trim()) ? Number(row.price.trim()) : null;
           const id = `opt-${row.key}`;
+          const creditField = (
+            <Field label={t("كلفة الرصيد ($)", "Panel credit ($)")} htmlFor={`${id}-credit`} hint={t("فارغ = غير معروفة.", "Empty = unknown.")}>
+              <Input id={`${id}-credit`} inputMode="decimal" dir="ltr" value={row.credit} onChange={(event) => update(row.key, { credit: event.target.value })} placeholder="1" data-testid="package-option-credit" />
+            </Field>
+          );
 
           return (
             <li key={row.key} className={cn("rounded-2xl border bg-surface-2 p-3 sm:p-4", row.isActive ? "border-line" : "border-dashed border-line opacity-80")} data-testid="package-option" data-option-id={row.id ?? ""}>
@@ -228,7 +237,7 @@ function OptionsEditor({ vip, rows, setRows }: { vip: boolean; rows: OptionRow[]
               </div>
 
               {vip ? null : (
-                <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
                   <Field label={t("تسمية المدة (اختياري)", "Length label (optional)")} htmlFor={`${id}-label`}>
                     <Input id={`${id}-label`} value={row.label} onChange={(event) => update(row.key, { label: event.target.value })} placeholder={preview.ok ? formatDuration(preview.months, "ar") : ""} maxLength={40} />
                   </Field>
@@ -239,8 +248,10 @@ function OptionsEditor({ vip, rows, setRows }: { vip: boolean; rows: OptionRow[]
                   >
                     <Input id={`${id}-points`} inputMode="numeric" dir="ltr" value={row.points} onChange={(event) => update(row.key, { points: event.target.value })} data-testid="package-option-points" />
                   </Field>
+                  {creditField}
                 </div>
               )}
+              {vip ? <div className="mt-3 grid gap-3 sm:grid-cols-3">{creditField}</div> : null}
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <p className={cn("text-sm", preview.ok ? "text-ink-2" : "font-semibold text-danger")} aria-live="polite" data-testid="package-option-preview">
@@ -306,6 +317,8 @@ export function PackageForm({ initial, devices, slugLocked }: { initial: Package
         renewalPrice: row.renewal.trim() === "" ? null : priceValue(row.renewal),
         // Empty = automatic loyalty points (price ÷ 1,000). IPTV only.
         ...(vip ? {} : { pointsEarned: row.points.trim() === "" ? null : priceValue(row.points) }),
+        // Dollars as typed → cents; an invalid value is sent as typed so the server explains it.
+        creditCostCents: row.credit.trim() === "" ? null : (dollarsToCents(row.credit) ?? row.credit),
         isActive: row.isActive,
       })),
       description: text(form, "description"),

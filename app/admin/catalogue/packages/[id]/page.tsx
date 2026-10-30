@@ -67,6 +67,7 @@ export default async function CataloguePackagePage({ params }: { params: Promise
                   price: option.price,
                   renewalPrice: option.renewalPrice,
                   pointsEarned: option.pointsEarned ?? null,
+                  creditCostCents: option.creditCostCents ?? null,
                   isActive: option.isActive,
                 })),
                 description: pkg.description,

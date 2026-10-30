@@ -25,7 +25,7 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | # | Phase | Status | Evidence / notes |
 |---|---|---|---|
 | 1 | Stabilize the foundation (site, data, orders, payments, activation, deploys) | ✅ | Schema and code in sync on production (marker `0395c5c66aa0`). Open: see "Known risks" |
-| 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | ⏳ | Next up: real costs (panel credit per option at the IQD rate of each purchase, currently 900 IQD per credit-dollar) and orders via the supplier (supplier share recorded, no points) |
+| 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | 🔄 | Real costs and supplier orders built on `feat/real-costs` (PR open, not merged; migration `20261030T2329_real_costs` not on production) — `docs/costs.md` |
 | 3 | Complete the customer and admin experience | 🔄 | Redesign (PR #6) ✅; loyalty (PR #7) ✅ live since 2026-10-31. Next: discounts, plan groups and digital platforms |
 | 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | ⏳ | — |
 | 5 | SHASHTNA AI CORE and agents (Customer, Operations, Finance, Marketing) with scoped tools | ⏳ | An AI business analyst exists (aggregates only) |
@@ -37,7 +37,8 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | Item | Status | Where |
 |---|---|---|
 | Launch «نقاط شاشتنا»: reward options ✅ → `seed --check` ✅ → seed ✅ (40 customers, 400 points) → owner enables ✅ (2026-10-31) → announcement ⏳ | 🔄 | Admin → Settings → نقاط شاشتنا; `scripts/loyalty/`; `docs/loyalty.md` |
-| Progress documentation (this file and the `CLAUDE.md` rule) | 🔄 | this branch |
+| Progress documentation (this file and the `CLAUDE.md` rule) | 🔄 | PR #8 |
+| Real costs and supplier orders (phase 2): credit purchases and rate, credit per length, cost snapshot on completion, supplier orders (no points), profit by channel | 🔄 built and tested locally; waiting for review, the production migration and merge | `feat/real-costs`; `docs/costs.md` |
 
 ## Known risks
 
@@ -50,12 +51,19 @@ Long-term direction, in order. A phase is marked done only with evidence.
 - ❓ Whether a merge to `main` publishes automatically (both merges on 2026-10-30 went live, per the owner;
   the Netlify setting itself is unverified).
 - Two e2e scripts need `psql`, which is not installed on the owner's machine, so they did not run for
-  PR #6 / PR #7.
+  PR #6 / PR #7 / `feat/real-costs`.
+- `tests/domain.test.ts` "subscription state is derived from expiry" fails between 00:00 and 03:00
+  Baghdad time: the test builds "today" from the UTC date while expiry is read in local time. It passes
+  with `TZ=UTC`. Not caused by recent work; fix it in its own change. ⏳
+- Costs are only real for orders completed after the owner records a credit purchase and the credit per
+  length; earlier orders stay «تكلفة غير معروفة» (no backfill, by decision).
 
 ## Next step
 
-The owner switches the program on (Admin → Settings → نقاط شاشتنا) and, when ready, sends the
-announcement. Then close phase 1 and move to phase 2 (store supplier costs so profit figures are real).
+Review the real-costs PR. Then, with the owner's approval: apply migration
+`20261030T2329_real_costs` to production → merge (code) → record the latest credit purchase ($200 /
+180,000 IQD) in Admin → Finance → Panel credit → set the credit per length (3m $1, 6m $2, 1y $4, 2y $8)
+in each IPTV package. After that: discounts (phase 3).
 
 ## Decisions
 
@@ -63,6 +71,9 @@ Newest first. Details are in the linked documents.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-31 | Supplier orders only for customers who already have an account; the admin cannot create accounts | Owner (no new account path for now) |
+| 2026-10-31 | No estimated cost backfill for old orders: they stay «تكلفة غير معروفة» and are reported separately | Owner: every cost figure must be a recorded one |
+| 2026-10-31 | Costs are snapshotted on the order at completion (credit cents, IQD at the latest purchase's rate, the purchase used); credit purchases are append-only | Rates change with each purchase; past profit must never move |
 | 2026-10-31 | Next work, in order: real costs and supplier orders (phase 2), then discounts, then admin-managed plan groups on /plans (Netflix, beIN, Disney+, Apple…; colours per group; delivery by code, ready account or the customer's e-mail; few points) | Owner + council; costs first so new features report real profit |
 | 2026-10-31 | Supplier-referred customers: handled by chat, the supplier provides the subscription from his panel, the 2-year offer is 15,000 IQD split 10,000 supplier / 5,000 owner; recorded in the admin, no loyalty points | Owner |
 | 2026-10-31 | Panel credit costs 900 IQD per credit-dollar (last purchase: $200 for 180,000 IQD); a free 3-month reward costs 900 IQD | Owner |
@@ -86,6 +97,8 @@ Newest first.
 
 | Date | PR / commit | Change | Checks |
 |---|---|---|---|
+| 2026-10-31 | `feat/real-costs` (PR to `main`, open) | Real costs and supplier orders: `creditPurchase`, `packageOption.creditCostCents`, order channel / supplier share / cost snapshot; owner pages; profit by channel; analyst aggregates | `npm test` 212/213 (the 1 failure is the clock-dependent domain test above; 12/12 with `TZ=UTC`); tsc, ESLint, build clean; `scripts/integration/costs.mts` 9/9; e2e loyalty 13/13, package-options 17/17; pages checked in the browser |
+| 2026-10-31 | migration `20261030T2329_real_costs` | Planned and applied on the local database only (8 additive operations); not on production | `migration check`, `db verify` (local) |
 | 2026-10-31 | `scripts/loyalty/seed.mjs` | Launch seed on production, owner-approved: 40 customers × 10 points | `--check` before (40 eligible, worst case $13.33); after: 40 already seeded, 0 to seed |
 | 2026-10-30 | PR #7 (`0598628`) | «نقاط شاشتنا»: schema, ledger, order hooks, customer pages, admin, mobile API; deployed off. One deliberate change: `saveOrder` never reuses a reward order | 201/201 unit; tsc, lint, build clean; local server e2e 13/13; package-options e2e 17/17 |
 | 2026-10-30 | migration `20261030T1747_loyalty_points` | Applied to production (7 additive operations); marker `0395c5c66aa0`; `db verify` passed | Read-only check first: only this migration pending |
@@ -101,6 +114,7 @@ Newest first.
 ## Related documents
 
 - `docs/loyalty.md` — loyalty rules, settings and launch steps.
+- `docs/costs.md` — real costs, credit purchases and supplier orders.
 - `docs/package-options.md` — packages sold in several lengths.
 - `docs/redesign/phase-1/`, `docs/redesign/phase-2/` — redesign reports. They describe the state when they
   were written; the phase-2 note "no commit or PR" is superseded by PR #6.

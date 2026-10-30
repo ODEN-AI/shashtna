@@ -1,4 +1,5 @@
 import { addDays } from "@/src/lib/business-time";
+import { normalizeChannel } from "@/src/lib/costs";
 import { formatDate } from "@/src/lib/i18n";
 import { normalizeOrderStatus } from "@/src/lib/order-status";
 import { addMonthsClamped } from "@/src/lib/subscription-duration";
@@ -148,15 +149,18 @@ export type EarnableOrder = {
   price: number;
   status: string;
   loyaltyReward: boolean;
+  /** SITE (default) or SUPPLIER; supplier orders never earn. */
+  channel?: string | null;
 };
 
-export type EarnBlock = "NOT_IPTV" | "WRONG_TYPE" | "FREE" | "REWARD" | "NOT_COMPLETED";
+export type EarnBlock = "NOT_IPTV" | "WRONG_TYPE" | "FREE" | "REWARD" | "SUPPLIER" | "NOT_COMPLETED";
 
 /** Why an order earns nothing, or null when it earns points. */
 export function earnBlock(order: EarnableOrder): EarnBlock | null {
   if (String(order.serviceType).toUpperCase() !== "IPTV") return "NOT_IPTV";
   if (!["NEW", "RENEW", "UPGRADE"].includes(String(order.requestType).toUpperCase())) return "WRONG_TYPE";
   if (order.loyaltyReward) return "REWARD";
+  if (normalizeChannel(order.channel) !== "SITE") return "SUPPLIER";
   if (!Number.isInteger(order.price) || order.price <= 0) return "FREE";
   if (normalizeOrderStatus(order.status) !== "COMPLETED") return "NOT_COMPLETED";
 

@@ -1,3 +1,5 @@
+import type { ChannelProfit } from "@/src/lib/costs";
+
 /**
  * Shashtna AI Business Analyst — pure parts (unit-tested).
  *
@@ -26,6 +28,8 @@ export type FactPack = {
   revenue: { current: number; previous: number; changePct: number | null; completedSales: number; previousCompletedSales: number };
   expenses: { recorded: boolean; current: number | null; previous: number | null; changePct: number | null };
   netProfit: { status: "ok" | "incomplete"; current: number | null; previous: number | null };
+  /** Real cost of sales by channel; optional so stored reports from before costs still load. */
+  costOfSales?: { siteOrDirect: ChannelProfit; supplier: ChannelProfit; total: ChannelProfit; previousTotal: ChannelProfit };
   averageOrderValue: { current: number | null; previous: number | null };
   products: { name: string; kind: string; units: number; revenue: number; sharePct: number; previousUnits: number }[];
   mostSold: { name: string; units: number; revenue: number; sharePct: number } | null;

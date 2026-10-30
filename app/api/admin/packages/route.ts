@@ -400,6 +400,7 @@ export async function POST(
         price: option.price,
         renewalPrice: option.renewalPrice,
         pointsEarned: "pointsEarned" in option ? (option.pointsEarned ?? null) : null,
+        creditCostCents: "creditCostCents" in option ? (option.creditCostCents ?? null) : null,
         isActive: option.isActive,
       });
     }

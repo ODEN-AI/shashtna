@@ -173,6 +173,11 @@ Never use `db update` or `db init` on any shared database; they are for a throwa
 - **Finance:** reward orders are excluded from revenue, sales counts, average order value, product rows and the analyst fact pack; they are reported separately.
 - **VIP and IPTV never mix:** VIP is out of the program in v1.
 
+**Real costs and supplier orders** (`src/lib/costs.ts`, `src/server/costs.ts`, `src/server/supplier-orders.ts`, `docs/costs.md`):
+- An order's cost is snapshotted when it completes: the option's `creditCostCents` × the latest `creditPurchase` rate → `creditCostIqd` (+ `creditPurchaseId`). Never recompute past orders; credit purchases are append-only.
+- An unknown cost is `null` («تكلفة غير معروفة») and is never counted as zero in profit.
+- `channel` is `SITE` (site or direct) or `SUPPLIER` (made by the supplier from his panel: credit cost 0, `supplierShareIqd` stored). Supplier orders never earn loyalty points. Recording credit and supplier orders is OWNER-only.
+
 ### Prices — where values come from
 
 The database is the only source of truth at runtime. **No price below is a

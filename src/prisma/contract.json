@@ -24,6 +24,10 @@
       "model": "ConsoleDevice",
       "namespace": "public"
     },
+    "creditPurchase": {
+      "model": "CreditPurchase",
+      "namespace": "public"
+    },
     "device": {
       "model": "Device",
       "namespace": "public"
@@ -814,6 +818,87 @@
               },
               "namespaceId": "public",
               "table": "consoleDevice"
+            }
+          },
+          "CreditPurchase": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdBy": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "creditCents": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "iqdPaid": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "note": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "purchasedOn": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "createdBy": {
+                  "column": "createdBy"
+                },
+                "creditCents": {
+                  "column": "creditCents"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "iqdPaid": {
+                  "column": "iqdPaid"
+                },
+                "note": {
+                  "column": "note"
+                },
+                "purchasedOn": {
+                  "column": "purchasedOn"
+                }
+              },
+              "namespaceId": "public",
+              "table": "creditPurchase"
             }
           },
           "Device": {
@@ -1731,6 +1816,13 @@
                   "kind": "scalar"
                 }
               },
+              "creditCostCents": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "durationLabel": {
                 "nullable": false,
                 "type": {
@@ -1823,6 +1915,9 @@
               "fields": {
                 "createdAt": {
                   "column": "createdAt"
+                },
+                "creditCostCents": {
+                  "column": "creditCostCents"
                 },
                 "durationLabel": {
                   "column": "durationLabel"
@@ -2678,6 +2773,13 @@
                   "kind": "scalar"
                 }
               },
+              "channel": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "contactMethod": {
                 "nullable": false,
                 "type": {
@@ -2689,6 +2791,27 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "creditCostCents": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "creditCostIqd": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "creditPurchaseId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
                   "kind": "scalar"
                 }
               },
@@ -2818,6 +2941,13 @@
                   "kind": "scalar"
                 }
               },
+              "supplierShareIqd": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "updatedAt": {
                 "nullable": false,
                 "type": {
@@ -2858,11 +2988,23 @@
                 "bonusYears": {
                   "column": "bonusYears"
                 },
+                "channel": {
+                  "column": "channel"
+                },
                 "contactMethod": {
                   "column": "contactMethod"
                 },
                 "createdAt": {
                   "column": "createdAt"
+                },
+                "creditCostCents": {
+                  "column": "creditCostCents"
+                },
+                "creditCostIqd": {
+                  "column": "creditCostIqd"
+                },
+                "creditPurchaseId": {
+                  "column": "creditPurchaseId"
                 },
                 "customerNote": {
                   "column": "customerNote"
@@ -2917,6 +3059,9 @@
                 },
                 "subscriptionId": {
                   "column": "subscriptionId"
+                },
+                "supplierShareIqd": {
+                  "column": "supplierShareIqd"
                 },
                 "updatedAt": {
                   "column": "updatedAt"
@@ -3600,6 +3745,70 @@
                   ],
                   "name": "consoleDevice_userId_idx_a489d58a",
                   "prefix": "consoleDevice_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "creditPurchase": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "createdBy": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "creditCents": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "iqdPaid": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "note": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "purchasedOn": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [
+                {
+                  "columns": [
+                    "purchasedOn"
+                  ],
+                  "name": "creditPurchase_purchasedOn_idx_8771a6d2",
+                  "prefix": "creditPurchase_purchasedOn_idx",
                   "unique": false
                 }
               ],
@@ -4307,6 +4516,11 @@
                   },
                   "nativeType": "timestamptz",
                   "nullable": false
+                },
+                "creditCostCents": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
                 },
                 "durationLabel": {
                   "codecId": "pg/text@1",
@@ -5032,6 +5246,15 @@
                   "nativeType": "int4",
                   "nullable": false
                 },
+                "channel": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "SITE"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
                 "contactMethod": {
                   "codecId": "pg/text@1",
                   "default": {
@@ -5049,6 +5272,21 @@
                   },
                   "nativeType": "timestamptz",
                   "nullable": false
+                },
+                "creditCostCents": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "creditCostIqd": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "creditPurchaseId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
                 },
                 "customerNote": {
                   "codecId": "pg/text@1",
@@ -5164,6 +5402,11 @@
                   "nullable": false
                 },
                 "subscriptionId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "supplierShareIqd": {
                   "codecId": "pg/int4@1",
                   "nativeType": "int4",
                   "nullable": true
@@ -5322,7 +5565,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "0395c5c66aa074ac9cb6f91abbdbb45a6b7a1d9886fe4178c293b0161f82b5c5"
+    "storageHash": "76e80bbd5844429e363e648371af22c236ec16159cd44d41918c8a95346d2dcd"
   },
   "execution": {
     "executionHash": "d8addb4cc0af42d953fb10a2186e958644888c9a878dd60aac358599ccb8eda8",

@@ -6,14 +6,15 @@ this file links to them instead of copying them.
 
 Status marks: ✅ done (with evidence) · 🔄 in progress · ⏳ planned · ⏸️ paused · ❓ needs verification.
 
-## Status now (2026-10-30)
+## Status now (2026-10-31)
 
 - **Production** runs `main` at `0598628` (PR #7 merged on top of PR #6). The owner checked the live
   site after the deploy: it works.
 - **Production database** marker `0395c5c66aa0`, 21 migrations, the latest
   `20261030T1747_loyalty_points`; `prisma db verify` passed.
-- **«نقاط شاشتنا» (loyalty points)** is deployed and **switched off** (`loyalty.enabled = off`). The launch
-  seed has not run. The reward package options have not been chosen in Admin → Settings.
+- **«نقاط شاشتنا» (loyalty points)** is deployed and **switched off** (`loyalty.enabled = off`). Reward options are set
+  (Star10 3 months / 6 months). The launch seed ran on 2026-10-31: 40 customers × 10 points = 400 points.
+  Next: the owner switches the program on.
 - **Deploy Previews use production** (database, `AUTH_SECRET`, Blobs; an owner decision recorded in
   PR #6). Treat any preview as production.
 
@@ -35,15 +36,13 @@ Long-term direction, in order. A phase is marked done only with evidence.
 
 | Item | Status | Where |
 |---|---|---|
-| Launch «نقاط شاشتنا»: choose reward options → `seed --check` → seed → owner enables → announcement | ⏳ | Admin → Settings → نقاط شاشتنا; `scripts/loyalty/`; `docs/loyalty.md` |
+| Launch «نقاط شاشتنا»: reward options ✅ → `seed --check` ✅ → seed ✅ (40 customers, 400 points) → owner enables ⏳ → announcement ⏳ | 🔄 | Admin → Settings → نقاط شاشتنا; `scripts/loyalty/`; `docs/loyalty.md` |
 | Progress documentation (this file and the `CLAUDE.md` rule) | 🔄 | this branch |
 
 ## Known risks
 
-- **Production database password was shared in a chat on 2026-10-30.** Reset it in Neon and update
-  `DATABASE_URL` in Netlify. ⏳
-- **Previews write to production.** Isolating preview contexts (own database branch, own secret, own
-  Blobs namespace) is an owner decision. ⏳
+- **Accepted by the owner (2026-10-31), kept as known risks:** the production database password was shared in
+  a chat on 2026-10-30 and has not been rotated; Deploy Previews write to production.
 - **`scripts/db/production-migrate.mjs` does not run on Windows:** the entry check
   (`import.meta.url === file://${argv[1]}`) never matches, and `node_modules/.bin/prisma` needs
   `prisma.cmd`. On Netlify (Linux) it is fine. The 2026-10-30 loyalty migration was applied by hand with
@@ -55,15 +54,8 @@ Long-term direction, in order. A phase is marked done only with evidence.
 
 ## Next step
 
-Launch the loyalty program, in this order, each step with the owner's approval:
-1. Choose the 3-month and 6-month reward package options (Admin → Settings → نقاط شاشتنا).
-2. Run `seed --check` against production (read-only: eligible customers, points, worst-case cost).
-3. Write the seed.
-4. The owner switches the program on and sends the announcement.
-5. Reset the database password (see "Known risks").
-
-Why this order: the program is deployed but off, so each step can be checked before customers see
-anything.
+The owner switches the program on (Admin → Settings → نقاط شاشتنا) and, when ready, sends the
+announcement. Then close phase 1 and move to phase 2 (store supplier costs so profit figures are real).
 
 ## Decisions
 
@@ -71,6 +63,7 @@ Newest first. Details are in the linked documents.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-31 | Owner accepts three open risks: unrotated database password, previews writing to production, the Windows-only script bug | Owner |
 | 2026-10-30 | Launch announcement postponed; wording still open: «4 تجديدات والخامسة مجاناً» is only always true at a 24-point threshold, while the current threshold is 30 | Owner |
 | 2026-10-30 | Customers who subscribed outside the site get no points; the owner's account role is `OWNER` (approves rewards) | Owner |
 | 2026-10-30 | Loyalty thresholds 30 (3 months) / 60 (6 months); earn stays 1 point per 1,000 IQD | Halving the earn rate gives fractions and stingy-looking numbers; raising the threshold keeps 78–81% of gross margin |
@@ -90,6 +83,7 @@ Newest first.
 
 | Date | PR / commit | Change | Checks |
 |---|---|---|---|
+| 2026-10-31 | `scripts/loyalty/seed.mjs` | Launch seed on production, owner-approved: 40 customers × 10 points | `--check` before (40 eligible, worst case $13.33); after: 40 already seeded, 0 to seed |
 | 2026-10-30 | PR #7 (`0598628`) | «نقاط شاشتنا»: schema, ledger, order hooks, customer pages, admin, mobile API; deployed off. One deliberate change: `saveOrder` never reuses a reward order | 201/201 unit; tsc, lint, build clean; local server e2e 13/13; package-options e2e 17/17 |
 | 2026-10-30 | migration `20261030T1747_loyalty_points` | Applied to production (7 additive operations); marker `0395c5c66aa0`; `db verify` passed | Read-only check first: only this migration pending |
 | 2026-10-30 | — | Read-only production check: marker `5a6b23eee534`, 20 migrations, nothing from PR #6 pending | `production-migrate.mjs --check` |

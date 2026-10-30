@@ -1,15 +1,18 @@
 import { planOrderPrice } from "@/src/lib/catalogue";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
+import s from "@/app/components/home/home.module.css";
 import { LinkButton } from "@/app/ui/Button";
-import { Container, PageHeader } from "@/app/ui/Page";
+import { cn } from "@/app/ui/cn";
 import { EmptyState } from "@/app/ui/States";
 import { getSessionUser, requireCustomer } from "@/src/server/auth";
 import { resolveCheckoutSelection, type CheckoutMode } from "@/src/server/checkout-selection";
 import { getI18n } from "@/src/server/i18n";
 
+import c from "./checkout.module.css";
 import { CheckoutForm } from "./CheckoutForm";
 
 export const dynamic = "force-dynamic";
@@ -51,13 +54,15 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
 
   if (!selection.ok && selection.reason === "SUBSCRIPTION_NOT_FOUND") {
     return (
-      <Container className="py-16">
-        <EmptyState
+      <div className={`${s.home} -mt-[80px] pt-[80px] pb-16`}>
+        <div className={`${s.wrap} py-16`}>
+          <EmptyState
           title={t("الاشتراك غير موجود", "Subscription not found")}
           description={t("تأكد من الرابط أو اختار الاشتراك من حسابك.", "Check the link or pick the subscription from your account.")}
           action={<LinkButton href="/subscriptions">{t("اشتراكاتي", "My subscriptions")}</LinkButton>}
-        />
-      </Container>
+          />
+        </div>
+      </div>
     );
   }
 
@@ -87,14 +92,32 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     DEVICE_PURCHASE: [t("تأكيد شراء الجهاز", "Confirm device purchase"), t("راجع الجهاز وأكّد الطلب.", "Review the device and confirm the order.")],
   };
 
+  const steps = [
+    t("تأكيد الطلب", "Confirm"),
+    t("الدفع", "Payment"),
+    mode === "DEVICE_PURCHASE" ? t("التسليم", "Delivery") : t("التفعيل", "Activation"),
+  ];
+
   return (
-    <Container className="pb-32 pt-8 sm:pt-12 lg:pb-16">
-      <LinkButton href={choosePath} variant="ghost" size="sm" className="-ms-3">
-        <ArrowRight size={16} className="ltr:rotate-180" aria-hidden />
-        {mode === "DEVICE_PURCHASE" ? t("الأجهزة", "Devices") : t("الباقات", "Plans")}
-      </LinkButton>
-      <PageHeader className="mt-4" title={titles[mode][0]} description={titles[mode][1]} />
-      <div className="mt-8">
+    // -mt-[80px]/pt-[80px]: the navy ground runs up behind the floating header.
+    <div className={`${s.home} -mt-[80px] pt-[80px] pb-32 lg:pb-16`}>
+      <div className={s.wrap}>
+        <header className={c.head}>
+          <Link href={choosePath} className={c.back}>
+            <ArrowRight size={16} className="ltr:rotate-180" aria-hidden />
+            {mode === "DEVICE_PURCHASE" ? t("الأجهزة", "Devices") : t("الباقات", "Plans")}
+          </Link>
+          <h1 className={c.title}>{titles[mode][0]}</h1>
+          <p className={c.lead}>{titles[mode][1]}</p>
+          <ol className={c.steps} aria-label={t("خطوات الطلب", "Order steps")}>
+            {steps.map((label, index) => (
+              <li key={label} className={cn(c.step, index === 0 && c.stepOn)} aria-current={index === 0 ? "step" : undefined}>
+                <b className="nums">{index + 1}</b>
+                {label}
+              </li>
+            ))}
+          </ol>
+        </header>
         <CheckoutForm
           mode={mode}
           plan={
@@ -113,8 +136,8 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
                 }
               : null
           }
-          device={device ? { id: device.id, name: device.name, price: device.price, description: device.description } : null}
-          devices={compatibleDevices.map((item) => ({ id: item.id, name: item.name, price: item.price, description: item.description }))}
+          device={device ? { id: device.id, name: device.name, price: device.price, description: device.description, imageUrl: device.imageUrl } : null}
+          devices={compatibleDevices.map((item) => ({ id: item.id, name: item.name, price: item.price, description: item.description, imageUrl: item.imageUrl }))}
           initialDevice={initialDevice}
           subscriptionId={subscription?.id ?? null}
           changeHref={choosePath}
@@ -124,6 +147,6 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
           initialContact={initialContact}
         />
       </div>
-    </Container>
+    </div>
   );
 }

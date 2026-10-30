@@ -1,0 +1,356 @@
+/*
+ * /about in the site's navy direction. Used inside the homepage wrapper
+ * (home.module.css `.home`), whose colour variables it reads.
+ */
+.hero {
+  align-items: center;
+  background:
+    radial-gradient(60% 90% at 15% 20%, rgb(61 107 255 / 0.45), transparent 70%),
+    linear-gradient(180deg, #0a1a4f 0%, #050c2b 100%);
+  border-radius: 40px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  display: grid;
+  gap: clamp(24px, 4vw, 56px);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  margin-top: 16px;
+  overflow: hidden;
+  padding: clamp(28px, 5vw, 64px);
+}
+
+.title {
+  font-size: clamp(38px, 5.6vw, 80px);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.lead {
+  color: var(--ink-2);
+  font-size: clamp(17px, 1.4vw, 20px);
+  line-height: 1.8;
+  margin-top: 18px;
+  max-width: 56ch;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.mark {
+  align-items: center;
+  aspect-ratio: 1;
+  background:
+    radial-gradient(70% 70% at 30% 20%, rgb(92 200 255 / 0.45), transparent 70%),
+    linear-gradient(135deg, #2a5cff, #1338c9 55%, #0b2386);
+  border-radius: 40px;
+  box-shadow: 0 50px 90px -40px rgb(31 79 255 / 0.95);
+  display: flex;
+  justify-content: center;
+  margin-inline: auto;
+  max-width: 420px;
+  position: relative;
+  width: 100%;
+}
+
+.mark img {
+  filter: drop-shadow(0 24px 40px rgb(0 0 0 / 0.4));
+  width: 56%;
+}
+
+.markChip {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  background: rgb(7 17 49 / 0.85);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(160 190 255 / 0.22), 0 20px 40px -20px rgb(0 0 0 / 0.7);
+  font-size: 15px;
+  font-weight: 800;
+  padding: 10px 18px;
+  position: absolute;
+}
+
+.chipA {
+  inset-block-start: 12%;
+  inset-inline-start: -6%;
+}
+
+.chipB {
+  color: var(--gold);
+  inset-block-end: 22%;
+  inset-inline-end: -6%;
+}
+
+.chipC {
+  inset-block-end: -4%;
+  inset-inline-start: 14%;
+}
+
+/* mission */
+.mission {
+  display: grid;
+  gap: 24px 56px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.h2 {
+  font-size: clamp(32px, 4.2vw, 56px);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+}
+
+.body {
+  color: var(--ink-2);
+  display: grid;
+  font-size: 18px;
+  gap: 16px;
+  line-height: 1.9;
+}
+
+/* the two sides */
+.sides {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 32px;
+}
+
+.side {
+  border-radius: 40px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: clamp(24px, 3.4vw, 44px);
+}
+
+.sideWatch {
+  background:
+    radial-gradient(80% 120% at 100% 0%, rgb(92 200 255 / 0.28), transparent 60%),
+    linear-gradient(135deg, #2a5cff, #1338c9 60%, #0d2a99);
+  box-shadow: 0 40px 80px -40px rgb(31 79 255 / 0.9);
+  color: #fff;
+}
+
+.sideDigital {
+  background: radial-gradient(70% 60% at 85% 0%, rgb(61 107 255 / 0.25), transparent 70%), linear-gradient(180deg, #0a1745, #071131);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.sideIcon {
+  background: rgb(255 255 255 / 0.16);
+  border-radius: 18px;
+  display: grid;
+  height: 52px;
+  place-items: center;
+  width: 52px;
+}
+
+.sideDigital .sideIcon {
+  background: linear-gradient(135deg, var(--royal-2), var(--royal));
+  color: #fff;
+}
+
+.side h2 {
+  font-size: clamp(26px, 2.8vw, 38px);
+  font-weight: 900;
+  margin-top: 20px;
+}
+
+.side > p {
+  font-size: 17px;
+  line-height: 1.8;
+  margin-top: 10px;
+}
+
+.sideWatch > p {
+  color: rgb(255 255 255 / 0.88);
+}
+
+.sideDigital > p {
+  color: var(--ink-2);
+}
+
+.ticks {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin-top: 20px;
+  padding: 0;
+}
+
+.ticks li {
+  align-items: flex-start;
+  display: flex;
+  font-size: 16px;
+  gap: 10px;
+  line-height: 1.6;
+}
+
+.tick {
+  background: rgb(255 255 255 / 0.2);
+  border-radius: 50%;
+  display: grid;
+  flex-shrink: 0;
+  height: 24px;
+  margin-top: 1px;
+  place-items: center;
+  width: 24px;
+}
+
+.shot {
+  border-radius: 24px;
+  box-shadow: 0 30px 60px -30px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.18);
+  margin-top: 24px;
+  overflow: hidden;
+}
+
+.shot img {
+  display: block;
+  width: 100%;
+}
+
+.areas {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin-top: 22px;
+  padding: 0;
+}
+
+.area {
+  background: rgb(255 255 255 / 0.05);
+  border-radius: 22px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  padding: 16px;
+}
+
+.areaIcon {
+  color: var(--sky);
+  display: block;
+}
+
+.area b {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  margin-top: 10px;
+}
+
+.area small {
+  color: var(--ink-3);
+  display: block;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+
+.sideFoot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 26px;
+}
+
+/* values */
+.values {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin-top: 32px;
+  padding: 0;
+}
+
+.value {
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border-radius: 28px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  padding: 24px;
+}
+
+.valueIcon {
+  background: linear-gradient(135deg, var(--royal-2), var(--royal));
+  border-radius: 18px;
+  box-shadow: 0 12px 24px -12px rgb(31 79 255 / 0.9);
+  color: #fff;
+  display: grid;
+  height: 52px;
+  place-items: center;
+  width: 52px;
+}
+
+.value h3 {
+  font-size: 19px;
+  font-weight: 800;
+  margin-top: 18px;
+}
+
+.value p {
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.8;
+  margin-top: 6px;
+}
+
+/* closing statement */
+.close {
+  background: radial-gradient(70% 140% at 100% 0%, rgb(92 200 255 / 0.25), transparent 60%), linear-gradient(135deg, #1f4fff, #1238c4);
+  border-radius: 40px;
+  padding: clamp(32px, 5vw, 72px);
+  text-align: center;
+}
+
+.close p {
+  font-size: clamp(22px, 2.6vw, 34px);
+  font-weight: 800;
+  line-height: 1.6;
+  margin-inline: auto;
+  max-width: 34ch;
+}
+
+.close .actions {
+  justify-content: center;
+}
+
+@media (max-width: 1023.98px) {
+  .hero,
+  .mission,
+  .sides {
+    grid-template-columns: 1fr;
+  }
+
+  .values {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mark {
+    max-width: 340px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero,
+  .side,
+  .close {
+    border-radius: 28px;
+  }
+
+  .values,
+  .areas {
+    grid-template-columns: 1fr;
+  }
+
+  .chipA,
+  .chipC {
+    inset-inline-start: 4%;
+  }
+
+  .chipB {
+    inset-inline-end: 4%;
+  }
+}

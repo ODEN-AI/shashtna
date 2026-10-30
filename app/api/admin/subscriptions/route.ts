@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/src/lib/session";
 import { maskedPassword } from "@/src/server/credentials";
-import { isOpen } from "@/src/lib/order-status";
+import { isOpen, normalizeOrderStatus } from "@/src/lib/order-status";
 import { logActivity } from "@/src/server/activity";
 import { completeOrderWithSubscription } from "@/src/server/orders";
 import { addMonthsClamped, formatDurationAr, isValidDurationMonths } from "@/src/lib/subscription-duration";
@@ -945,6 +945,29 @@ export async function POST(
       )
         .trim()
         .toUpperCase();
+
+    // A points reward is a free renewal of the length the customer redeemed,
+    // activated only after the owner approved it (moved it to PAID).
+    if (subscriptionRequest.loyaltyReward) {
+      const approved = ["PAID", "FULFILLING"].includes(normalizeOrderStatus(subscriptionRequest.status));
+
+      if (requestType !== "RENEW" || !approved) {
+        return NextResponse.json(
+          { success: false, message: "طلب مكافأة النقاط يحتاج موافقة المالك قبل التفعيل." },
+          { status: 403 }
+        );
+      }
+
+      if (
+        price !== 0 ||
+        (requestedDurationMonths != null && requestedDurationMonths !== subscriptionRequest.durationMonths)
+      ) {
+        return NextResponse.json(
+          { success: false, message: "مكافأة النقاط تتفعل بسعر 0 وبنفس المدة المطلوبة فقط." },
+          { status: 400 }
+        );
+      }
+    }
 
     /*
      * ==========================================================

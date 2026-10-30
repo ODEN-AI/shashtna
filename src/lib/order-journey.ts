@@ -78,6 +78,35 @@ export function journeySteps(stage: OrderStage) {
   }));
 }
 
+/**
+ * A points reward has no payment: «مكافأة نقاط» → review (the owner approves)
+ * → activation. Same stage values, fewer steps.
+ */
+export const REWARD_JOURNEY_STEPS: { key: "REWARD" | "APPROVE" | "ACTIVATE"; ar: string; en: string }[] = [
+  { key: "REWARD", ar: "مكافأة نقاط", en: "Points reward" },
+  { key: "APPROVE", ar: "مراجعة الطلب", en: "Review" },
+  { key: "ACTIVATE", ar: "التفعيل", en: "Activation" },
+];
+
+const REWARD_CURRENT: Record<OrderStage, number> = {
+  PACKAGE_SELECTED: 0,
+  PAYMENT_PENDING: 1,
+  UNDER_REVIEW: 1,
+  PAID: 2,
+  ACTIVATED: 3,
+  CANCELLED: -1,
+  REJECTED: -1,
+};
+
+export function rewardJourneySteps(stage: OrderStage) {
+  const current = REWARD_CURRENT[stage];
+
+  return REWARD_JOURNEY_STEPS.map((step, index) => ({
+    ...step,
+    state: (current < 0 ? (index === 0 ? "done" : "upcoming") : index < current ? "done" : index === current ? "current" : "upcoming") as JourneyStepState,
+  }));
+}
+
 /** Whether the customer still has to pay (show transfer details and proof upload). */
 export function needsPayment(stage: OrderStage) {
   return stage === "PAYMENT_PENDING";

@@ -19,6 +19,7 @@ function toOption(row: NonNullable<OptionRow>): PackageOption {
     durationLabel: row.durationLabel,
     price: row.price,
     renewalPrice: row.renewalPrice ?? null,
+    pointsEarned: row.pointsEarned ?? null,
     isActive: row.isActive,
   };
 }
@@ -42,8 +43,8 @@ export async function packageOptions(packageId: number) {
 export type OptionChanges = { added: number[]; updated: number[]; removed: number[]; deactivated: number[] };
 
 /** "6 أشهر 10000 / تجديد —" — for the audit log. */
-export function describeOption(option: { durationMonths: number; price: number; renewalPrice: number | null; isActive?: boolean }) {
-  return `${formatDurationAr(option.durationMonths)} ${option.price}${option.renewalPrice !== null ? ` / renewal ${option.renewalPrice}` : ""}${option.isActive === false ? " (inactive)" : ""}`;
+export function describeOption(option: { durationMonths: number; price: number; renewalPrice: number | null; pointsEarned?: number | null; isActive?: boolean }) {
+  return `${formatDurationAr(option.durationMonths)} ${option.price}${option.renewalPrice !== null ? ` / renewal ${option.renewalPrice}` : ""}${typeof option.pointsEarned === "number" ? ` / points ${option.pointsEarned}` : ""}${option.isActive === false ? " (inactive)" : ""}`;
 }
 
 /**
@@ -112,6 +113,7 @@ export async function savePackageOptions(packageId: number, parsed: ParsedOption
         durationLabel: option.durationLabel,
         price: option.price,
         renewalPrice: option.renewalPrice,
+        ...(option.pointsEarned !== undefined ? { pointsEarned: option.pointsEarned } : {}),
         isActive: option.isActive,
         updatedAt: now,
       };

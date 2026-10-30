@@ -123,6 +123,7 @@ async function ordersCreated(range: Range) {
 
   return db.orm.public.SubscriptionRequest.where((order) => order.createdAt.gte(start))
     .where((order) => order.createdAt.lt(end))
+    .where({ loyaltyReward: false })
     .select("id", "status", "requestType", "createdAt")
     .all();
 }

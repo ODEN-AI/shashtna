@@ -113,6 +113,17 @@ export const SETTING_DEFINITIONS = {
     default: "",
     multiline: false,
   },
+  // «نقاط شاشتنا» — validated in src/lib/loyalty.ts (loyaltySettingProblem),
+  // edited in the loyalty card of Admin → Settings. Ships disabled.
+  "loyalty.enabled": { group: "loyalty", labelAr: "حالة برنامج النقاط", labelEn: "Points program", default: "off", multiline: false },
+  "loyalty.reward3mPoints": { group: "loyalty", labelAr: "نقاط مكافأة 3 أشهر", labelEn: "Points for 3 free months", default: "30", multiline: false },
+  "loyalty.reward6mPoints": { group: "loyalty", labelAr: "نقاط مكافأة 6 أشهر", labelEn: "Points for 6 free months", default: "60", multiline: false },
+  "loyalty.pendingDays": { group: "loyalty", labelAr: "أيام تعليق النقاط بعد اكتمال الطلب", labelEn: "Days points stay pending after an order completes", default: "7", multiline: false },
+  "loyalty.expiryMonths": { group: "loyalty", labelAr: "أشهر انتهاء النقاط بعد آخر اشتراك IPTV", labelEn: "Months points last after the latest IPTV expiry", default: "6", multiline: false },
+  "loyalty.cooldownDays": { group: "loyalty", labelAr: "أيام بين استبدال وآخر", labelEn: "Days between redemptions", default: "90", multiline: false },
+  "loyalty.seedPoints": { group: "loyalty", labelAr: "نقاط هدية الإطلاق", labelEn: "Launch gift points", default: "10", multiline: false },
+  "loyalty.reward3mOptionId": { group: "loyalty", labelAr: "مدة IPTV لمكافأة 3 أشهر", labelEn: "IPTV length for the 3-month reward", default: "", multiline: false },
+  "loyalty.reward6mOptionId": { group: "loyalty", labelAr: "مدة IPTV لمكافأة 6 أشهر", labelEn: "IPTV length for the 6-month reward", default: "", multiline: false },
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFINITIONS;

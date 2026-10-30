@@ -1,3 +1,4 @@
+import { normalizeChannel, profitByChannel, type Channel } from "@/src/lib/costs";
 import { normalizeOrderStatus } from "@/src/lib/order-status";
 import { bucketKey, bucketKeys, type Granularity, type Range } from "@/src/lib/business-time";
 
@@ -38,6 +39,11 @@ export type OrderInput = {
   updatedAt: string;
   /** A free renewal bought with loyalty points: never revenue, a sale or a product row. */
   loyaltyReward?: boolean;
+  /** SITE (default) or SUPPLIER. */
+  channel?: string | null;
+  /** Cost snapshot from completion (null/undefined = unknown). */
+  creditCostIqd?: number | null;
+  supplierShareIqd?: number | null;
 };
 
 export type ReceiptInput = {
@@ -69,6 +75,10 @@ export type Sale = {
   amount: number;
   requestType: string;
   lines: SaleLine[];
+  channel: Channel;
+  /** Credit cost in IQD; null = unknown («تكلفة غير معروفة»), never treated as zero. */
+  costIqd: number | null;
+  supplierShareIqd: number | null;
 };
 
 export function parseInstant(value: string | null | undefined) {
@@ -138,7 +148,18 @@ export function recognizeSales(input: {
       }
     }
 
-    sales.push({ key: `order:${order.id}`, orderId: order.id, userId: order.userId, at, amount: lines.reduce((sum, line) => sum + line.amount, 0), requestType, lines });
+    sales.push({
+      key: `order:${order.id}`,
+      orderId: order.id,
+      userId: order.userId,
+      at,
+      amount: lines.reduce((sum, line) => sum + line.amount, 0),
+      requestType,
+      lines,
+      channel: normalizeChannel(order.channel),
+      costIqd: typeof order.creditCostIqd === "number" ? order.creditCostIqd : null,
+      supplierShareIqd: typeof order.supplierShareIqd === "number" ? order.supplierShareIqd : null,
+    });
   }
 
   // Receipts that were never linked to an order (or whose order is gone).
@@ -156,6 +177,9 @@ export function recognizeSales(input: {
       amount: receipt.price,
       requestType: "UNKNOWN",
       lines: [{ product: `package:${receipt.serviceName}`, name: receipt.serviceName, kind: "package", serviceType: String(receipt.serviceType).toUpperCase(), amount: receipt.price }],
+      channel: "SITE",
+      costIqd: null,
+      supplierShareIqd: null,
     });
   }
 
@@ -164,6 +188,11 @@ export function recognizeSales(input: {
 
 export function inRange(date: Date | null, range: Range) {
   return Boolean(date) && date!.getTime() >= range.start.getTime() && date!.getTime() < range.end.getTime();
+}
+
+/** Revenue, credit cost, supplier share and net profit by channel for a range (unknown costs flagged). */
+export function costProfit(sales: Sale[], range: Range) {
+  return profitByChannel(sales.filter((sale) => inRange(sale.at, range)));
 }
 
 export function sumSales(sales: Sale[], range: Range) {

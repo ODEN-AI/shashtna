@@ -349,7 +349,7 @@ export async function awardForOrder(orderId: number, snapshotPrice?: number, opt
     const price = snapshotPrice ?? order.price;
     const option = order.packageOptionId ? await db.orm.public.PackageOption.first({ id: order.packageOptionId }) : null;
     const points = pointsForOrder(
-      { serviceType: order.serviceType, requestType: order.requestType, price, status: order.status, loyaltyReward: order.loyaltyReward },
+      { serviceType: order.serviceType, requestType: order.requestType, price, status: order.status, loyaltyReward: order.loyaltyReward, channel: order.channel },
       option?.pointsEarned ?? null,
     );
 
@@ -771,7 +771,7 @@ export async function seedAtLaunch({ check }: { check: boolean }) {
 
   const [subscriptions, orders, seeded] = await Promise.all([
     db.orm.public.Subscription.all(),
-    db.orm.public.SubscriptionRequest.where((order) => order.price.gt(0)).select("userId", "serviceType", "status", "loyaltyReward").all(),
+    db.orm.public.SubscriptionRequest.where((order) => order.price.gt(0)).select("userId", "serviceType", "status", "loyaltyReward", "channel").all(),
     db.orm.public.LoyaltyEntry.where({ kind: "SEED" }).select("userId").all(),
   ]);
 
@@ -786,7 +786,7 @@ export async function seedAtLaunch({ check }: { check: boolean }) {
   );
   const paid = new Set(
     orders
-      .filter((row) => String(row.serviceType).toUpperCase() === "IPTV" && !row.loyaltyReward && normalizeOrderStatus(row.status) === "COMPLETED")
+      .filter((row) => String(row.serviceType).toUpperCase() === "IPTV" && !row.loyaltyReward && String(row.channel ?? "SITE").toUpperCase() === "SITE" && normalizeOrderStatus(row.status) === "COMPLETED")
       .map((row) => row.userId),
   );
   const already = new Set(seeded.map((row) => row.userId));
@@ -911,7 +911,7 @@ export async function missingAwards() {
     db.orm.public.ActivityEvent.where({ entityType: "LOYALTY", action: "LOYALTY_SETTINGS_CHANGED" }).select("details", "createdAt").all(),
     db.orm.public.SubscriptionRequest.where({ loyaltyReward: false })
       .where((order) => order.price.gt(0))
-      .select("id", "userId", "serviceType", "requestType", "price", "status", "loyaltyReward")
+      .select("id", "userId", "serviceType", "requestType", "price", "status", "loyaltyReward", "channel")
       .all(),
     db.orm.public.LoyaltyEntry.where({ kind: "EARN" }).select("orderId").all(),
   ]);

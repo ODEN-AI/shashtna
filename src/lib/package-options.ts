@@ -1,4 +1,5 @@
 import { isValidPrice, parseRenewalPrice } from "@/src/lib/catalogue";
+import { parseCreditCost } from "@/src/lib/costs";
 import { parsePointsEarned } from "@/src/lib/loyalty";
 import { formatDurationAr, parseDuration, type DurationUnit } from "@/src/lib/subscription-duration";
 
@@ -31,6 +32,8 @@ export type PackageOption = {
   renewalPrice: number | null;
   /** Loyalty points an order of this length earns (null = automatic: price ÷ 1,000). */
   pointsEarned?: number | null;
+  /** Panel credit in US cents to activate this length (null = unknown). */
+  creditCostCents?: number | null;
   isActive: boolean;
 };
 
@@ -44,6 +47,8 @@ export type ParsedOption = {
   renewalPrice: number | null;
   /** Loyalty points override; null = automatic, undefined = not sent (keep what is stored). */
   pointsEarned?: number | null;
+  /** Panel credit in US cents; null = unknown, undefined = not sent (keep what is stored). */
+  creditCostCents?: number | null;
   isActive: boolean;
 };
 
@@ -102,6 +107,8 @@ export function parsePackageOptions(raw: unknown, serviceType: "IPTV" | "VIP"): 
     if (!renewal.ok) return { ok: false, error: `${position}: سعر التجديد غير صحيح.` };
 
     const points = row.pointsEarned === undefined ? undefined : parsePointsEarned(row.pointsEarned);
+    const credit = row.creditCostCents === undefined ? undefined : parseCreditCost(row.creditCostCents);
+    if (credit && !credit.ok) return { ok: false, error: `${position}: كلفة الرصيد يجب أن تكون بالدولار وبحد سنتين بعد الفارزة (مثال 1 أو 0.50)، أو فارغة.` };
     if (points && !points.ok) return { ok: false, error: `${position}: نقاط الطلب يجب أن تكون رقمًا صحيحًا من 0 إلى 100000، أو فارغة.` };
 
     if (row.isActive !== undefined && typeof row.isActive !== "boolean") {
@@ -119,6 +126,8 @@ export function parsePackageOptions(raw: unknown, serviceType: "IPTV" | "VIP"): 
       renewalPrice: renewal.value,
       // VIP never earns points (v1): its override is always cleared.
       ...(serviceType === "VIP" ? { pointsEarned: null } : points ? { pointsEarned: points.value } : {}),
+      // Per option, so a VIP length keeps its own credit and never shares IPTV's.
+      ...(credit ? { creditCostCents: credit.value } : {}),
       isActive: row.isActive ?? true,
     });
   }

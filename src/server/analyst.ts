@@ -98,6 +98,13 @@ export function buildFactPack(snapshot: FinanceSnapshot, lang: Lang): FactPack {
       current: snapshot.profit.status === "ok" ? snapshot.profit.amount : null,
       previous: snapshot.profitPrevious.status === "ok" ? snapshot.profitPrevious.amount : null,
     },
+    /** Real cost of sales by channel (aggregates only). Sales with an unknown cost are counted separately, never as zero. */
+    costOfSales: {
+      siteOrDirect: snapshot.costs.current.site,
+      supplier: snapshot.costs.current.supplier,
+      total: snapshot.costs.current.total,
+      previousTotal: snapshot.costs.previous.total,
+    },
     averageOrderValue: { current: round(snapshot.orders.averageOrderValue, 0), previous: round(snapshot.orders.previousAverageOrderValue, 0) },
     products: snapshot.products.slice(0, 8).map((row) => ({
       name: row.name,
@@ -185,6 +192,7 @@ How to write it:
   OBSERVATION — a pattern visible across facts (e.g. concentration, a change in mix).
   INTERPRETATION — a possible explanation. Phrase it as possible, not certain.
   RECOMMENDATION — a concrete, realistic next step for a small team.
+- costOfSales is the real cost of sales by channel (siteOrDirect: panel credit; supplier: the supplier's share). Its netProfit covers only sales with a known cost; unknownCostSales / unknownCostRevenue are sales whose cost was not recorded — say so, and never treat them as zero cost.
 - Revenue is not profit. When netProfit.status is "incomplete", state that net profit cannot be calculated because expenses are not recorded; do not give a profit figure.
 - Compare with the previous period using the pack's comparison wording. When a previous value is 0 or changePct is null, say there is no base to compare with.
 - Small numbers are small: with only a few sales, avoid strong conclusions and say the sample is small.

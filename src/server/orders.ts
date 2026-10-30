@@ -15,6 +15,7 @@ import { normalizeServiceType } from "@/src/server/catalog";
 import { planOrderPrice } from "@/src/lib/catalogue";
 import { resolveOrderOption } from "@/src/lib/package-options";
 import { packageOptions } from "@/src/server/package-options";
+import { snapshotForOrder } from "@/src/server/costs";
 import { awardForOrder, returnReward } from "@/src/server/loyalty";
 
 export const REQUEST_TYPES = ["NEW", "RENEW", "UPGRADE", "DEVICE_PURCHASE"] as const;
@@ -57,10 +58,15 @@ export function serializeOrder(row: NonNullable<OrderRow>, options: { staff?: bo
     paymentReference: row.paymentReference,
     customerNote: row.customerNote,
     adminNote: options.staff ? row.adminNote : null,
+    // Costs are staff-only: customers and the app never see them.
+    cost: options.staff
+      ? { creditCostCents: row.creditCostCents ?? null, creditCostIqd: row.creditCostIqd ?? null, creditPurchaseId: row.creditPurchaseId ?? null, supplierShareIqd: row.supplierShareIqd ?? null }
+      : null,
     status: normalizeOrderStatus(row.status),
     storedStatus: row.status,
     subscriptionId: row.subscriptionId,
     loyaltyReward: Boolean(row.loyaltyReward),
+    channel: String(row.channel ?? "SITE").toUpperCase(),
     createdAt: String(row.createdAt),
     updatedAt: String(row.updatedAt),
   };
@@ -527,10 +533,14 @@ export async function completeOrderWithSubscription(
     return null;
   }
 
+  // Real cost, frozen now: later credit purchases or option edits never change it.
+  const cost = await snapshotForOrder(row);
+
   const updated = await db.orm.public.SubscriptionRequest.where({ id: orderId }).update({
     status: "COMPLETED",
     subscriptionId,
     ...fields,
+    ...cost,
     updatedAt: new Date().toISOString(),
   });
 

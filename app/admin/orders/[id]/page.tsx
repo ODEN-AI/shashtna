@@ -23,6 +23,8 @@ import { customersById } from "@/src/server/admin-data";
 import { requireStaffPage } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
 import { orderLoyalty } from "@/src/server/loyalty";
+import { platformOrder } from "@/src/server/platform-orders";
+import { PlatformFulfil, RevealCode } from "@/app/components/admin/PlatformFulfil";
 import { getOrder } from "@/src/server/orders";
 import { proofUploadTimes } from "@/src/server/payment-proofs";
 import { whatsappLink } from "@/src/server/settings";
@@ -68,7 +70,9 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   const suggestedStatus = proofUrl && transitions.includes("PAID") ? "PAID" : transitions[0];
   const open = isOpen(order.status);
   // A points reward is activated only after the owner approved it (PAID).
-  const canActivate = open && order.requestType !== "DEVICE_PURCHASE" && (!order.loyaltyReward || order.status === "PAID" || order.status === "FULFILLING");
+  // Digital platforms are fulfilled here (code / account), not through IPTV activation.
+  const platform = order.serviceType === "DIGITAL" ? await platformOrder(order.id) : null;
+  const canActivate = !platform && open && order.requestType !== "DEVICE_PURCHASE" && (!order.loyaltyReward || order.status === "PAID" || order.status === "FULFILLING");
   const customerWhatsApp = customer
     ? whatsappLink(
         customer.phone.replace(/^0/, "964"),
@@ -85,6 +89,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
     order.discountIqd && order.listPrice ? { label: t("السعر قبل الخصم", "Price before discount"), value: formatPrice(order.listPrice, lang) } : null,
     order.discountIqd ? { label: t("الخصم", "Discount"), value: `−${formatPrice(order.discountIqd, lang)}` } : null,
     { label: t("المبلغ", "Amount"), value: formatPrice(order.price, lang) },
+    order.deliveryEmail ? { label: t("إيميل حساب العميل", "Customer account e-mail"), value: order.deliveryEmail } : null,
     order.channel === "SUPPLIER" ? { label: t("القناة", "Channel"), value: t("عن طريق المورّد", "Through the supplier") } : null,
     // Costs are financial: only for staff who can see Finance.
     canSeeCost && order.cost && order.status === "COMPLETED"
@@ -226,6 +231,22 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
               <p className="mt-4 text-sm text-ink-3">—</p>
             )}
           </Card>
+
+          {platform ? (
+            <Card className="p-6" raised>
+              <CardHeader
+                icon={<PackageCheck size={19} aria-hidden />}
+                title={t(`تسليم ${platform.group?.name ?? "المنصة"}`, `Deliver ${platform.group?.nameEn ?? platform.group?.name ?? "platform"}`)}
+                description={
+                  open
+                    ? t("بعد ما تتأكد من الدفع، سلّم الطلب. العميل يوصله إشعار ويلكى التفاصيل بحسابه.", "Once payment is confirmed, deliver the order. The customer is notified and sees it in their account.")
+                    : t("تم تسليم الطلب.", "This order has been delivered.")
+                }
+              />
+              {open ? <PlatformFulfil orderId={order.id} delivery={platform.delivery} customerEmail={order.deliveryEmail} renewal={order.requestType === "RENEW"} /> : null}
+              {order.hasDeliveryCode ? <RevealCode orderId={order.id} /> : null}
+            </Card>
+          ) : null}
 
           {canActivate ? (
             <Card className="p-6" raised>

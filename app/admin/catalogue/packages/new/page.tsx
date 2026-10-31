@@ -6,6 +6,8 @@ import { SectionError } from "@/app/components/admin/dashboard/DashboardUI";
 import { Forbidden } from "@/app/components/admin/Forbidden";
 import { requireStaffPage } from "@/src/server/auth";
 import { getLinkOptions } from "@/src/server/catalogue";
+import { normalizeServiceType } from "@/src/lib/catalogue";
+import { listGroups } from "@/src/server/groups";
 import { getI18n } from "@/src/server/i18n";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +19,7 @@ export default async function NewPackagePage() {
   if (!allowed) return <Forbidden />;
 
   const { t } = await getI18n();
-  const options = await getLinkOptions();
+  const [options, groups] = await Promise.all([getLinkOptions(), listGroups()]);
 
   return (
     <div className="space-y-5" data-testid="catalogue-package-new">
@@ -27,6 +29,7 @@ export default async function NewPackagePage() {
           <PackageForm
             initial={{ name: "", slug: "", serviceType: "IPTV", options: [], description: "", specifications: "", notes: null, imageUrl: null, isActive: true, deviceIds: [] }}
             devices={options.data.devices}
+            groups={groups.map((group) => ({ id: group.id, name: group.name, serviceType: normalizeServiceType(group.serviceType), isActive: group.isActive }))}
           />
         ) : (
           <SectionError label={t("تعذر تحميل الأجهزة", "Couldn't load devices")} />

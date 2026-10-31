@@ -106,6 +106,8 @@ export type PackageOptionValues = {
   pointsEarned?: number | null;
   /** Panel credit in US cents to activate this length; null = unknown. */
   creditCostCents?: number | null;
+  /** A fixed IQD cost (digital platforms); null = none. */
+  costIqd?: number | null;
   isActive: boolean;
 };
 
@@ -113,7 +115,9 @@ export type PackageFormValues = {
   id?: number;
   name: string;
   slug: string;
-  serviceType: "IPTV" | "VIP";
+  serviceType: "IPTV" | "VIP" | "DIGITAL";
+  /** The /plans group; a digital platform package belongs to a digital group. */
+  groupId?: number | null;
   /** Every length with its own price; VIP packages have exactly one (3 months). */
   options: PackageOptionValues[];
   description: string;
@@ -131,7 +135,7 @@ function customLabel(label: string, months: number) {
 }
 
 /** An option row as typed in the form (strings until the server validates them). */
-type OptionRow = { key: string; id?: number; amount: string; unit: DurationUnit; label: string; price: string; renewal: string; points: string; credit: string; isActive: boolean };
+type OptionRow = { key: string; id?: number; amount: string; unit: DurationUnit; label: string; price: string; renewal: string; points: string; credit: string; fixed: string; isActive: boolean };
 
 let rowSeed = 0;
 
@@ -148,11 +152,12 @@ function optionRow(option: PackageOptionValues): OptionRow {
     renewal: option.renewalPrice === null ? "" : String(option.renewalPrice),
     points: typeof option.pointsEarned === "number" ? String(option.pointsEarned) : "",
     credit: typeof option.creditCostCents === "number" ? centsToDollars(option.creditCostCents) : "",
+    fixed: typeof option.costIqd === "number" ? String(option.costIqd) : "",
     isActive: option.isActive,
   };
 }
 
-function blankOption(serviceType: "IPTV" | "VIP"): PackageOptionValues {
+function blankOption(serviceType: "IPTV" | "VIP" | "DIGITAL"): PackageOptionValues {
   return serviceType === "VIP"
     ? { durationMonths: 3, durationUnit: "MONTH", durationLabel: "", price: "", renewalPrice: null, isActive: true }
     : { durationMonths: 1, durationUnit: "YEAR", durationLabel: "", price: "", renewalPrice: null, isActive: true };
@@ -203,9 +208,14 @@ function OptionsEditor({ vip, rows, setRows }: { vip: boolean; rows: OptionRow[]
           const price = /^\d+$/.test(row.price.trim()) ? Number(row.price.trim()) : null;
           const id = `opt-${row.key}`;
           const creditField = (
-            <Field label={t("كلفة الرصيد ($)", "Panel credit ($)")} htmlFor={`${id}-credit`} hint={t("فارغ = غير معروفة.", "Empty = unknown.")}>
-              <Input id={`${id}-credit`} inputMode="decimal" dir="ltr" value={row.credit} onChange={(event) => update(row.key, { credit: event.target.value })} placeholder="1" data-testid="package-option-credit" />
-            </Field>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label={t("كلفة الرصيد ($)", "Panel credit ($)")} htmlFor={`${id}-credit`} hint={t("فارغ = غير معروفة.", "Empty = unknown.")}>
+                <Input id={`${id}-credit`} inputMode="decimal" dir="ltr" value={row.credit} onChange={(event) => update(row.key, { credit: event.target.value })} placeholder="1" data-testid="package-option-credit" />
+              </Field>
+              <Field label={t("كلفة ثابتة (د.ع)", "Fixed cost (IQD)")} htmlFor={`${id}-fixed`} hint={t("للمنصات، بدون رصيد.", "Platforms, without credit.")}>
+                <Input id={`${id}-fixed`} inputMode="numeric" dir="ltr" value={row.fixed} onChange={(event) => update(row.key, { fixed: event.target.value })} data-testid="package-option-fixed-cost" />
+              </Field>
+            </div>
           );
 
           return (
@@ -288,11 +298,25 @@ function OptionsEditor({ vip, rows, setRows }: { vip: boolean; rows: OptionRow[]
   );
 }
 
-export function PackageForm({ initial, devices, slugLocked }: { initial: PackageFormValues; devices: (Option & { serviceType: string })[]; slugLocked?: boolean }) {
+export type GroupChoice = { id: number; name: string; serviceType: "IPTV" | "VIP" | "DIGITAL"; isActive: boolean };
+
+export function PackageForm({
+  initial,
+  devices,
+  slugLocked,
+  groups = [],
+}: {
+  initial: PackageFormValues;
+  devices: (Option & { serviceType: string })[];
+  slugLocked?: boolean;
+  /** The /plans groups; picking one sets the package's service (IPTV, VIP or a digital platform). */
+  groups?: GroupChoice[];
+}) {
   const { t } = useLanguage();
   const toast = useToast();
   const router = useRouter();
   const [serviceType, setServiceType] = useState(initial.serviceType);
+  const [groupId, setGroupId] = useState<number | null>(initial.groupId ?? groups.find((group) => group.serviceType === initial.serviceType && group.serviceType !== "DIGITAL")?.id ?? null);
   const [rows, setRows] = useState<OptionRow[]>(() => (initial.options.length ? initial.options : [blankOption(initial.serviceType)]).map(optionRow));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -308,6 +332,7 @@ export function PackageForm({ initial, devices, slugLocked }: { initial: Package
       name: text(form, "name"),
       slug: text(form, "slug"),
       serviceType,
+      ...(groups.length ? { groupId } : {}),
       // Every length with its own price; the server validates each one.
       options: shown.map((row) => ({
         ...(row.id !== undefined ? { id: row.id } : {}),
@@ -319,6 +344,7 @@ export function PackageForm({ initial, devices, slugLocked }: { initial: Package
         ...(vip ? {} : { pointsEarned: row.points.trim() === "" ? null : priceValue(row.points) }),
         // Dollars as typed → cents; an invalid value is sent as typed so the server explains it.
         creditCostCents: row.credit.trim() === "" ? null : (dollarsToCents(row.credit) ?? row.credit),
+        costIqd: row.fixed.trim() === "" ? null : priceValue(row.fixed),
         isActive: row.isActive,
       })),
       description: text(form, "description"),
@@ -371,12 +397,37 @@ export function PackageForm({ initial, devices, slugLocked }: { initial: Package
 
       <Group title={t("التجاري", "Commercial")}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t("نوع الخدمة", "Service type")} htmlFor="pkg-type">
-            <Select id="pkg-type" name="serviceType" value={serviceType} onChange={(event) => setServiceType(event.target.value === "VIP" ? "VIP" : "IPTV")}>
-              <option value="IPTV">IPTV</option>
-              <option value="VIP">VIP</option>
-            </Select>
-          </Field>
+          {groups.length ? (
+            <Field label={t("المجموعة", "Group")} htmlFor="pkg-group" hint={t("تحدد نوع الخدمة: IPTV أو VIP أو منصة. ما تختلط.", "Sets the service: IPTV, VIP or a platform. They never mix.")}>
+              <Select
+                id="pkg-group"
+                value={groupId ?? ""}
+                onChange={(event) => {
+                  const group = groups.find((item) => item.id === Number(event.target.value));
+                  if (!group) return;
+                  setGroupId(group.id);
+                  setServiceType(group.serviceType);
+                }}
+                data-testid="package-group"
+              >
+                {groupId === null ? <option value="">{t("— اختر المجموعة —", "— choose a group —")}</option> : null}
+                {groups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                    {group.serviceType === "DIGITAL" ? "" : ` (${group.serviceType})`}
+                    {group.isActive ? "" : t(" — مخفية", " — hidden")}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : (
+            <Field label={t("نوع الخدمة", "Service type")} htmlFor="pkg-type">
+              <Select id="pkg-type" name="serviceType" value={serviceType} onChange={(event) => setServiceType(event.target.value === "VIP" ? "VIP" : "IPTV")}>
+                <option value="IPTV">IPTV</option>
+                <option value="VIP">VIP</option>
+              </Select>
+            </Field>
+          )}
         </div>
         <OptionsEditor vip={vip} rows={shown} setRows={setRows} />
         <Checkbox name="isActive" defaultChecked={initial.isActive} label={t("فعّالة — تظهر للعملاء ويمكن شراؤها", "Active — visible to customers and purchasable")} />
@@ -390,7 +441,7 @@ export function PackageForm({ initial, devices, slugLocked }: { initial: Package
         {vip ? (
           <CompatibilityChecklist name="deviceIds" options={candidates} selected={initial.deviceIds} empty={t("لا توجد أجهزة VIP في الكتالوج.", "No VIP devices in the catalogue.")} />
         ) : (
-          <p className="text-sm text-ink-3">{t("باقات IPTV لا تحتاج جهازًا. التوافق خاص بباقات VIP.", "IPTV packages don't use devices. Compatibility applies to VIP packages.")}</p>
+          <p className="text-sm text-ink-3">{t("هذي الباقة ما تحتاج جهاز. التوافق خاص بباقات VIP.", "This package doesn't use a device. Compatibility applies to VIP packages.")}</p>
         )}
       </Group>
 

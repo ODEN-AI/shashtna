@@ -9,6 +9,7 @@ import {
   BarChart3,
   BrainCircuit,
   Bell,
+  CalendarCheck,
   Gift,
   Percent,
   Layers,
@@ -91,6 +92,7 @@ const ICONS: Record<string, typeof Inbox> = {
   loyalty: Gift,
   discounts: Percent,
   groups: Layers,
+  today: CalendarCheck,
 };
 
 type Counts = Partial<Record<string, number>>;

@@ -8,8 +8,8 @@ Status marks: ✅ done (with evidence) · 🔄 in progress · ⏳ planned · ⏸
 
 ## Status now (2026-10-31)
 
-- **Production** runs `main` at `1d9192f` (PRs #6–#10). The owner checked the live
-  site after the deploy: it works.
+- **Production** runs `main` at `69bbe17` (PRs #6–#11 merged; GitHub shows #8 23:50, #9 23:52, #10 00:00,
+  #11 00:16 UTC). The owner checked the live site after the deploys: it works.
 - **Production database** marker `76e80bbd5844`, 22 migrations, the latest
   `20261030T2329_real_costs`; `prisma db verify` passed.
 - **«نقاط شاشتنا» (loyalty points)** is **live** (switched on by the owner 2026-10-31). Reward options are set
@@ -25,7 +25,7 @@ Long-term direction, in order. A phase is marked done only with evidence.
 |---|---|---|---|
 | 1 | Stabilize the foundation (site, data, orders, payments, activation, deploys) | ✅ | Schema and code in sync on production (marker `0395c5c66aa0`). Open: see "Known risks" |
 | 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | ✅ | Real costs live (PR #9 + #10, migration `20261030T2329_real_costs` applied 2026-10-31, marker `76e80bbd5844`); data audit 2026-10-31 clean apart from accepted owner/test items — `docs/costs.md` |
-| 3 | Complete the customer and admin experience | 🔄 | Redesign (PR #6) ✅; loyalty (PR #7) ✅ live since 2026-10-31. Next: discounts, plan groups and digital platforms |
+| 3 | Complete the customer and admin experience | 🔄 | Redesign (PR #6) ✅; loyalty (PR #7) ✅ live since 2026-10-31; discounts built on `feat/discounts` (PR open, migration `20261031T0021_discounts` not on production) — `docs/discounts.md`. Next: plan groups and digital platforms |
 | 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | ⏳ | — |
 | 5 | SHASHTNA AI CORE and agents (Customer, Operations, Finance, Marketing) with scoped tools | ⏳ | An AI business analyst exists (aggregates only) |
 | 6 | Business intelligence and data-driven growth | ⏳ | Finance/BI dashboard exists (PR #4) |
@@ -36,8 +36,9 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | Item | Status | Where |
 |---|---|---|
 | Launch «نقاط شاشتنا»: reward options ✅ → `seed --check` ✅ → seed ✅ (40 customers, 400 points) → owner enables ✅ (2026-10-31) → announcement ⏳ | 🔄 | Admin → Settings → نقاط شاشتنا; `scripts/loyalty/`; `docs/loyalty.md` |
-| Progress documentation (this file and the `CLAUDE.md` rule) | 🔄 | PR #8 |
-| Real costs and supplier orders (phase 2): credit purchases and rate, credit per length, cost snapshot on completion, supplier orders (no points), profit by channel | 🔄 built and tested locally; waiting for review, the production migration and merge | `feat/real-costs`; `docs/costs.md` |
+| Progress documentation (this file and the `CLAUDE.md` rule) | ✅ | PR #8 merged |
+| Real costs and supplier orders (phase 2) | ✅ | PR #9 + PR #10 merged; production marker `76e80bbd5844` |
+| Discounts (phase 3, part 2): per package length, percent or fixed IQD, optional window, renewals opt-in, one at a time; list / discount / price stored on orders; site, checkout, app, admin, finance | 🔄 built and tested locally; waiting for review, the production migration and merge | `feat/discounts`; `docs/discounts.md` |
 
 ## Known risks
 
@@ -50,7 +51,10 @@ Long-term direction, in order. A phase is marked done only with evidence.
 - ❓ Whether a merge to `main` publishes automatically (both merges on 2026-10-30 went live, per the owner;
   the Netlify setting itself is unverified).
 - Two e2e scripts need `psql`, which is not installed on the owner's machine, so they did not run for
-  PR #6 / PR #7 / `feat/real-costs`.
+  PR #6 / PR #7 / `feat/real-costs` / `feat/discounts`.
+- Device (VIP hardware) discounts are deferred (owner, 2026-10-31): a VIP discount covers the package
+  price only. The home-page VIP section and the stage's "from" prices show list prices; the plan pages,
+  checkout and the order charge the discounted price. ⏳
 - `tests/domain.test.ts` "subscription state is derived from expiry" fails between 00:00 and 03:00
   Baghdad time: the test builds "today" from the UTC date while expiry is read in local time. It passes
   with `TZ=UTC`. Not caused by recent work; fix it in its own change. ⏳
@@ -59,10 +63,9 @@ Long-term direction, in order. A phase is marked done only with evidence.
 
 ## Next step
 
-Review the real-costs PR. Then, with the owner's approval: apply migration
-`20261030T2329_real_costs` to production → merge (code) → record the latest credit purchase ($200 /
-180,000 IQD) in Admin → Finance → Panel credit → set the credit per length (3m $1, 6m $2, 1y $4, 2y $8)
-in each IPTV package. After that: discounts (phase 3).
+Review the discounts PR. Then, with the owner's approval: apply migration `20261031T0021_discounts` to
+production → merge (code; harmless while no discount exists) → add a discount from Admin → Catalogue →
+the package → «الخصومات». After that: admin-managed plan groups on /plans (phase 3, part 3).
 
 ## Decisions
 
@@ -70,6 +73,7 @@ Newest first. Details are in the linked documents.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-31 | Discounts: per package option; percent 1–90 or fixed IQD, rounded down; NEW and UPGRADE always, renewals only when ticked; at most one active per option; reward and supplier orders never discounted; device discounts deferred | Owner (discount brief; devices later) |
 | 2026-10-31 | Audit findings accepted as-is: 8 IPTV lengths (+1 VIP) come from the owner's father's panel, profit split 50/50, and are not tracked in the dashboard, so their cost stays «تكلفة غير معروفة»; one expired "test" subscription, two customers with several active subscriptions and two duplicate phone numbers are deliberate test/owner accounts; old receipts/subscriptions without links are legacy | Owner: keep the dashboard simple |
 | 2026-10-31 | Phase 2 closed | Real costs live; audit clean apart from the accepted items above |
 | 2026-10-31 | "Owner only" means full access (`OWNER` or legacy `ADMIN`), matching `src/lib/roles.ts` | The owner's own account is `ADMIN` ("مدير (كامل الصلاحيات)") and cannot change its own role |
@@ -99,6 +103,8 @@ Newest first.
 
 | Date | PR / commit | Change | Checks |
 |---|---|---|---|
+| 2026-10-31 | `feat/discounts` (PR to `main`, open) | Discounts: `discount` table, list / discount / price on orders, server pricing in `createOrder`, catalogue + site + checkout + app, admin form with live preview and list, finance totals, analyst aggregates. Two stale test scripts fixed for PR #10's full-access rule | `npm test` 222/222 (UTC and local time); tsc, ESLint, build clean; `scripts/integration/discounts.mts` 8/8; `scripts/integration/costs.mts` 9/9; e2e loyalty 13/13, package-options 17/17; browser check RTL/LTR at phone width |
+| 2026-10-31 | migration `20261031T0021_discounts` | Planned and applied on the local database only (5 additive operations); not on production | `migration check`, `db verify` (local) |
 | 2026-10-31 | — | Read-only data audit of production (counts only): 77 customers, 54 active IPTV subscriptions, 96 orders. No stuck or unpaid orders, every completed order has a subscription and receipt, receipt amounts match, loyalty ledger reconciles (51 accounts, 550 points). Panel credit recorded (900 IQD/$) and set on the owner's IPTV lengths | READ ONLY transaction |
 | 2026-10-31 | fix: full-access checks | Owner-only actions (loyalty approvals and adjustments, panel credit, supplier orders, cost settings) now accept every full-access role (`OWNER` and the legacy `ADMIN`, via `isFullAccess`). The owner's account is `ADMIN` and was refused | 213/213 unit (TZ=UTC); tsc, lint, build clean |
 | 2026-10-31 | `feat/real-costs` (PR to `main`, open) | Real costs and supplier orders: `creditPurchase`, `packageOption.creditCostCents`, order channel / supplier share / cost snapshot; owner pages; profit by channel; analyst aggregates | `npm test` 212/213 (the 1 failure is the clock-dependent domain test above; 12/12 with `TZ=UTC`); tsc, ESLint, build clean; `scripts/integration/costs.mts` 9/9; e2e loyalty 13/13, package-options 17/17; pages checked in the browser |
@@ -119,6 +125,7 @@ Newest first.
 
 - `docs/loyalty.md` — loyalty rules, settings and launch steps.
 - `docs/costs.md` — real costs, credit purchases and supplier orders.
+- `docs/discounts.md` — discounts: rules, where they show, admin.
 - `docs/package-options.md` — packages sold in several lengths.
 - `docs/redesign/phase-1/`, `docs/redesign/phase-2/` — redesign reports. They describe the state when they
   were written; the phase-2 note "no commit or PR" is superseded by PR #6.

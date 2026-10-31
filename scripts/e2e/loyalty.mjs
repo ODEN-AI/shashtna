@@ -137,13 +137,14 @@ async function activate(orderId, userId, price, extra = {}, token = tokens.admin
 
 try {
   // ------------------------------------------------------------ setup
-  await check("setup: two customers, a staff admin and the owner; an IPTV package with two lengths", async () => {
+  await check("setup: two customers, a staff operator and the owner; an IPTV package with two lengths", async () => {
     savedSettings = await sql(`select coalesce(json_agg(json_build_object('key', key, 'value', value)), '[]') from "siteSetting" where key like 'loyalty.%'`);
     tokens.a = await register(phones.a, "E2E Points A");
     tokens.b = await register(phones.b, "E2E Points B");
     await register(phones.admin, "E2E Points Admin");
     await register(phones.owner, "E2E Points Owner");
-    await sql(`update "user" set role='ADMIN' where phone='${phones.admin}'`);
+    // Staff without full access (owner-only means OWNER or legacy ADMIN since PR #10).
+    await sql(`update "user" set role='OPERATOR' where phone='${phones.admin}'`);
     await sql(`update "user" set role='OWNER' where phone='${phones.owner}'`);
     tokens.admin = await login(phones.admin);
     tokens.owner = await login(phones.owner);
@@ -151,7 +152,7 @@ try {
     ids.b = Number(await sql(`select id from "user" where phone='${phones.b}'`));
 
     const created = await call("POST", "/api/admin/packages", {
-      token: tokens.admin,
+      token: tokens.owner,
       body: {
         name: `E2E Loyalty ${RUN}`,
         slug,

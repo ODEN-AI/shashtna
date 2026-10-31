@@ -47,10 +47,11 @@ const check = async (name: string, fn: () => Promise<void>) => {
 };
 
 const owner = await db.orm.public.User.create({ name: "cost owner", phone: `0791${R}`, passwordHash: "x", role: "OWNER" });
-const admin = await db.orm.public.User.create({ name: "cost admin", phone: `0792${R}`, passwordHash: "x", role: "ADMIN" });
+// Not full access: owner-only means OWNER or legacy ADMIN (isFullAccess), so the refused actor is an OPERATOR.
+const admin = await db.orm.public.User.create({ name: "cost operator", phone: `0792${R}`, passwordHash: "x", role: "OPERATOR" });
 const customer = await db.orm.public.User.create({ name: "cost customer", phone: `0793${R}`, passwordHash: "x" });
 const ownerActor = { id: owner.id, role: "OWNER" };
-const adminActor = { id: admin.id, role: "ADMIN" };
+const adminActor = { id: admin.id, role: "OPERATOR" };
 const pkg = await db.orm.public.Package.create({ name: `cost ${R}`, slug: `cost-${R}`, serviceType: "IPTV", price: 6000, durationMonths: 3, durationLabel: "3", description: "", specifications: "" });
 const ids: Record<string, number> = {};
 const savedSettings = await db.orm.public.SiteSetting.where((s) => s.key.like("loyalty.%")).all();

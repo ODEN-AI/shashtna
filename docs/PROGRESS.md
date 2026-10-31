@@ -12,9 +12,8 @@ Status marks: ✅ done (with evidence) · 🔄 in progress · ⏳ planned · ⏸
   site after the deploy: it works.
 - **Production database** marker `76e80bbd5844`, 22 migrations, the latest
   `20261030T2329_real_costs`; `prisma db verify` passed.
-- **«نقاط شاشتنا» (loyalty points)** is deployed and **switched off** (`loyalty.enabled = off`). Reward options are set
+- **«نقاط شاشتنا» (loyalty points)** is **live** (switched on by the owner 2026-10-31). Reward options are set
   (Star10 3 months / 6 months). The launch seed ran on 2026-10-31: 40 customers × 10 points = 400 points.
-  The owner switched the program on (2026-10-31).
 - **Deploy Previews use production** (database, `AUTH_SECRET`, Blobs; an owner decision recorded in
   PR #6). Treat any preview as production.
 

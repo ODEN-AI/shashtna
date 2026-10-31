@@ -3511,6 +3511,13 @@
                   "kind": "scalar"
                 }
               },
+              "reminderOutboxId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "requestType": {
                 "nullable": false,
                 "type": {
@@ -3664,6 +3671,9 @@
                 },
                 "price": {
                   "column": "price"
+                },
+                "reminderOutboxId": {
+                  "column": "reminderOutboxId"
                 },
                 "requestType": {
                   "column": "requestType"
@@ -6434,6 +6444,11 @@
                   "nativeType": "int4",
                   "nullable": false
                 },
+                "reminderOutboxId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
                 "requestType": {
                   "codecId": "pg/text@1",
                   "default": {
@@ -6630,7 +6645,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "0102955a274660919ea2e2dcb51d26def14278de5b5ebeeb65280c2ad8497bec"
+    "storageHash": "da91640c9eafe0e06d21c57669390b11804d709dc60efd36fe90721f0eb74f0b"
   },
   "execution": {
     "executionHash": "e5122ced4907905b09a11a958d433005fe498bd85874a975cf18d4c75d729a92",

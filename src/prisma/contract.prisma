@@ -35,6 +35,9 @@ model Subscription {
   createdAt       TimestamptzString @default(now())
   updatedAt       temporal.updatedAtString()
   packageId       Int?
+  /// Digital platforms: the account e-mail (a ready account or the customer's own). Not unique:
+  /// one account can serve several profiles, and one customer e-mail several platforms.
+  accountEmail    String?
 }
 
 model Package {
@@ -58,6 +61,8 @@ model Package {
   updatedAt       temporal.updatedAtString()
   devices         PackageDevice[]
   options         PackageOption[]
+  /// The group the package is shown in on /plans (IPTV, VIP or a digital platform); null = none yet.
+  groupId         Int?
 }
 
 /// One sellable length of a package, with its own price. price / renewalPrice /
@@ -78,6 +83,8 @@ model PackageOption {
   pointsEarned    Int?
   /// Panel credit this length costs to activate, in US cents (100 = $1); null = unknown.
   creditCostCents Int?
+  /// A fixed cost in IQD (digital platforms bought for a set price); used when no credit cost is set.
+  costIqd         Int?
   isActive        Boolean  @default(true)
   createdAt       TimestamptzString @default(now())
   updatedAt       temporal.updatedAtString()
@@ -169,6 +176,10 @@ model SubscriptionRequest {
   listPrice        Int?
   discountId       Int?
   discountIqd      Int?
+  /// Digital platforms: the customer's own account e-mail (CUSTOMER_EMAIL groups) and the
+  /// delivered code (CODE groups; staff-only until delivered, then the owning customer only).
+  deliveryEmail    String?
+  deliveryCode     String?
 }
 
 model Receipt {
@@ -375,6 +386,30 @@ model ConsoleDevice {
   updatedAt       temporal.updatedAtString()
 
   @@index([userId])
+}
+
+// A group of packages on /plans: the built-in IPTV and VIP groups and the
+// digital platforms the owner adds (Netflix, beIN Sports, …). `delivery` is
+// validated in code: CODE | ACCOUNT | CUSTOMER_EMAIL. `serviceType` is IPTV,
+// VIP or DIGITAL; digital groups never mix with IPTV / VIP, and a renewal only
+// extends a subscription of the same group. `accent` / `surface` are colours
+// chosen in the dashboard (checked for contrast), rendered as CSS variables.
+model PackageGroup {
+  id            Int      @id @default(autoincrement())
+  name          String
+  nameEn        String?
+  slug          String   @unique
+  logoUrl       String?
+  description   String?
+  descriptionEn String?
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  accent        String
+  surface       String
+  delivery      String   @default("ACCOUNT")
+  serviceType   String   @default("DIGITAL")
+  createdAt     TimestamptzString @default(now())
+  updatedAt     temporal.updatedAtString()
 }
 
 // A discount on one package option (a product at one length). `kind` is

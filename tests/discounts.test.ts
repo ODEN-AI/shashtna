@@ -108,5 +108,5 @@ test("discounts migration: additive only, chained after real costs, the db ref p
   assert.ok(ops.every((op) => op.operationClass === "additive"));
   for (const id of ["table.discount", "column.public.subscriptionRequest.listPrice", "column.public.subscriptionRequest.discountId", "column.public.subscriptionRequest.discountIqd"]) assert.ok(ops.some((op) => op.id === id), id);
   assert.equal(read("20261031T0021_discounts/migration.json").from, read("20261030T2329_real_costs/migration.json").to);
-  assert.equal(read("20261031T0021_discounts/migration.json").to, read("refs/db.json").hash);
+  assert.equal(read("20261031T0021_discounts/migration.json").to, read("20261031T0738_plan_groups/migration.json").from);
 });

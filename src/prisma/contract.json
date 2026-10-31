@@ -64,6 +64,10 @@
       "model": "PackageDevice",
       "namespace": "public"
     },
+    "packageGroup": {
+      "model": "PackageGroup",
+      "namespace": "public"
+    },
     "packageOption": {
       "model": "PackageOption",
       "namespace": "public"
@@ -1685,6 +1689,13 @@
                   "kind": "scalar"
                 }
               },
+              "groupId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -1812,6 +1823,9 @@
                 "durationUnit": {
                   "column": "durationUnit"
                 },
+                "groupId": {
+                  "column": "groupId"
+                },
                 "id": {
                   "column": "id"
                 },
@@ -1932,8 +1946,176 @@
               "table": "packageDevice"
             }
           },
+          "PackageGroup": {
+            "fields": {
+              "accent": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "delivery": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "description": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "descriptionEn": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "isActive": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "logoUrl": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "name": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "nameEn": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "serviceType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "slug": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "sortOrder": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "surface": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "accent": {
+                  "column": "accent"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "delivery": {
+                  "column": "delivery"
+                },
+                "description": {
+                  "column": "description"
+                },
+                "descriptionEn": {
+                  "column": "descriptionEn"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "isActive": {
+                  "column": "isActive"
+                },
+                "logoUrl": {
+                  "column": "logoUrl"
+                },
+                "name": {
+                  "column": "name"
+                },
+                "nameEn": {
+                  "column": "nameEn"
+                },
+                "serviceType": {
+                  "column": "serviceType"
+                },
+                "slug": {
+                  "column": "slug"
+                },
+                "sortOrder": {
+                  "column": "sortOrder"
+                },
+                "surface": {
+                  "column": "surface"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "packageGroup"
+            }
+          },
           "PackageOption": {
             "fields": {
+              "costIqd": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "createdAt": {
                 "nullable": false,
                 "type": {
@@ -2038,6 +2220,9 @@
             },
             "storage": {
               "fields": {
+                "costIqd": {
+                  "column": "costIqd"
+                },
                 "createdAt": {
                   "column": "createdAt"
                 },
@@ -2697,6 +2882,13 @@
           },
           "Subscription": {
             "fields": {
+              "accountEmail": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "connections": {
                 "nullable": false,
                 "type": {
@@ -2829,6 +3021,9 @@
             },
             "storage": {
               "fields": {
+                "accountEmail": {
+                  "column": "accountEmail"
+                },
                 "connections": {
                   "column": "connections"
                 },
@@ -2941,6 +3136,20 @@
                 }
               },
               "customerNote": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "deliveryCode": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "deliveryEmail": {
                 "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
@@ -3154,6 +3363,12 @@
                 },
                 "customerNote": {
                   "column": "customerNote"
+                },
+                "deliveryCode": {
+                  "column": "deliveryCode"
+                },
+                "deliveryEmail": {
+                  "column": "deliveryEmail"
                 },
                 "deviceId": {
                   "column": "deviceId"
@@ -4569,6 +4784,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "groupId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/int4@1",
                   "default": {
@@ -4749,8 +4969,130 @@
                 }
               ]
             },
+            "packageGroup": {
+              "columns": {
+                "accent": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "delivery": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "ACCOUNT"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "description": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "descriptionEn": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "isActive": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "logoUrl": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "name": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "nameEn": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "serviceType": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "DIGITAL"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "slug": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "sortOrder": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "surface": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "slug"
+                  ]
+                }
+              ]
+            },
             "packageOption": {
               "columns": {
+                "costIqd": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
                 "createdAt": {
                   "codecId": "pg/timestamptz-string@1",
                   "default": {
@@ -5322,6 +5664,11 @@
             },
             "subscription": {
               "columns": {
+                "accountEmail": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "connections": {
                   "codecId": "pg/int4@1",
                   "default": {
@@ -5532,6 +5879,16 @@
                   "nullable": true
                 },
                 "customerNote": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "deliveryCode": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "deliveryEmail": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
@@ -5823,10 +6180,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "eb9bf30b7888769924bb5c75d3d0a0c9367da8fdf1aa10e55fabdee317351cda"
+    "storageHash": "1b781f2d721029377d605ba88331d8ca0b899f43c80a19d4ff9ae53284f228ae"
   },
   "execution": {
-    "executionHash": "511baf34df232f6650f9bb9b687e71a1e19d4e3a5ebd31b443b45545a45b584d",
+    "executionHash": "e5122ced4907905b09a11a958d433005fe498bd85874a975cf18d4c75d729a92",
     "mutations": {
       "defaults": [
         {
@@ -5962,6 +6319,21 @@
             "column": "updatedAt",
             "namespace": "public",
             "table": "package"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "packageGroup"
           }
         },
         {

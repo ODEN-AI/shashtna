@@ -118,6 +118,7 @@ Newest first.
 
 | Date | PR / commit | Change | Checks |
 |---|---|---|---|
+| 2026-10-31 | fix: automation production guard | «شغّل هسه» on production answered NOT_PRODUCTION: Netlify's CONTEXT exists only at build time. `next.config.ts` now inlines it as `SHASHTNA_DEPLOY_CONTEXT` (previews get `deploy-preview`, so they stay blocked), and the scheduled function reads the deploy context and site URL from its run-time context | unit tests, tsc, ESLint, build |
 | 2026-10-31 | fix: settings form | After a save, the settings fields showed their old values, so the next save switched other options back (seen with automation: enabled saved on, then digest/dry run flipped). Each field now remounts with the stored value | tsc, ESLint, build; audit log confirmed the cause |
 | 2026-10-31 | `feat/automation-core` (PR to `main`, open) | Automation step 1: `automationRun`, `outboxMessage`, automation settings, `netlify/functions/daily-digest.mts`, `/api/automation/run`, admin «اليوم» with WhatsApp links, settings card, nav entry | `TZ=UTC npm test` 242/242; tsc, ESLint (changed files), build clean; `scripts/integration/automation.mts` 6/6, costs 9/9, discounts 8/8, plan-groups 8/8; «اليوم» checked in headless Chrome RTL/LTR at 1440 and 390 (no overflow, no console errors, a WhatsApp click marks «أُرسلت»); endpoint: no / wrong token 401, valid token → SKIPPED while off |
 | 2026-10-31 | migration `20261031T1006_automation_core` | Applied on the local database only (6 additive operations) | `migration check`, `db verify` (local) |

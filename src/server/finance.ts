@@ -3,6 +3,7 @@ import { cache } from "react";
 import { businessDay, resolveRange, trendRange, type Granularity, type PeriodKey, type Range } from "@/src/lib/business-time";
 import {
   costProfit,
+  discountTotals,
   inRange,
   isPaidStatus,
   mostSold,
@@ -57,6 +58,7 @@ export const loadFinanceSources = cache(async () => {
       "channel",
       "creditCostIqd",
       "supplierShareIqd",
+      "discountIqd",
     ).all(),
     db.orm.public.Receipt.select("id", "orderId", "userId", "price", "serviceName", "serviceType", "createdAt").all(),
     db.orm.public.ActivityEvent.where({ entityType: "ORDER" })
@@ -246,6 +248,8 @@ export async function getFinanceSnapshot(selection: PeriodSelection, now = new D
     profit: netProfit(revenueNow.amount, expensesNow, anyExpense),
     /** Real cost of sales by channel (site/direct vs supplier); unknown costs are flagged, never zero. */
     costs: { current: costProfit(sales, current), previous: costProfit(sales, previous) },
+    /** Discounted sales and the total discount given (revenue is already net of it). */
+    discounts: { current: discountTotals(sales, current), previous: discountTotals(sales, previous) },
     profitPrevious: netProfit(revenuePrev.amount, expensesPrev, anyExpense),
     trend: { view: selection.view, points: trendSeries(sales, sources.expenses, trend, selection.view) },
     products,

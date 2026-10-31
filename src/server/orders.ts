@@ -12,7 +12,8 @@ import {
 import { logActivity } from "@/src/server/activity";
 import { notify } from "@/src/server/notifications";
 import { normalizeServiceType } from "@/src/server/catalog";
-import { planOrderPrice } from "@/src/lib/catalogue";
+import { orderPricing } from "@/src/lib/discounts";
+import { activeDiscountFor } from "@/src/server/discounts";
 import { resolveOrderOption } from "@/src/lib/package-options";
 import { packageOptions } from "@/src/server/package-options";
 import { snapshotForOrder } from "@/src/server/costs";
@@ -67,6 +68,9 @@ export function serializeOrder(row: NonNullable<OrderRow>, options: { staff?: bo
     storedStatus: row.status,
     subscriptionId: row.subscriptionId,
     loyaltyReward: Boolean(row.loyaltyReward),
+    listPrice: row.listPrice ?? null,
+    discountIqd: row.discountIqd ?? null,
+    discountId: row.discountId ?? null,
     channel: String(row.channel ?? "SITE").toUpperCase(),
     createdAt: String(row.createdAt),
     updatedAt: String(row.updatedAt),
@@ -275,13 +279,20 @@ export async function createOrder(
     };
   }
 
+  // The option's active discount (package part only; a VIP device is full price).
+  const pricing = orderPricing(option, requestType, deviceFields.devicePrice, await activeDiscountFor(option.id));
+
   return saveOrder(userId, {
     planSlug,
     requestType,
     serviceType,
     serviceName: plan.name,
     packageOptionId: option.id,
-    price: planOrderPrice(option, requestType, deviceFields.devicePrice),
+    price: pricing.price,
+    // Always set, so a reused unpaid order is repriced at today's price, discount or not.
+    listPrice: pricing.listPrice,
+    discountId: pricing.discountId,
+    discountIqd: pricing.discountIqd || null,
     durationMonths: option.durationMonths,
     durationLabel: option.durationLabel,
     subscriptionId,
@@ -293,6 +304,9 @@ export async function createOrder(
 type OrderFields = {
   planSlug: string;
   packageOptionId?: number | null;
+  listPrice?: number | null;
+  discountId?: number | null;
+  discountIqd?: number | null;
   requestType: string;
   serviceType: string;
   serviceName: string;

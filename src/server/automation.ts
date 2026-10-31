@@ -216,7 +216,7 @@ export async function runJob(job: Job, options: { trigger: "SCHEDULE" | "MANUAL"
   const key = runKey(job, now);
 
   if (options.trigger === "MANUAL" && (!options.actor || !isFullAccess(options.actor.role))) return { ok: false, status: 403, error: "التشغيل اليدوي للمالك فقط." };
-  if (!canRunHere({ CONTEXT: process.env.CONTEXT }, databaseHost())) return { ok: true, status: "SKIPPED", runKey: key, reason: "NOT_PRODUCTION" };
+  if (!canRunHere({ CONTEXT: process.env.SHASHTNA_DEPLOY_CONTEXT || process.env.CONTEXT }, databaseHost())) return { ok: true, status: "SKIPPED", runKey: key, reason: "NOT_PRODUCTION" };
 
   const settings = await automationSettings();
 

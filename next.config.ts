@@ -3,6 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
 
+  // Netlify sets CONTEXT only while building; inline it so server code can
+  // tell the production deploy from previews at run time (automation guard).
+  env: {
+    SHASHTNA_DEPLOY_CONTEXT: process.env.CONTEXT ?? "",
+  },
+
   // Checkout sends the payment-proof image with the order. The browser
   // shrinks it first; this covers photos it can't shrink (the proof itself
   // is capped at 4 MB, under Netlify's 6 MB request limit).

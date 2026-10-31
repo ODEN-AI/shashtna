@@ -125,7 +125,8 @@ test("automation token: an HMAC of the day's run key, refused for another day, a
 test("scheduled function: production-only guard, 03:00 UTC schedule, and the same HMAC input as the server", () => {
   const source = readFileSync(new URL("../netlify/functions/daily-digest.mts", import.meta.url), "utf8");
 
-  assert.match(source, /process\.env\.CONTEXT !== "production"/);
+  assert.match(source, /context\?\.deploy\?\.context \?\? process\.env\.CONTEXT/);
+  assert.match(source, /deployContext !== "production"/);
   assert.match(source, /schedule: "0 3 \* \* \*"/);
   assert.match(source, /update\(`automation:daily-digest:\$\{day\}`\)/);
   assert.match(source, /\/api\/automation\/run/);

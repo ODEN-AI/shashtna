@@ -10,14 +10,20 @@ import { createHmac } from "node:crypto";
  * The token is the same HMAC as src/lib/automation-token.ts over the run key
  * `daily-digest:<Baghdad day>`.
  */
-export default async function dailyDigest() {
-  if (process.env.CONTEXT !== "production") {
+type DeployContext = { deploy?: { context?: string }; site?: { url?: string } };
+
+export default async function dailyDigest(_request: Request, context?: DeployContext) {
+  // The deploy context comes from the function context at run time; CONTEXT
+  // is a build-time variable and may be missing here.
+  const deployContext = context?.deploy?.context ?? process.env.CONTEXT;
+
+  if (deployContext !== "production") {
     console.log("AUTOMATION_SKIPPED: not the production deploy");
     return;
   }
 
   const secret = process.env.AUTH_SECRET;
-  const site = process.env.URL;
+  const site = context?.site?.url ?? process.env.URL;
 
   if (!secret || !site) {
     console.error("AUTOMATION_MISCONFIGURED: AUTH_SECRET or URL missing");

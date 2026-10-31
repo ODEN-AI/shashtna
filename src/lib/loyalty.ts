@@ -1,5 +1,6 @@
 import { addDays } from "@/src/lib/business-time";
 import { normalizeChannel } from "@/src/lib/costs";
+import { DIGITAL_POINT_VALUE_IQD } from "@/src/lib/groups";
 import { formatDate } from "@/src/lib/i18n";
 import { normalizeOrderStatus } from "@/src/lib/order-status";
 import { addMonthsClamped } from "@/src/lib/subscription-duration";
@@ -157,7 +158,8 @@ export type EarnBlock = "NOT_IPTV" | "WRONG_TYPE" | "FREE" | "REWARD" | "SUPPLIE
 
 /** Why an order earns nothing, or null when it earns points. */
 export function earnBlock(order: EarnableOrder): EarnBlock | null {
-  if (String(order.serviceType).toUpperCase() !== "IPTV") return "NOT_IPTV";
+  // IPTV and digital platforms earn; VIP and devices never do.
+  if (!earnsPoints(order.serviceType)) return "NOT_IPTV";
   if (!["NEW", "RENEW", "UPGRADE"].includes(String(order.requestType).toUpperCase())) return "WRONG_TYPE";
   if (order.loyaltyReward) return "REWARD";
   if (normalizeChannel(order.channel) !== "SITE") return "SUPPLIER";
@@ -167,23 +169,34 @@ export function earnBlock(order: EarnableOrder): EarnBlock | null {
   return null;
 }
 
-/** Points an order is worth: the option's override, else price ÷ 1,000 rounded down. */
-export function orderPointValue(price: number, optionPoints: number | null | undefined) {
+/** IPTV and digital platform orders earn points; VIP and devices don't (rewards stay IPTV renewals). */
+export function earnsPoints(serviceType: string) {
+  const type = String(serviceType).toUpperCase();
+  return type === "IPTV" || type === "DIGITAL";
+}
+
+/**
+ * Points an order is worth: the option's override, else the price rounded
+ * down per 1,000 IQD (IPTV) or per 5,000 IQD (digital platforms: few points).
+ */
+export function orderPointValue(price: number, optionPoints: number | null | undefined, serviceType = "IPTV") {
   if (typeof optionPoints === "number" && Number.isInteger(optionPoints) && optionPoints >= 0) {
     return optionPoints;
   }
 
-  return Number.isInteger(price) && price > 0 ? Math.floor(price / POINT_VALUE_IQD) : 0;
+  const per = String(serviceType).toUpperCase() === "DIGITAL" ? DIGITAL_POINT_VALUE_IQD : POINT_VALUE_IQD;
+
+  return Number.isInteger(price) && price > 0 ? Math.floor(price / per) : 0;
 }
 
 /** Points a completed order earns (0 when it doesn't qualify). */
 export function pointsForOrder(order: EarnableOrder, optionPoints: number | null | undefined) {
-  return earnBlock(order) === null ? orderPointValue(order.price, optionPoints) : 0;
+  return earnBlock(order) === null ? orderPointValue(order.price, optionPoints, order.serviceType) : 0;
 }
 
-/** Points shown before purchase ("هذا الطلب يعطيك X نقطة"): IPTV plan orders only. */
+/** Points shown before purchase ("هذا الطلب يعطيك X نقطة"): IPTV and digital platform orders. */
 export function previewPoints(serviceType: string, price: number, optionPoints: number | null | undefined) {
-  return String(serviceType).toUpperCase() === "IPTV" ? orderPointValue(price, optionPoints) : 0;
+  return earnsPoints(serviceType) ? orderPointValue(price, optionPoints, serviceType) : 0;
 }
 
 /** Validates the per-option `pointsEarned` field from the package form (empty = automatic). */

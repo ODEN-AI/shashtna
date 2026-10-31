@@ -21,6 +21,7 @@ function toOption(row: NonNullable<OptionRow>): PackageOption {
     renewalPrice: row.renewalPrice ?? null,
     pointsEarned: row.pointsEarned ?? null,
     creditCostCents: row.creditCostCents ?? null,
+    costIqd: row.costIqd ?? null,
     isActive: row.isActive,
   };
 }
@@ -116,6 +117,7 @@ export async function savePackageOptions(packageId: number, parsed: ParsedOption
         renewalPrice: option.renewalPrice,
         ...(option.pointsEarned !== undefined ? { pointsEarned: option.pointsEarned } : {}),
         ...(option.creditCostCents !== undefined ? { creditCostCents: option.creditCostCents } : {}),
+        ...(option.costIqd !== undefined ? { costIqd: option.costIqd } : {}),
         isActive: option.isActive,
         updatedAt: now,
       };

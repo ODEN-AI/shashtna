@@ -130,7 +130,7 @@ export function addMonthsClamped(dateOnly: string, months: number) {
  */
 export function resolvePackageDuration(
   body: { durationValue?: unknown; durationUnit?: unknown; durationMonths?: unknown; durationLabel?: unknown },
-  serviceType: "IPTV" | "VIP",
+  serviceType: "IPTV" | "VIP" | "DIGITAL",
 ): { ok: true; durationMonths: number; durationUnit: DurationUnit; durationLabel: string } | { ok: false; error: string } {
   if (serviceType === "VIP") {
     return { ok: true, durationMonths: 3, durationUnit: "MONTH", durationLabel: formatDurationAr(3) };

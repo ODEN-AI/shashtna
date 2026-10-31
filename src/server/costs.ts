@@ -70,7 +70,7 @@ export async function snapshotForOrder(order: { channel?: string | null; package
     const option = order.packageOptionId ? await db.orm.public.PackageOption.first({ id: order.packageOptionId }) : null;
     const rate = option?.creditCostCents != null ? await currentCreditRate() : null;
 
-    return costSnapshot("SITE", option?.creditCostCents ?? null, rate);
+    return costSnapshot("SITE", option?.creditCostCents ?? null, rate, option?.costIqd ?? null);
   } catch (error) {
     console.error("COST_SNAPSHOT_ERROR:", error);
     return { creditCostCents: null, creditCostIqd: null, creditPurchaseId: null };

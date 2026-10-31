@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { groupForPackage } from "@/src/server/groups";
 import { catalogueImageUrl, isValidPrice, parseRenewalPrice } from "@/src/lib/catalogue";
 import { requireAdmin } from "@/src/lib/session";
 import { defaultOption, packageMirror, parsePackageOptions } from "@/src/lib/package-options";
@@ -12,12 +13,14 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type ServiceType = "IPTV" | "VIP";
+type ServiceType = "IPTV" | "VIP" | "DIGITAL";
 
 type PackageBody = {
   name?: string;
   slug?: string;
   serviceType?: string;
+  /** The /plans group (required for DIGITAL; IPTV / VIP default to their built-in group). */
+  groupId?: unknown;
   price?: number;
   renewalPrice?: number | null;
   durationMonths?: number;
@@ -37,10 +40,10 @@ type PackageBody = {
 function normalizeServiceType(
   value?: string
 ): ServiceType {
-  return value?.trim().toUpperCase() ===
-    "VIP"
-    ? "VIP"
-    : "IPTV";
+  const type = value?.trim().toUpperCase();
+
+  // DIGITAL = a digital platform package (it must sit in a digital group).
+  return type === "VIP" ? "VIP" : type === "DIGITAL" ? "DIGITAL" : "IPTV";
 }
 
 function normalizeDeviceIds(
@@ -179,6 +182,19 @@ export async function POST(
       normalizeServiceType(
         body.serviceType
       );
+
+    // The group, of the same service; IPTV / VIP without one join their built-in group.
+    const groupChoice = await groupForPackage(body.groupId ?? (serviceType === "DIGITAL" ? null : undefined), serviceType);
+
+    if (!groupChoice.ok) {
+      return NextResponse.json({ success: false, message: groupChoice.error }, { status: groupChoice.status });
+    }
+
+    const groupId =
+      groupChoice.id ??
+      (serviceType === "DIGITAL"
+        ? null
+        : ((await db.orm.public.PackageGroup.first({ slug: serviceType.toLowerCase() }))?.id ?? null));
 
     const hasOptions =
       body.options !== undefined;
@@ -369,6 +385,7 @@ export async function POST(
           name,
           slug,
           serviceType,
+          groupId,
           price,
           renewalPrice: renewalPrice.value,
           durationMonths,
@@ -401,6 +418,7 @@ export async function POST(
         renewalPrice: option.renewalPrice,
         pointsEarned: "pointsEarned" in option ? (option.pointsEarned ?? null) : null,
         creditCostCents: "creditCostCents" in option ? (option.creditCostCents ?? null) : null,
+        costIqd: "costIqd" in option ? (option.costIqd ?? null) : null,
         isActive: option.isActive,
       });
     }

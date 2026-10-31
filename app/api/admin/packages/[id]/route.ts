@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { groupForPackage } from "@/src/server/groups";
 import { catalogueImageUrl, describeChanges, describeLinks, isValidPrice, parseRenewalPrice } from "@/src/lib/catalogue";
 import { requireAdmin } from "@/src/lib/session";
 import { parsePackageOptions, type ParsedOption } from "@/src/lib/package-options";
@@ -12,9 +13,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type ServiceType = "IPTV" | "VIP";
+type ServiceType = "IPTV" | "VIP" | "DIGITAL";
 
 type PackageBody = {
+  /** The /plans group (same service; required for DIGITAL). */
+  groupId?: unknown;
   name?: string;
   slug?: string;
   serviceType?: string;
@@ -43,10 +46,10 @@ type RouteContext = {
 function normalizeServiceType(
   value?: string
 ): ServiceType {
-  return value?.trim().toUpperCase() ===
-    "VIP"
-    ? "VIP"
-    : "IPTV";
+  const type = value?.trim().toUpperCase();
+
+  // DIGITAL = a digital platform package (it must sit in a digital group).
+  return type === "VIP" ? "VIP" : type === "DIGITAL" ? "DIGITAL" : "IPTV";
 }
 
 function normalizeDeviceIds(
@@ -146,6 +149,21 @@ export async function PATCH(
 
       updateData.serviceType =
         serviceType;
+    }
+
+    // The group follows the package's service (IPTV, VIP and platforms never mix).
+    if (body.groupId !== undefined || updateData.serviceType !== undefined) {
+      const groupChoice = await groupForPackage(body.groupId === undefined ? existing.groupId ?? null : body.groupId, serviceType);
+
+      if (!groupChoice.ok) {
+        return NextResponse.json({ success: false, message: groupChoice.error }, { status: groupChoice.status });
+      }
+
+      updateData.groupId =
+        groupChoice.id ??
+        (serviceType === "DIGITAL"
+          ? null
+          : ((await db.orm.public.PackageGroup.first({ slug: serviceType.toLowerCase() }))?.id ?? null));
     }
 
     if (

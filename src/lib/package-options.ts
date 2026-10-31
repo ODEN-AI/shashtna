@@ -1,5 +1,5 @@
 import { isValidPrice, parseRenewalPrice } from "@/src/lib/catalogue";
-import { parseCreditCost } from "@/src/lib/costs";
+import { parseCreditCost, parseFixedCost } from "@/src/lib/costs";
 import { parsePointsEarned } from "@/src/lib/loyalty";
 import { formatDurationAr, parseDuration, type DurationUnit } from "@/src/lib/subscription-duration";
 
@@ -34,6 +34,8 @@ export type PackageOption = {
   pointsEarned?: number | null;
   /** Panel credit in US cents to activate this length (null = unknown). */
   creditCostCents?: number | null;
+  /** A fixed cost in IQD (digital platforms), used without a credit cost. */
+  costIqd?: number | null;
   isActive: boolean;
 };
 
@@ -49,6 +51,8 @@ export type ParsedOption = {
   pointsEarned?: number | null;
   /** Panel credit in US cents; null = unknown, undefined = not sent (keep what is stored). */
   creditCostCents?: number | null;
+  /** Fixed IQD cost; null = none, undefined = not sent (keep what is stored). */
+  costIqd?: number | null;
   isActive: boolean;
 };
 
@@ -65,7 +69,7 @@ function positiveId(value: unknown) {
  * length, at least one active option. A VIP package has exactly one option,
  * always three months.
  */
-export function parsePackageOptions(raw: unknown, serviceType: "IPTV" | "VIP"): { ok: true; options: ParsedOption[] } | Fail {
+export function parsePackageOptions(raw: unknown, serviceType: "IPTV" | "VIP" | "DIGITAL"): { ok: true; options: ParsedOption[] } | Fail {
   if (!Array.isArray(raw) || raw.length === 0) {
     return { ok: false, error: "أضف مدة واحدة على الأقل مع سعرها." };
   }
@@ -109,6 +113,8 @@ export function parsePackageOptions(raw: unknown, serviceType: "IPTV" | "VIP"): 
     const points = row.pointsEarned === undefined ? undefined : parsePointsEarned(row.pointsEarned);
     const credit = row.creditCostCents === undefined ? undefined : parseCreditCost(row.creditCostCents);
     if (credit && !credit.ok) return { ok: false, error: `${position}: كلفة الرصيد يجب أن تكون بالدولار وبحد سنتين بعد الفارزة (مثال 1 أو 0.50)، أو فارغة.` };
+    const fixed = row.costIqd === undefined ? undefined : parseFixedCost(row.costIqd);
+    if (fixed && !fixed.ok) return { ok: false, error: `${position}: الكلفة الثابتة يجب أن تكون رقمًا صحيحًا بالدينار، أو فارغة.` };
     if (points && !points.ok) return { ok: false, error: `${position}: نقاط الطلب يجب أن تكون رقمًا صحيحًا من 0 إلى 100000، أو فارغة.` };
 
     if (row.isActive !== undefined && typeof row.isActive !== "boolean") {
@@ -128,6 +134,7 @@ export function parsePackageOptions(raw: unknown, serviceType: "IPTV" | "VIP"): 
       ...(serviceType === "VIP" ? { pointsEarned: null } : points ? { pointsEarned: points.value } : {}),
       // Per option, so a VIP length keeps its own credit and never shares IPTV's.
       ...(credit ? { creditCostCents: credit.value } : {}),
+      ...(fixed ? { costIqd: fixed.value } : {}),
       isActive: row.isActive ?? true,
     });
   }

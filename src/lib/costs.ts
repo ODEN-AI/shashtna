@@ -88,14 +88,27 @@ export type CostSnapshot = { creditCostCents: number | null; creditCostIqd: numb
  * known zero); a SITE order's cost is unknown when its length has no credit
  * set or no credit purchase is recorded.
  */
-export function costSnapshot(channel: Channel, optionCreditCents: number | null | undefined, rate: RateSource | null): CostSnapshot {
+export function costSnapshot(channel: Channel, optionCreditCents: number | null | undefined, rate: RateSource | null, optionCostIqd?: number | null): CostSnapshot {
   if (channel === "SUPPLIER") return { creditCostCents: 0, creditCostIqd: 0, creditPurchaseId: null };
 
   if (typeof optionCreditCents !== "number" || !Number.isInteger(optionCreditCents) || optionCreditCents < 0 || !rate) {
+    // A length bought for a fixed IQD price (digital platforms) has a known cost without credit.
+    if (typeof optionCostIqd === "number" && Number.isInteger(optionCostIqd) && optionCostIqd >= 0) {
+      return { creditCostCents: null, creditCostIqd: optionCostIqd, creditPurchaseId: null };
+    }
+
     return { creditCostCents: null, creditCostIqd: null, creditPurchaseId: null };
   }
 
   return { creditCostCents: optionCreditCents, creditCostIqd: creditCostIqd(optionCreditCents, rate), creditPurchaseId: rate.id };
+}
+
+/** The package form's fixed IQD cost field: whole dinars or empty (unknown). */
+export function parseFixedCost(value: unknown): { ok: true; value: number | null } | { ok: false } {
+  if (value === null || value === undefined || value === "") return { ok: true, value: null };
+  if (typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 100_000_000) return { ok: true, value };
+
+  return { ok: false };
 }
 
 /** The package form's credit field: dollars as typed ("1", "0.5") → cents; empty = unknown. */

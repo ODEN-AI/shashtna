@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { assertCustomer } from "@/src/server/auth";
+import { linkReminderToOrder } from "@/src/server/automation";
 import { createOrder } from "@/src/server/orders";
 import { MANUAL_TRANSFER_METHOD } from "@/src/server/settings";
 
@@ -41,6 +42,11 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
     }
 
     orderId = result.order.id;
+
+    // Measurement only: a failure here never blocks the order.
+    if (formData.get("reminder")) {
+      await linkReminderToOrder(user.id, orderId, formData.get("reminder")).catch(() => false);
+    }
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHENTICATED") {
       return { error: "انتهت جلسة تسجيل الدخول. سجّل دخولك مرة ثانية." };

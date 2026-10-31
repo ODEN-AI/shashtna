@@ -1,10 +1,17 @@
 import { db } from "@/src/prisma/db";
 import {
+  REMINDERS,
   canRunHere,
   firstName,
   iraqiWhatsapp,
   isQuietHours,
+  reminderConversion,
+  reminderDedupeKey,
   reminderFor,
+  reminderLink,
+  reminderRef,
+  reminderSkip,
+  renderInAppReminder,
   renderReminder,
   runKey,
   waLink,
@@ -44,7 +51,10 @@ export async function automationSettings() {
   return {
     enabled: value("automation.enabled", "off") === "on",
     dryRun: value("automation.dryRun", "off") === "on",
-    jobs: { "daily-digest": value("automation.job.dailyDigest", "off") === "on" } as Record<Job, boolean>,
+    jobs: {
+      "daily-digest": value("automation.job.dailyDigest", "off") === "on",
+      "customer-reminders": value("automation.job.customerReminders", "off") === "on",
+    } as Record<Job, boolean>,
     quietHours: value("automation.quietHours", "22:00-09:00"),
   };
 }
@@ -141,10 +151,11 @@ export async function dailyList(now = new Date()) {
   const unknownCost = firstPurchase
     ? (await db.orm.public.SubscriptionRequest.where({ status: "COMPLETED", channel: "SITE", loyaltyReward: false }).where((o) => o.creditCostIqd.isNull()).where((o) => o.updatedAt.gte(String(firstPurchase))).select("id").all()).length
     : null;
-  const [mismatches, missing, lastRun] = await Promise.all([
+  const [mismatches, missing, lastRun, lastReminders] = await Promise.all([
     reconciliationMismatches().then((rows) => rows.length).catch(() => null),
     missingAwards().then((rows) => rows.length).catch(() => null),
     db.orm.public.AutomationRun.where({ job: "daily-digest" }).orderBy((r) => r.startedAt.desc()).first(),
+    db.orm.public.AutomationRun.where({ runKey: runKey("customer-reminders", now) }).first(),
   ]);
   const todayKey = runKey("daily-digest", now);
 
@@ -160,6 +171,7 @@ export async function dailyList(now = new Date()) {
       missingAwards: missing,
       lastRun: lastRun ? { runKey: lastRun.runKey, status: lastRun.status, startedAt: String(lastRun.startedAt), error: lastRun.error ?? null } : null,
       ranToday: lastRun?.runKey === todayKey && lastRun.status === "SUCCEEDED",
+      remindersRanToday: lastReminders?.status === "SUCCEEDED",
     },
   };
 }
@@ -244,10 +256,14 @@ export async function runJob(job: Job, options: { trigger: "SCHEDULE" | "MANUAL"
   if (claimed.id === null) return { ok: true, status: "SKIPPED", runKey: key, reason: claimed.reason };
 
   try {
-    const stats = await dailyDigest(now, settings.dryRun);
+    const stats: Record<string, unknown> = job === "customer-reminders" ? await customerReminders(now, settings.dryRun) : await dailyDigest(now, settings.dryRun);
+    const summary =
+      job === "customer-reminders"
+        ? `تشغيل ${job}: ${stats.created} تذكير من ${stats.due} مستحق`
+        : `تشغيل ${job}: ${stats.subscriptions} اشتراك، ${stats.orders} طلب`;
 
     await db.orm.public.AutomationRun.where({ id: claimed.id }).update({ status: "SUCCEEDED", stats: JSON.stringify(stats), finishedAt: new Date().toISOString() });
-    await logActivity({ actor: options.actor ?? null, entityType: "SETTING", action: "AUTOMATION_RUN", summary: `تشغيل ${job}: ${stats.subscriptions} اشتراك، ${stats.orders} طلب${settings.dryRun ? " (تجريبي)" : ""}`, details: JSON.stringify({ runKey: key, ...stats }) });
+    await logActivity({ actor: options.actor ?? null, entityType: "SETTING", action: "AUTOMATION_RUN", summary: `${summary}${settings.dryRun ? " (تجريبي)" : ""}`, details: JSON.stringify({ runKey: key, ...stats }) });
 
     return { ok: true, status: "SUCCEEDED", runKey: key, stats };
   } catch (error) {
@@ -293,4 +309,178 @@ async function dailyDigest(now: Date, dryRun: boolean) {
   }
 
   return stats;
+}
+
+// ------------------------------------------------------------------- job 2: in-app customer reminders (step 2)
+
+const CUSTOMER_SERVICES = ["IPTV", "VIP", "DIGITAL"];
+const UNPAID = ["SUBMITTED", "AWAITING_PAYMENT"];
+const BATCH = 50;
+
+function serviceOf(row: { serviceType: string | null }) {
+  return String(row.serviceType ?? "IPTV").toUpperCase();
+}
+
+/**
+ * Job 2: an in-app notification for each customer whose subscription ends in
+ * 5 days, today, or ended 3 days ago (Baghdad days). Each is written to the
+ * outbox first (unique reminder:{template}:{subId}:{endDate}), so a repeat
+ * run, or a run on another day for the same cycle, never sends it twice.
+ * Dry run records SKIPPED outbox rows (under a dry-run key) and creates
+ * nothing for the customer.
+ * CODE deliveries have no subscription and so get no reminder.
+ */
+async function customerReminders(now: Date, dryRun: boolean) {
+  const [subscriptions, loyaltyRules] = await Promise.all([db.orm.public.Subscription.all(), getLoyaltyRules()]);
+  const due = subscriptions
+    .filter((row) => CUSTOMER_SERVICES.includes(serviceOf(row)))
+    .map((row) => ({ row, endDate: String(row.expiryDate).slice(0, 10), reminder: reminderFor(String(row.expiryDate).slice(0, 10), now) }))
+    .filter((item): item is typeof item & { reminder: Reminder } => item.reminder !== null);
+  const stats = { due: due.length, recorded: 0, created: 0, alreadyRecorded: 0, openOrders: 0, skipped: { SUSPENDED: 0, OPTED_OUT: 0 }, dryRun };
+
+  if (!due.length) return stats;
+
+  const subIds = due.map((item) => item.row.id);
+  const userIds = [...new Set(due.map((item) => item.row.userId))];
+  const [users, orders, accounts] = await Promise.all([
+    db.orm.public.User.where((u) => u.id.in(userIds)).select("id", "renewalReminders").all(),
+    db.orm.public.SubscriptionRequest.where((o) => o.subscriptionId.in(subIds)).where({ loyaltyReward: false }).select("id", "subscriptionId", "status", "requestType", "packageOptionId").all(),
+    loyaltyRules.enabled ? db.orm.public.LoyaltyAccount.where((a) => a.userId.in(userIds)).select("userId", "balance", "status").all() : [],
+  ]);
+  const remindersOn = new Map(users.map((user) => [user.id, user.renewalReminders !== false]));
+  const points = new Map(accounts.filter((account) => account.status === "ACTIVE").map((account) => [account.userId, Math.max(0, account.balance)]));
+  // An open unpaid renewal of this subscription: the reminder points to it instead of a new checkout.
+  const openOrder = new Map<number, number>();
+  // The length the customer last bought or renewed this subscription with.
+  const lastOption = new Map<number, number>();
+
+  for (const order of [...orders].sort((a, b) => a.id - b.id)) {
+    const status = normalizeOrderStatus(order.status);
+
+    if (order.subscriptionId === null || order.subscriptionId === undefined) continue;
+    if (order.requestType === "RENEW" && UNPAID.includes(status)) openOrder.set(order.subscriptionId, order.id);
+    if (status === "COMPLETED" && order.packageOptionId) lastOption.set(order.subscriptionId, order.packageOptionId);
+  }
+
+  const optionIds = [...new Set(lastOption.values())];
+  const activeOptions = optionIds.length ? await db.orm.public.PackageOption.where((o) => o.id.in(optionIds)).where({ isActive: true }).all() : [];
+  const optionById = new Map(activeOptions.map((option) => [option.id, option]));
+  const discounts = await activeDiscounts(activeOptions.map((option) => option.id), now);
+
+  for (let start = 0; start < due.length; start += BATCH) {
+    for (const { row, endDate, reminder } of due.slice(start, start + BATCH)) {
+      const skip = reminderSkip({ status: row.status, remindersOn: remindersOn.get(row.userId) ?? true });
+
+      if (skip) {
+        stats.skipped[skip] += 1;
+        continue;
+      }
+
+      // A dry run records under its own per-day key, so it never blocks the real reminder of that cycle.
+      const key = dryRun ? `dryrun:${runKey("customer-reminders", now)}:${reminderDedupeKey(reminder, row.id, endDate)}` : reminderDedupeKey(reminder, row.id, endDate);
+      const inserted = await db
+        .runtime()
+        .query(
+          sql`INSERT INTO "public"."outboxMessage" ("channel", "template", "userId", "payload", "dedupeKey", "status", "attempts")
+            VALUES ('IN_APP', ${reminder}, ${row.userId}, ${JSON.stringify({ subscriptionId: row.id, endDate })}, ${key}, ${dryRun ? "SKIPPED" : "PENDING"}, 0)
+            ON CONFLICT ("dedupeKey") DO NOTHING RETURNING "id"`
+            .returnsRow({ id: "pg/int4@1" })
+            .build(),
+        )
+        .toArray();
+      const outboxId = inserted[0]?.id;
+
+      if (!outboxId) {
+        stats.alreadyRecorded += 1;
+        continue;
+      }
+
+      stats.recorded += 1;
+
+      if (dryRun) continue;
+
+      const optionId = lastOption.get(row.id);
+      const option = optionId ? optionById.get(optionId) : undefined;
+      const rule = option ? discounts.get(option.id) : null;
+      const discountLabel = rule && option && rule.appliesToRenewals ? discountBadge(rule, discountAmount(option.renewalPrice ?? option.price, rule), "ar") : null;
+      const discountLabelEn = rule && option && rule.appliesToRenewals ? discountBadge(rule, discountAmount(option.renewalPrice ?? option.price, rule), "en") : null;
+      const openOrderId = openOrder.get(row.id) ?? null;
+      const data = { packageName: row.packageName, endDate, points: points.get(row.userId) ?? 0, discountLabel, openOrder: Boolean(openOrderId) };
+      const ar = renderInAppReminder(reminder, data, "ar");
+      const en = renderInAppReminder(reminder, { ...data, discountLabel: discountLabelEn }, "en");
+      const link = reminderLink({ subscriptionId: row.id, optionId: option?.id ?? null, outboxId, openOrderId });
+
+      if (openOrderId) stats.openOrders += 1;
+
+      await notify({ userId: row.userId, type: reminder === "win-back" ? "SUBSCRIPTION_EXPIRED" : "RENEWAL_REMINDER", title: ar.title, body: ar.body, link, dedupeKey: key });
+      // The whole event is kept for push (Chapter 2): template, link and both languages; no phone or credentials.
+      await db.orm.public.OutboxMessage.where({ id: outboxId }).update({
+        status: "SENT",
+        attempts: 1,
+        sentAt: new Date().toISOString(),
+        payload: JSON.stringify({ subscriptionId: row.id, endDate, link, openOrderId, pushEligible: true, ar, en }),
+      });
+      stats.created += 1;
+    }
+  }
+
+  return stats;
+}
+
+/**
+ * A RENEW order created from a reminder link (?r=outboxId) is tagged with it.
+ * Only an in-app reminder that was sent to this customer, for this order's
+ * subscription, counts; anything else (a forged or stale r) is ignored.
+ */
+export async function linkReminderToOrder(userId: number, orderId: number, value: unknown) {
+  const outboxId = reminderRef(value);
+
+  if (!outboxId) return false;
+
+  const [message, order] = await Promise.all([db.orm.public.OutboxMessage.first({ id: outboxId }), db.orm.public.SubscriptionRequest.first({ id: orderId })]);
+
+  if (!message || !order || message.channel !== "IN_APP" || message.status !== "SENT" || message.userId !== userId) return false;
+  if (order.userId !== userId || order.requestType !== "RENEW" || order.reminderOutboxId) return false;
+
+  const payload = (() => {
+    try {
+      return JSON.parse(message.payload) as { subscriptionId?: number };
+    } catch {
+      return {};
+    }
+  })();
+
+  if (!order.subscriptionId || payload.subscriptionId !== order.subscriptionId) return false;
+
+  await db.orm.public.SubscriptionRequest.where({ id: orderId }).update({ reminderOutboxId: outboxId });
+
+  return true;
+}
+
+/** Reminders → renewals over the last `days` days. Counts only: no names, phones or order details. */
+export async function reminderReport(days: number, now = new Date()) {
+  const since = new Date(now.getTime() - days * 86_400_000).toISOString();
+  const [messages, fromReminder, renewals] = await Promise.all([
+    db.orm.public.OutboxMessage.where({ channel: "IN_APP", status: "SENT" }).where((m) => m.sentAt.gte(since)).select("template").all(),
+    db.orm.public.SubscriptionRequest.where((o) => o.reminderOutboxId.isNotNull()).where((o) => o.createdAt.gte(since)).select("status").all(),
+    db.orm.public.SubscriptionRequest.where({ requestType: "RENEW", loyaltyReward: false, channel: "SITE" }).where((o) => o.reminderOutboxId.isNull()).where((o) => o.updatedAt.gte(since)).select("status").all(),
+  ]);
+  const sent = Object.fromEntries(REMINDERS.map((template) => [template, messages.filter((message) => message.template === template).length])) as Record<Reminder, number>;
+
+  return {
+    days,
+    ...reminderConversion({
+      sent,
+      started: fromReminder.length,
+      completed: fromReminder.filter((order) => normalizeOrderStatus(order.status) === "COMPLETED").length,
+      completedWithout: renewals.filter((order) => normalizeOrderStatus(order.status) === "COMPLETED").length,
+    }),
+  };
+}
+
+/** The in-app reminders job owns customer reminders when it is switched on (the dashboard's on-visit reminders then stay quiet). */
+export async function customerRemindersOn() {
+  const settings = await automationSettings();
+
+  return settings.enabled && settings.jobs["customer-reminders"];
 }

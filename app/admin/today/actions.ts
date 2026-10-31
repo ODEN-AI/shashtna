@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { REMINDERS, type Reminder } from "@/src/lib/automation";
+import { JOBS, REMINDERS, type Job, type Reminder } from "@/src/lib/automation";
 import { isFullAccess } from "@/src/lib/system";
 import { assertStaff, getSessionUser } from "@/src/server/auth";
 import { markWhatsAppOpened, runJob } from "@/src/server/automation";
@@ -46,16 +46,24 @@ const REASONS: Record<string, string> = {
   DUPLICATE: "تم التشغيل اليوم.",
 };
 
-export async function runNowAction(): Promise<TodayState> {
+export async function runNowAction(_prev: TodayState, formData: FormData): Promise<TodayState> {
   try {
     const staff = await owner();
-    const result = await runJob("daily-digest", { trigger: "MANUAL", actor: staff });
+    const job = String(formData.get("job") ?? "daily-digest");
+
+    if (!(JOBS as readonly string[]).includes(job)) return { ok: false, message: "طلب غير صالح." };
+
+    const result = await runJob(job as Job, { trigger: "MANUAL", actor: staff });
 
     revalidatePath("/admin/today");
 
     if (!result.ok) return { ok: false, message: result.error };
     if (result.status === "SKIPPED") return { ok: false, message: REASONS[result.reason ?? ""] ?? "ما تم التشغيل." };
     if (result.status === "FAILED") return { ok: false, message: "فشل التشغيل. التفاصيل بسجل النشاط." };
+
+    if (job === "customer-reminders") {
+      return { ok: true, message: result.stats?.dryRun ? `تشغيل تجريبي: ${result.stats?.due ?? 0} مستحق، ما انرسل شي للعملاء.` : `انرسل ${result.stats?.created ?? 0} تذكير للعملاء.` };
+    }
 
     return { ok: true, message: result.stats?.dryRun ? "تم التشغيل التجريبي (ما انرسل إشعار)." : "تم التشغيل ووصلك الإشعار." };
   } catch (error) {

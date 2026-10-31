@@ -108,4 +108,8 @@ test("plan groups migrations: additive, the data step only touches ungrouped IPT
   assert.equal(read("20261031T0738_plan_groups/migration.json").from, read("20261031T0021_discounts/migration.json").to);
   assert.equal(read("20261031T0742_platform_account_email/migration.json").from, read("20261031T0738_plan_groups/migration.json").to);
   assert.equal(read("20261031T1006_automation_core/migration.json").from, read("20261031T0742_platform_account_email/migration.json").to);
+  assert.equal(read("20261031T1123_customer_reminders/migration.json").from, read("20261031T1006_automation_core/migration.json").to);
+  const reminders: { id: string; operationClass: string }[] = read("20261031T1123_customer_reminders/ops.json");
+  assert.deepEqual(reminders.map((op) => [op.id, op.operationClass]), [["column.public.subscriptionRequest.reminderOutboxId", "additive"]]);
+  assert.equal(read("20261031T1123_customer_reminders/migration.json").to, read("refs/db.json").hash);
 });

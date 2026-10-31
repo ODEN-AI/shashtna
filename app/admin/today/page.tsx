@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarClock, CheckCheck, HeartPulse, Moon, PlayCircle, Receipt, Settings } from "lucide-react";
+import { BellRing, CalendarClock, CheckCheck, HeartPulse, Moon, PlayCircle, Receipt, Settings } from "lucide-react";
 
 import { runNowAction } from "@/app/admin/today/actions";
 import { WhatsAppButton } from "@/app/admin/today/WhatsAppButton";
@@ -18,7 +18,7 @@ import { formatDate, formatDateTime } from "@/src/lib/i18n";
 import { formatOrderNumber } from "@/src/lib/order-status";
 import { isFullAccess } from "@/src/lib/system";
 import { requireStaffPage } from "@/src/server/auth";
-import { dailyList } from "@/src/server/automation";
+import { dailyList, reminderReport } from "@/src/server/automation";
 import { getI18n } from "@/src/server/i18n";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ const REMINDER_LABELS: Record<Reminder, { ar: string; en: string; tone: "warning
  * orders that are stuck, and health checks. WhatsApp links are prefilled and
  * sent by the owner; each is recorded once in the outbox.
  */
-export default async function TodayPage() {
+export default async function TodayPage({ searchParams }: { searchParams: Promise<{ window?: string }> }) {
   const { user, allowed } = await requireStaffPage("/admin/today", "orders");
 
   if (!allowed) {
@@ -44,7 +44,8 @@ export default async function TodayPage() {
   }
 
   const isOwner = isFullAccess(user.role);
-  const [{ t, lang }, list] = await Promise.all([getI18n(), dailyList()]);
+  const windowDays = (await searchParams).window === "90" ? 90 : 30;
+  const [{ t, lang }, list, report] = await Promise.all([getI18n(), dailyList(), reminderReport(windowDays)]);
   const { orders, health } = list;
   const unsent = list.subscriptions.filter((row) => !row.sent).length;
   const orderGroups = [
@@ -62,11 +63,21 @@ export default async function TodayPage() {
           isOwner ? (
             <div className="flex flex-wrap gap-2">
               <ActionForm action={runNowAction}>
+                <input type="hidden" name="job" value="daily-digest" />
                 <SubmitButton size="sm" variant="secondary" pendingLabel={t("جاري التشغيل…", "Running…")} disabled={health.ranToday}>
                   <PlayCircle size={15} aria-hidden />
                   {health.ranToday ? t("تم التشغيل اليوم", "Ran today") : t("شغّل هسه", "Run now")}
                 </SubmitButton>
               </ActionForm>
+              {list.settings.jobs["customer-reminders"] ? (
+                <ActionForm action={runNowAction}>
+                  <input type="hidden" name="job" value="customer-reminders" />
+                  <SubmitButton size="sm" variant="secondary" pendingLabel={t("جاري التشغيل…", "Running…")} disabled={health.remindersRanToday}>
+                    <BellRing size={15} aria-hidden />
+                    {health.remindersRanToday ? t("التذكيرات انرسلت اليوم", "Reminders sent today") : t("أرسل تذكيرات العملاء", "Send customer reminders")}
+                  </SubmitButton>
+                </ActionForm>
+              ) : null}
               <LinkButton href="/admin/settings#automation" variant="ghost" size="sm">
                 <Settings size={15} aria-hidden />
                 {t("إعدادات الأتمتة", "Automation settings")}
@@ -166,6 +177,33 @@ export default async function TodayPage() {
         ) : (
           <EmptyLine>{t("ماكو طلبات عالقة.", "No stuck orders.")}</EmptyLine>
         )}
+      </SectionCard>
+
+      <SectionCard
+        title={t(`تذكيرات العملاء والتجديد — آخر ${windowDays} يوم`, `Customer reminders and renewals — last ${windowDays} days`)}
+        icon={<BellRing size={14} aria-hidden />}
+        testId="today-reminders"
+      >
+        <div className="mb-3 flex gap-2 text-xs">
+          {[30, 90].map((days) => (
+            <Link key={days} href={`/admin/today?window=${days}`} aria-current={days === windowDays ? "page" : undefined} className={days === windowDays ? "font-semibold text-ink" : "text-ink-3 hover:text-ink"}>
+              {t(`${days} يوم`, `${days} days`)}
+            </Link>
+          ))}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Stat
+            label={t("تذكيرات انرسلت", "Reminders sent")}
+            value={report.sent}
+            hint={t(
+              `${report.perTemplate["before-expiry"]} قبل 5 أيام · ${report.perTemplate["expiry-day"]} اليوم · ${report.perTemplate["win-back"]} بعد 3 أيام`,
+              `${report.perTemplate["before-expiry"]} 5 days before · ${report.perTemplate["expiry-day"]} on the day · ${report.perTemplate["win-back"]} 3 days after`,
+            )}
+          />
+          <Stat label={t("تجديدات بدأت من تذكير", "Renewals started from a reminder")} value={report.started} />
+          <Stat label={t("تجديدات اكتملت من تذكير", "Renewals completed from a reminder")} value={report.completed} hint={report.conversion === null ? t("ماكو تذكيرات بعد", "No reminders yet") : t(`التحويل ${report.conversion}%`, `Conversion ${report.conversion}%`)} />
+          <Stat label={t("تجديدات بدون تذكير", "Renewals without a reminder")} value={report.completedWithout} />
+        </div>
       </SectionCard>
 
       <SectionCard title={t("صحة النظام", "Health")} icon={<HeartPulse size={14} aria-hidden />} testId="today-health">

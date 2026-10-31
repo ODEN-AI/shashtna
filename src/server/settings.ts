@@ -127,6 +127,7 @@ export const SETTING_DEFINITIONS = {
   // Automation (phase 4) — validated in src/lib/automation.ts; everything ships off.
   "automation.enabled": { group: "automation", labelAr: "الأتمتة", labelEn: "Automation", default: "off", multiline: false },
   "automation.job.dailyDigest": { group: "automation", labelAr: "قائمة اليوم الصباحية", labelEn: "Morning daily list", default: "off", multiline: false },
+  "automation.job.customerReminders": { group: "automation", labelAr: "تذكير العملاء داخل الموقع", labelEn: "In-app customer reminders", default: "off", multiline: false },
   "automation.dryRun": { group: "automation", labelAr: "تشغيل تجريبي (ما يرسل شي)", labelEn: "Dry run (sends nothing)", default: "off", multiline: false },
   "automation.quietHours": { group: "automation", labelAr: "وقت الراحة (بتوقيت بغداد)", labelEn: "Quiet hours (Baghdad)", default: "22:00-09:00", multiline: false },
 } as const;

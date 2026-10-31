@@ -1,8 +1,8 @@
 # Automation (phase 4)
 
 Operational automation: reminders, follow-ups and alerts that are idempotent, observable and leave every
-decision with a person. Step 1 ships the core and the owner's daily list. Status: built and tested locally on
-`feat/automation-core`; not on production.
+decision with a person. Step 1 (the core and the owner's daily list) is live, merged in PR #14 with its
+migration on production. Step 2 (in-app customer reminders, below) is built and tested locally.
 
 ## The verdict (council, approved by the owner on 2026-10-31)
 
@@ -78,14 +78,73 @@ day), then `runJob`:
 A failed run stays claimed for that day (no automatic retry in step 1); the page shows it under Health.
 «شغّل هسه» on the page runs the same path for the owner and is disabled once today has run.
 
+## Step 2: in-app customer reminders
+
+Status: built and tested locally on `feat/customer-reminders`; not on production. Ships **off**
+(`automation.job.customerReminders`).
+
+| Piece | Where |
+|---|---|
+| Pure rules: `reminderDedupeKey`, `renderInAppReminder` (Arabic first, English twin), `reminderLink`, `reminderRef`, `reminderSkip`, `reminderConversion` | `src/lib/automation.ts` |
+| Job `customer-reminders`, `linkReminderToOrder`, `reminderReport`, `customerRemindersOn` | `src/server/automation.ts` |
+| Order column `subscriptionRequest.reminderOutboxId` (migration `20261031T1123_customer_reminders`, additive) | `src/prisma/contract.prisma` |
+| Checkout carries `?r=` into the order | `app/(site)/checkout/CheckoutForm.tsx`, `actions.ts` |
+| «اليوم»: «أرسل تذكيرات العملاء» (owner) and the 30 / 90-day card | `app/admin/today/` |
+
+**The job** runs under the same guards as step 1 (production or local database, master switch, its own
+switch, advisory lock, one run key per Baghdad day), called by the same scheduled function after the
+daily list. For every IPTV, VIP and DIGITAL subscription (CODE deliveries have none) that ends in exactly
+5 days (`before-expiry`), today (`expiry-day`) or ended 3 days ago (`win-back`):
+
+1. Skip it when the subscription is suspended or cancelled, or the customer turned renewal reminders off
+   (`user.renewalReminders`, Account settings). A renewal extends the same subscription, so a renewed one
+   simply isn't due (its end date moved); a customer's other subscription never silences this one.
+2. Insert the outbox row first: `channel IN_APP`, `dedupeKey reminder:{template}:{subId}:{endDate}`
+   (`ON CONFLICT DO NOTHING`). Already there → nothing else happens, so a repeat never sends twice. A new
+   end date (a renewal) is a new key, which re-arms the next cycle by itself.
+3. Create the customer's notification (same dedupe key) and mark the row SENT. The link opens the renewal
+   checkout for that subscription and the length it was last bought or renewed with
+   (`/checkout?renew={subId}&option={optionId}&r={outboxId}`), or the customer's open unpaid renewal order
+   of that subscription (`/orders/{id}`) when there is one. The text names the subscription and end date,
+   adds the points balance when the program is on and the balance is above 0, and an active renewal
+   discount on that length.
+4. The row's payload keeps the whole event for push later (template, link, both languages,
+   `pushEligible: true`); never a phone number or credentials.
+
+**Dry run** writes SKIPPED rows under a per-day `dryrun:` key and creates nothing for customers, so a dry-run
+morning never blocks that cycle's real reminder.
+
+**Quiet hours:** in-app notifications are silent, so creating them at 06:00 is fine. Push (Chapter 2) must
+respect `automation.quietHours`.
+
+**On-visit reminders:** while this job is on, the dashboard's older on-visit reminders
+(`ensureRenewalReminders`) stay quiet so a customer never gets both.
+
+**Measurement.** A RENEW order placed from a reminder link stores `reminderOutboxId` (`linkReminderToOrder`).
+It is accepted only for an IN_APP reminder that was SENT to the same customer for the order's subscription,
+and only once; a forged or stale `r` is ignored and never blocks the order. «اليوم» shows, for the last 30
+or 90 days: reminders sent per template, renewals started and completed from a reminder, conversion
+(completed ÷ sent) and site renewals completed without a reminder. Counts only; nothing reaches logs or the
+AI analyst.
+
+Not in step 2: the mobile app's checkout does not pass `r` yet; retries for a PENDING row whose
+notification failed come with step 3.
+
 ## Tests
 
 | Kind | Where |
 |---|---|
 | Unit: day maths across month and year ends, reminders, dedupe keys, quiet hours, `canRunHere`, phone normalising, templates, settings, token, the function's guard and schedule | `tests/automation.test.ts` |
 | Integration (local DB): switches, the list, one run per day (repeat and parallel), one notification, SENT once, owner-only, dry run, a failing run | `scripts/integration/automation.mts` |
+| Unit (step 2): T-5 / T-0 / T+3 across month end, skip rules, re-arming after a renewal, text with points and discount, links, `?r=` parsing, conversion | `tests/automation.test.ts` |
+| Integration (step 2, local DB): switch, dry run creates nothing and doesn't block, the right notifications once, repeat no-op, open order link, tracking and forged `r`, measurement | `scripts/integration/customer-reminders.mts` |
 
 ## Deploy order
+
+Step 2: apply `20261031T1123_customer_reminders` to production (owner approval; one additive column) → merge
+→ turn on «تذكير العملاء داخل الموقع» with dry run on → check the run under «اليوم» → dry run off.
+
+Step 1 (done):
 
 1. Apply `20261031T1006_automation_core` to production (owner approval; additive, no data step).
 2. Merge. The scheduled function is registered on the production deploy; it does nothing while

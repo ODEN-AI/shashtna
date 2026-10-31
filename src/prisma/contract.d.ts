@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'0102955a274660919ea2e2dcb51d26def14278de5b5ebeeb65280c2ad8497bec'>;
+  StorageHashBase<'da91640c9eafe0e06d21c57669390b11804d709dc60efd36fe90721f0eb74f0b'>;
 export type ExecutionHash =
   ExecutionHashBase<'e5122ced4907905b09a11a958d433005fe498bd85874a975cf18d4c75d729a92'>;
 export type ProfileHash =
@@ -608,6 +608,7 @@ export type FieldOutputTypes = {
       readonly discountId: CodecTypes['pg/int4@1']['output'] | null;
       readonly discountIqd: CodecTypes['pg/int4@1']['output'] | null;
       readonly deliveryEmail: CodecTypes['pg/text@1']['output'] | null;
+      readonly reminderOutboxId: CodecTypes['pg/int4@1']['output'] | null;
       readonly deliveryCode: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly User: {
@@ -994,6 +995,7 @@ export type FieldInputTypes = {
       readonly discountId: CodecTypes['pg/int4@1']['input'] | null;
       readonly discountIqd: CodecTypes['pg/int4@1']['input'] | null;
       readonly deliveryEmail: CodecTypes['pg/text@1']['input'] | null;
+      readonly reminderOutboxId: CodecTypes['pg/int4@1']['input'] | null;
       readonly deliveryCode: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly User: {
@@ -1373,6 +1375,7 @@ export type StorageColumnTypes = {
       readonly paymentReference: CodecTypes['pg/text@1']['output'] | null;
       readonly planSlug: CodecTypes['pg/text@1']['output'];
       readonly price: CodecTypes['pg/int4@1']['output'];
+      readonly reminderOutboxId: CodecTypes['pg/int4@1']['output'] | null;
       readonly requestType: CodecTypes['pg/text@1']['output'];
       readonly serviceName: CodecTypes['pg/text@1']['output'];
       readonly serviceType: CodecTypes['pg/text@1']['output'];
@@ -1759,6 +1762,7 @@ export type StorageColumnInputTypes = {
       readonly paymentReference: CodecTypes['pg/text@1']['input'] | null;
       readonly planSlug: CodecTypes['pg/text@1']['input'];
       readonly price: CodecTypes['pg/int4@1']['input'];
+      readonly reminderOutboxId: CodecTypes['pg/int4@1']['input'] | null;
       readonly requestType: CodecTypes['pg/text@1']['input'];
       readonly serviceName: CodecTypes['pg/text@1']['input'];
       readonly serviceType: CodecTypes['pg/text@1']['input'];
@@ -4099,6 +4103,11 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
                 };
+                readonly reminderOutboxId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
                 readonly deliveryCode: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -6428,6 +6437,10 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly reminderOutboxId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
               readonly deliveryCode: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -6480,6 +6493,7 @@ type ContractBase = Omit<
                 readonly discountId: { readonly column: 'discountId' };
                 readonly discountIqd: { readonly column: 'discountIqd' };
                 readonly deliveryEmail: { readonly column: 'deliveryEmail' };
+                readonly reminderOutboxId: { readonly column: 'reminderOutboxId' };
                 readonly deliveryCode: { readonly column: 'deliveryCode' };
               };
             };

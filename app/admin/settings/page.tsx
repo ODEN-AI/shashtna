@@ -170,8 +170,8 @@ export default async function SettingsPage() {
           )}
         />
         <ActionForm action={saveSettingsAction} className="mt-5 space-y-5">
-          <div className="grid gap-5 sm:grid-cols-3">
-            {(["automation.enabled", "automation.job.dailyDigest", "automation.dryRun"] as const).map((key) => (
+          <div className="grid gap-5 sm:grid-cols-2">
+            {(["automation.enabled", "automation.job.dailyDigest", "automation.job.customerReminders", "automation.dryRun"] as const).map((key) => (
               <Field key={key} label={lang === "ar" ? SETTING_DEFINITIONS[key].labelAr : SETTING_DEFINITIONS[key].labelEn} htmlFor={key}>
                 <Select key={`${key}:${settings[key]}`} id={key} name={key} defaultValue={settings[key] === "on" ? "on" : "off"}>
                   <option value="off">{t("متوقف", "Off")}</option>

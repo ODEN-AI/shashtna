@@ -128,7 +128,86 @@ test("scheduled function: production-only guard, 03:00 UTC schedule, and the sam
   assert.match(source, /context\?\.deploy\?\.context \?\? process\.env\.CONTEXT/);
   assert.match(source, /deployContext !== "production"/);
   assert.match(source, /schedule: "0 3 \* \* \*"/);
-  assert.match(source, /update\(`automation:daily-digest:\$\{day\}`\)/);
+  assert.match(source, /update\(`automation:\$\{job\}:\$\{day\}`\)/);
+  assert.match(source, /\["daily-digest", "customer-reminders"\]/);
   assert.match(source, /\/api\/automation\/run/);
   assert.doesNotMatch(source, /console\.log\([^)]*secret/i);
+});
+
+// ------------------------------------------------------------------- step 2: in-app customer reminders
+
+test("in-app reminders: T-5 / T-0 / T+3 in Baghdad days across month end, keyed per cycle so a renewal re-arms them", () => {
+  // 06:00 Baghdad on 26 Nov → 1 Dec is T-5; on 3 Dec, 30 Nov is T+3.
+  assert.equal(a.reminderFor("2026-12-01", at("2026-11-26T03:00:00Z")), "before-expiry");
+  assert.equal(a.reminderFor("2026-11-30", at("2026-12-03T03:00:00Z")), "win-back");
+  assert.equal(a.reminderFor("2026-12-31", at("2026-12-31T03:00:00Z")), "expiry-day");
+  // 23:30 Baghdad on 25 Nov is still 25 Nov: not yet T-5 for 1 Dec.
+  assert.equal(a.reminderFor("2026-12-01", at("2026-11-25T20:30:00Z")), null);
+
+  assert.equal(a.reminderDedupeKey("before-expiry", 7, "2026-12-01T00:00:00Z"), "reminder:before-expiry:7:2026-12-01");
+  assert.notEqual(a.reminderDedupeKey("before-expiry", 7, "2027-03-01"), a.reminderDedupeKey("before-expiry", 7, "2026-12-01"), "a renewed end date is a new cycle");
+  assert.notEqual(a.reminderDedupeKey("before-expiry", 7, "2026-12-01"), a.whatsappDedupeKey("before-expiry", 7, "2026-12-01"), "separate from the owner's WhatsApp");
+  assert.deepEqual(a.CUSTOMER_TEMPLATES, ["before-expiry", "expiry-day", "win-back"]);
+});
+
+test("in-app reminders: skip rules — suspended or cancelled, opted out; a renewal moves the end date so it is no longer due", () => {
+  const base = { status: "ACTIVE", remindersOn: true };
+
+  assert.equal(a.reminderSkip(base), null);
+  assert.equal(a.reminderSkip({ ...base, status: "EXPIRED" }), null, "an expired subscription still gets its win-back");
+  assert.equal(a.reminderSkip({ ...base, status: "suspended" }), "SUSPENDED");
+  assert.equal(a.reminderSkip({ ...base, status: "CANCELLED" }), "SUSPENDED");
+  assert.equal(a.reminderSkip({ ...base, remindersOn: false }), "OPTED_OUT");
+  // Renewed from 1 Dec to 1 Mar: on 26 Nov nothing is due any more, and the new cycle has its own key.
+  assert.equal(a.reminderFor("2027-03-01", at("2026-11-26T03:00:00Z")), null);
+  assert.equal(a.reminderFor("2027-03-01", at("2027-02-24T03:00:00Z")), "before-expiry");
+});
+
+test("in-app reminders: text in Arabic first, with points and discount only when present, and the English twin", () => {
+  const data = { packageName: "IPTV 4K", endDate: "2026-12-01", points: 0, discountLabel: null, openOrder: false };
+  const plain = a.renderInAppReminder("before-expiry", data);
+
+  assert.equal(plain.title, "اشتراكك ينتهي بعد 5 أيام");
+  assert.match(plain.body, /«IPTV 4K» — ينتهي/);
+  assert.match(plain.body, /جدّده هسه/);
+  assert.doesNotMatch(plain.body, /نقطة|التجديد هسه عليه/);
+  assert.equal(a.renderInAppReminder("expiry-day", data).title, "اشتراكك ينتهي اليوم");
+  assert.equal(a.renderInAppReminder("win-back", data).title, "انتهى اشتراكك قبل 3 أيام");
+  assert.match(a.renderInAppReminder("win-back", data).body, /انتهى .* اشتقنالك/);
+
+  const rich = a.renderInAppReminder("expiry-day", { ...data, points: 25, discountLabel: "خصم 10%" });
+  assert.match(rich.body, /التجديد هسه عليه خصم 10%/);
+  assert.match(rich.body, /عندك 25 نقطة/);
+  assert.match(a.renderInAppReminder("before-expiry", { ...data, openOrder: true }).body, /طلب التجديد مالتك جاهز/);
+
+  const en = a.renderInAppReminder("before-expiry", { ...data, points: 25 }, "en");
+  assert.equal(en.title, "Your subscription ends in 5 days");
+  assert.match(en.body, /You have 25 Shashtna points/);
+});
+
+test("in-app reminders: the link opens the renewal checkout for that subscription and length, tagged with the outbox id; or the open order", () => {
+  assert.equal(a.reminderLink({ subscriptionId: 12, optionId: 40, outboxId: 9, openOrderId: null }), "/checkout?renew=12&option=40&r=9");
+  assert.equal(a.reminderLink({ subscriptionId: 12, optionId: null, outboxId: 9, openOrderId: null }), "/checkout?renew=12&r=9");
+  assert.equal(a.reminderLink({ subscriptionId: 12, optionId: 40, outboxId: 9, openOrderId: 77 }), "/orders/77");
+
+  assert.equal(a.reminderRef("9"), 9);
+  assert.equal(a.reminderRef(" 123 "), 123);
+  for (const value of ["", "0", "-1", "1.5", "abc", "9e3", "1234567890", null, undefined]) assert.equal(a.reminderRef(value), null, String(value));
+});
+
+test("in-app reminders: conversion is completed renewals over reminders sent; none sent → null", () => {
+  const sent = { "before-expiry": 6, "expiry-day": 3, "win-back": 1 };
+  const result = a.reminderConversion({ sent, started: 4, completed: 3, completedWithout: 5 });
+
+  assert.equal(result.sent, 10);
+  assert.equal(result.conversion, 30);
+  assert.equal(result.completedWithout, 5);
+  assert.equal(a.reminderConversion({ sent: { "before-expiry": 0, "expiry-day": 0, "win-back": 0 }, started: 0, completed: 0, completedWithout: 2 }).conversion, null);
+  assert.equal(a.reminderConversion({ sent: { "before-expiry": 3, "expiry-day": 0, "win-back": 0 }, started: 1, completed: 1, completedWithout: 0 }).conversion, 33.3);
+});
+
+test("automation settings: the customer reminders switch is on/off like the others", () => {
+  assert.equal(settingProblem("automation.job.customerReminders", "on"), null);
+  assert.ok(settingProblem("automation.job.customerReminders", "maybe"));
+  assert.deepEqual(a.JOBS, ["daily-digest", "customer-reminders"]);
 });

@@ -179,6 +179,8 @@ model SubscriptionRequest {
   /// Digital platforms: the customer's own account e-mail (CUSTOMER_EMAIL groups) and the
   /// delivered code (CODE groups; staff-only until delivered, then the owning customer only).
   deliveryEmail    String?
+  /// The in-app reminder (outboxMessage id) a RENEW order was started from; null otherwise.
+  reminderOutboxId Int?
   deliveryCode     String?
 }
 

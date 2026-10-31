@@ -36,6 +36,7 @@ import { getLiveAnnouncements } from "@/src/server/content";
 import { getLoyalty } from "@/src/server/loyalty";
 import { getI18n } from "@/src/server/i18n";
 import { audienceMatches } from "@/src/lib/promotions";
+import { customerRemindersOn } from "@/src/server/automation";
 import { countUnreadNotifications, ensureRenewalReminders } from "@/src/server/notifications";
 import { getCustomerOverview } from "@/src/server/overview";
 import { viewerFromOverview } from "@/src/server/promotions";
@@ -51,7 +52,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const user = await requireCustomer("/dashboard");
   const overview = await getCustomerOverview(user.id);
 
-  await ensureRenewalReminders(user.id, overview.subscriptions, user.renewalReminders).catch(() => undefined);
+  // When the daily in-app reminders job is on it owns these reminders; the on-visit ones stay quiet.
+  const jobOwnsReminders = await customerRemindersOn().catch(() => false);
+
+  if (!jobOwnsReminders) {
+    await ensureRenewalReminders(user.id, overview.subscriptions, user.renewalReminders).catch(() => undefined);
+  }
 
   const { state, primary, openOrders, subscriptions, orders } = overview;
   // The order just placed at checkout (the id comes from the URL, so it only

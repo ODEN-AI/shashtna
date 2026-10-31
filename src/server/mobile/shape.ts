@@ -1,4 +1,5 @@
 import { ORDER_STATUS_LABELS, REQUEST_TYPE_LABELS, isOpen, type OrderStatus } from "@/src/lib/order-status";
+import { ownDeliveryCode } from "@/src/server/platform-orders";
 import { journeySteps, needsPayment, orderStage } from "@/src/lib/order-journey";
 import { audienceMatches, mediaOf, type Viewer } from "@/src/lib/promotions";
 import { safeHref } from "@/src/lib/safe-href";
@@ -216,7 +217,13 @@ export async function mobileOrderDetail(order: Order) {
 /** The customer's own order as a detail, or null (other customers' ids are indistinguishable from missing). */
 export async function ownOrderDetail(userId: number, orderId: number | null) {
   const order = orderId ? await getOrderForUser(userId, orderId) : null;
-  return order ? mobileOrderDetail(order) : null;
+
+  if (!order) return null;
+
+  // A delivered platform code goes only to the customer who owns the order (additive field).
+  const deliveryCode = order.serviceType === "DIGITAL" && order.hasDeliveryCode ? await ownDeliveryCode(userId, order.id) : null;
+
+  return { ...(await mobileOrderDetail(order)), deliveryCode };
 }
 
 // ------------------------------------------------------------ subscriptions
@@ -228,8 +235,10 @@ export async function ownOrderDetail(userId: number, orderId: number | null) {
  * The flat credential keys older builds read are kept, always null in lists.
  */
 export function shapeSubscription(subscription: CustomerSubscription, options: { credentials?: boolean } = {}) {
-  const { username, password, macAddress, deviceId, ...rest } = subscription;
-  const credentials = options.credentials ? { username, password, macAddress, deviceId } : null;
+  // A platform account e-mail is a credential too: detail endpoint only.
+  const { username, password, macAddress, deviceId, accountEmail, ...rest } = subscription;
+  // Additive: only platform subscriptions carry accountEmail, so IPTV / VIP keep their exact shape.
+  const credentials = options.credentials ? { username, password, macAddress, deviceId, ...(accountEmail ? { accountEmail } : {}) } : null;
 
   return {
     ...rest,

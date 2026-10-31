@@ -7,6 +7,7 @@ import {
   isPointsExpired,
   isRewardKey,
   enabledIntervals,
+  earnsPoints,
   liabilityUsd,
   missedAwards,
   orderPointValue,
@@ -310,13 +311,13 @@ export async function orderLoyalty(orderId: number) {
 export async function previewOrderPoints(serviceType: string, price: number, optionId: number | null) {
   const rules = await getLoyaltyRules();
 
-  if (!rules.enabled || String(serviceType).toUpperCase() !== "IPTV") {
+  if (!rules.enabled || !earnsPoints(serviceType)) {
     return null;
   }
 
   const option = optionId ? await db.orm.public.PackageOption.first({ id: optionId }) : null;
 
-  return orderPointValue(price, option?.pointsEarned ?? null);
+  return orderPointValue(price, option?.pointsEarned ?? null, serviceType);
 }
 
 // ------------------------------------------------------------------- earning
@@ -922,7 +923,7 @@ export async function missingAwards() {
     return [];
   }
 
-  const candidates = orders.filter((order) => String(order.serviceType).toUpperCase() === "IPTV" && normalizeOrderStatus(order.status) === "COMPLETED");
+  const candidates = orders.filter((order) => earnsPoints(order.serviceType) && normalizeOrderStatus(order.status) === "COMPLETED");
   const completedAt = new Map<number, string>();
 
   for (let index = 0; index < candidates.length; index += 500) {

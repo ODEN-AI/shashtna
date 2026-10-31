@@ -19,6 +19,8 @@ export type CustomerSubscription = {
   expiryDate: string;
   username: string | null;
   password: string | null;
+  /** Digital platforms: the account e-mail (the password, when any, is `password`). */
+  accountEmail?: string | null;
   macAddress: string | null;
   deviceId: string | null;
   /** Active connections as recorded by staff (older app builds show it). */
@@ -57,6 +59,7 @@ export async function listSubscriptionsForUser(
       expiryDate: String(row.expiryDate),
       username: row.username,
       password: row.password,
+      accountEmail: row.accountEmail ?? null,
       macAddress: row.macAddress,
       deviceId: row.deviceId,
       connections: row.connections,

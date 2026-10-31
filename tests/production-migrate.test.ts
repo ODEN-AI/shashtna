@@ -14,8 +14,8 @@ test("production state (marker bec797, ledger up to console_device) → exactly 
   const plan = planMigration({ chain, ledger: ledgerOf(before), marker: byName["20261001T2236_console_device"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261016T0559_package_duration_unit", "20261017T1832_package_renewal_price", "20261030T1021_package_options", "20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts"]);
-  assert.equal(plan.tip, byName["20261031T0021_discounts"].to);
+  assert.deepEqual(plan.pending, ["20261016T0559_package_duration_unit", "20261017T1832_package_renewal_price", "20261030T1021_package_options", "20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email"]);
+  assert.equal(plan.tip, byName["20261031T0742_platform_account_email"].to);
 });
 
 test("package migrations already applied → only the package options migration is pending", () => {
@@ -23,7 +23,7 @@ test("package migrations already applied → only the package options migration 
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261017T1832_package_renewal_price"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261030T1021_package_options", "20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts"]);
+  assert.deepEqual(plan.pending, ["20261030T1021_package_options", "20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email"]);
 });
 
 test("package options applied (production after PR #6) → the loyalty, cost and discount migrations are pending", () => {
@@ -31,7 +31,7 @@ test("package options applied (production after PR #6) → the loyalty, cost and
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261030T1021_package_options"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts"]);
+  assert.deepEqual(plan.pending, ["20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email"]);
 });
 
 test("loyalty applied (marker 0395c5) → the real costs and discount migrations are pending", () => {
@@ -39,7 +39,7 @@ test("loyalty applied (marker 0395c5) → the real costs and discount migrations
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261030T1747_loyalty_points"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261030T2329_real_costs", "20261031T0021_discounts"]);
+  assert.deepEqual(plan.pending, ["20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email"]);
 });
 
 test("real costs applied (production now, marker 76e80b) → only the discounts migration is pending", () => {
@@ -47,11 +47,19 @@ test("real costs applied (production now, marker 76e80b) → only the discounts 
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261030T2329_real_costs"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261031T0021_discounts"]);
+  assert.deepEqual(plan.pending, ["20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email"]);
+});
+
+test("discounts applied (production now, marker eb9bf3) → only the plan group migrations are pending", () => {
+  const applied = chain.filter((m) => m.name <= "20261031T0021_discounts");
+  const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261031T0021_discounts"].to });
+
+  assert.equal(plan.ok, true, plan.problems.join("; "));
+  assert.deepEqual(plan.pending, ["20261031T0738_plan_groups", "20261031T0742_platform_account_email"]);
 });
 
 test("up to date → nothing pending", () => {
-  const plan = planMigration({ chain, ledger: ledgerOf(chain), marker: byName["20261031T0021_discounts"].to });
+  const plan = planMigration({ chain, ledger: ledgerOf(chain), marker: byName["20261031T0742_platform_account_email"].to });
   assert.equal(plan.ok, true);
   assert.deepEqual(plan.pending, []);
 });

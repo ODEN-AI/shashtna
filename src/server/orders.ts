@@ -13,6 +13,7 @@ import { logActivity } from "@/src/server/activity";
 import { notify } from "@/src/server/notifications";
 import { normalizeServiceType } from "@/src/server/catalog";
 import { orderPricing } from "@/src/lib/discounts";
+import { deliveryRenews, normalizeDelivery, parseDeliveryEmail } from "@/src/lib/groups";
 import { activeDiscountFor } from "@/src/server/discounts";
 import { resolveOrderOption } from "@/src/lib/package-options";
 import { packageOptions } from "@/src/server/package-options";
@@ -69,6 +70,9 @@ export function serializeOrder(row: NonNullable<OrderRow>, options: { staff?: bo
     subscriptionId: row.subscriptionId,
     loyaltyReward: Boolean(row.loyaltyReward),
     listPrice: row.listPrice ?? null,
+    deliveryEmail: row.deliveryEmail ?? null,
+    // The delivered code: staff see it masked (reveal is audited); the owning customer sees it once delivered.
+    hasDeliveryCode: Boolean(row.deliveryCode),
     discountIqd: row.discountIqd ?? null,
     discountId: row.discountId ?? null,
     channel: String(row.channel ?? "SITE").toUpperCase(),
@@ -88,6 +92,8 @@ export type CreateOrderInput = {
   paymentMethod?: unknown;
   paymentReference?: unknown;
   customerNote?: unknown;
+  /** Digital platforms whose group delivers to the customer's own account: that account's e-mail. */
+  deliveryEmail?: unknown;
 };
 
 export type CreateOrderResult =
@@ -212,6 +218,33 @@ export async function createOrder(
 
   const option = chosen.option;
 
+  // Digital platforms: sold only inside an active digital group, with its delivery rules.
+  let deliveryEmail: string | null = null;
+  let group: Awaited<ReturnType<typeof db.orm.public.PackageGroup.first>> = null;
+
+  if (serviceType === "DIGITAL") {
+    group = plan.groupId ? await db.orm.public.PackageGroup.first({ id: plan.groupId, isActive: true }) : null;
+
+    if (!group || normalizeServiceType(group.serviceType) !== "DIGITAL") {
+      return fail(400, "الباقة المحددة غير متاحة حاليًا.");
+    }
+
+    const delivery = normalizeDelivery(group.delivery);
+
+    if (requestType === "UPGRADE" || (requestType === "RENEW" && !deliveryRenews(delivery))) {
+      return fail(400, "هذي المنصة تنباع بكود: كل شراء طلب جديد.");
+    }
+
+    if (delivery === "CUSTOMER_EMAIL") {
+      deliveryEmail = parseDeliveryEmail(input.deliveryEmail);
+
+      // A renewal may keep the e-mail already on the subscription (checked below).
+      if (!deliveryEmail && requestType !== "RENEW") {
+        return fail(400, "اكتب إيميل حسابك على المنصة حتى نفعّل عليه.");
+      }
+    }
+  }
+
   let subscriptionId: number | null = null;
 
   if (requestType === "RENEW" || requestType === "UPGRADE") {
@@ -234,10 +267,27 @@ export async function createOrder(
         return fail(400, "باقة التجديد يجب أن تكون من نفس نوع الخدمة.");
       }
 
+      // A platform renewal extends only a subscription of the same platform group.
+      if (serviceType === "DIGITAL") {
+        const current = subscription.packageId ? await db.orm.public.Package.first({ id: subscription.packageId }) : null;
+
+        if (!current || current.groupId !== plan.groupId) {
+          return fail(400, "التجديد لازم يكون لنفس المنصة.");
+        }
+
+        if (group && normalizeDelivery(group.delivery) === "CUSTOMER_EMAIL" && !deliveryEmail) {
+          deliveryEmail = parseDeliveryEmail(subscription.accountEmail);
+        }
+      }
+
       subscriptionId = subscription.id;
     } else if (requestType === "UPGRADE") {
       return fail(400, "حدد الاشتراك المراد ترقيته.");
     }
+  }
+
+  if (group && normalizeDelivery(group.delivery) === "CUSTOMER_EMAIL" && !deliveryEmail) {
+    return fail(400, "اكتب إيميل حسابك على المنصة حتى نفعّل عليه.");
   }
 
   let deviceFields: {
@@ -293,6 +343,7 @@ export async function createOrder(
     listPrice: pricing.listPrice,
     discountId: pricing.discountId,
     discountIqd: pricing.discountIqd || null,
+    deliveryEmail,
     durationMonths: option.durationMonths,
     durationLabel: option.durationLabel,
     subscriptionId,
@@ -307,6 +358,7 @@ type OrderFields = {
   listPrice?: number | null;
   discountId?: number | null;
   discountIqd?: number | null;
+  deliveryEmail?: string | null;
   requestType: string;
   serviceType: string;
   serviceName: string;

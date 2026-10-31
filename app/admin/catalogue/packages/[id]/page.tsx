@@ -3,6 +3,9 @@ import { DiscountForm } from "@/app/components/admin/catalogue/DiscountForm";
 import { isActiveAt, isScheduled } from "@/src/lib/discounts";
 import { isFullAccess } from "@/src/lib/system";
 import { discountsForOptions } from "@/src/server/discounts";
+import { normalizeServiceType } from "@/src/lib/catalogue";
+import { db } from "@/src/prisma/db";
+import { listGroups } from "@/src/server/groups";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Eye, Globe, History, Link2, Percent, Power } from "lucide-react";
@@ -39,7 +42,7 @@ export default async function CataloguePackagePage({ params }: { params: Promise
 
   if (!data) notFound();
 
-  const [{ t, lang }, allOptions] = await Promise.all([getI18n(), packageOptions(packageId)]);
+  const [{ t, lang }, allOptions, groups, row] = await Promise.all([getI18n(), packageOptions(packageId), listGroups(), db.orm.public.Package.first({ id: packageId })]);
   const canDiscount = isFullAccess(user.role);
   const now = new Date();
   // Per length: its live or upcoming discounts (ended and expired ones are history).
@@ -68,6 +71,7 @@ export default async function CataloguePackagePage({ params }: { params: Promise
                 name: pkg.name,
                 slug: pkg.slug,
                 serviceType: pkg.serviceType,
+                groupId: row?.groupId ?? null,
                 options: options.map((option) => ({
                   id: option.id,
                   durationMonths: option.durationMonths,
@@ -77,6 +81,7 @@ export default async function CataloguePackagePage({ params }: { params: Promise
                   renewalPrice: option.renewalPrice,
                   pointsEarned: option.pointsEarned ?? null,
                   creditCostCents: option.creditCostCents ?? null,
+                  costIqd: option.costIqd ?? null,
                   isActive: option.isActive,
                 })),
                 description: pkg.description,
@@ -89,6 +94,7 @@ export default async function CataloguePackagePage({ params }: { params: Promise
               devices={compatibility.candidates.map((device) => ({ ...device, serviceType: pkg.serviceType }))}
               // Orders reference packages by slug: it can't change once used (the API enforces this too).
               slugLocked={!usage.ok || usage.orders > 0}
+              groups={groups.map((group) => ({ id: group.id, name: group.name, serviceType: normalizeServiceType(group.serviceType), isActive: group.isActive }))}
             />
           ) : (
             // Without the current links the form could overwrite them: don't offer it.
@@ -199,6 +205,7 @@ export default async function CataloguePackagePage({ params }: { params: Promise
                   name: pkg.name,
                   slug: pkg.slug,
                   serviceType: pkg.serviceType,
+                  groupId: null,
                   price: pkg.price,
                   renewalPrice: pkg.renewalPrice ?? null,
                   durationMonths: pkg.durationMonths,

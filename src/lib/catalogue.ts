@@ -34,7 +34,14 @@ export function parseCatalogueQuery<View extends string>(views: readonly View[],
   };
 }
 
-export function normalizeServiceType(value: unknown): "IPTV" | "VIP" {
+/** IPTV, VIP or DIGITAL (platform groups). Anything else is read as IPTV, as before. */
+export function normalizeServiceType(value: unknown): "IPTV" | "VIP" | "DIGITAL" {
+  const type = String(value ?? "").trim().toUpperCase();
+  return type === "VIP" ? "VIP" : type === "DIGITAL" ? "DIGITAL" : "IPTV";
+}
+
+/** Devices are IPTV or VIP hardware only: never DIGITAL. */
+export function normalizeDeviceServiceType(value: unknown): "IPTV" | "VIP" {
   return String(value ?? "").trim().toUpperCase() === "VIP" ? "VIP" : "IPTV";
 }
 

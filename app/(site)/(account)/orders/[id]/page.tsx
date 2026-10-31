@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, ImageIcon, MessageSquarePlus, Phone } from "lucide-react";
 
+import { SecretValue } from "@/app/ui/CopyButton";
+
 import { updateOrderContactAction } from "@/app/(site)/(account)/actions";
 import { CancelOrderButton } from "@/app/components/account/OrderControls";
 import { OrderPaymentFlow } from "@/app/components/account/OrderPaymentFlow";
@@ -23,6 +25,7 @@ import { requireCustomer } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
 import { pointsLabel } from "@/src/lib/loyalty";
 import { getLoyaltyRules, orderLoyalty } from "@/src/server/loyalty";
+import { ownDeliveryCode } from "@/src/server/platform-orders";
 import { getOrderForUser } from "@/src/server/orders";
 import { proofUploadTimes } from "@/src/server/payment-proofs";
 import { getSettings, manualTransferDetails, safeExternalUrl, telegramLink, whatsappLink } from "@/src/server/settings";
@@ -60,6 +63,14 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     getLoyaltyRules(),
     orderLoyalty(order.id).catch(() => null),
   ]);
+  const copyLabels = {
+    showLabel: t("إظهار", "Show"),
+    hideLabel: t("إخفاء", "Hide"),
+    copyLabel: t("نسخ", "Copy"),
+    copiedLabel: t("تم النسخ", "Copied"),
+  };
+  // A digital platform code: only for this customer, once delivered.
+  const deliveryCode = order.serviceType === "DIGITAL" && order.hasDeliveryCode ? await ownDeliveryCode(user.id, order.id) : null;
   const reward = order.loyaltyReward;
   const pointsState = points
     ? { PENDING: t("معلّقة", "pending"), CONFIRMED: t("مثبتة", "confirmed"), REVERSED: t("مسحوبة", "reversed") }[points.state]
@@ -106,6 +117,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         t("لم يُرفع بعد", "Not uploaded yet")
       ),
     },
+    order.deliveryEmail ? { label: t("إيميل حسابك على المنصة", "Your platform account e-mail"), value: <span dir="ltr">{order.deliveryEmail}</span> } : null,
     { label: t("طريقة التواصل", "Contact method"), value: CONTACT_LABELS[order.contactMethod]?.[lang] ?? order.contactMethod },
     { label: t("تاريخ الطلب", "Placed on"), value: <span className="nums">{formatDate(order.createdAt, lang)}</span> },
   ].filter(Boolean) as { label: string; value: React.ReactNode }[];
@@ -134,6 +146,15 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </div>
         {stage === "CANCELLED" || stage === "REJECTED" ? null : <OrderJourney stage={stage} lang={lang} className="mt-8" reward={reward} />}
       </Card>
+
+      {deliveryCode ? (
+        <Card className="p-5 sm:p-6" raised>
+          <CardHeader title={t("الكود الخاص بك", "Your code")} description={t("فعّله على المنصة. لا تشاركه ويا أحد.", "Redeem it on the platform. Don't share it with anyone.")} />
+          <div className="mt-4">
+            <SecretValue value={deliveryCode} {...copyLabels} />
+          </div>
+        </Card>
+      ) : null}
 
       <OrderPaymentFlow order={order} stage={stage} proofUrl={proofUrl} transfer={manualTransferDetails(settings)} lang={lang} />
 

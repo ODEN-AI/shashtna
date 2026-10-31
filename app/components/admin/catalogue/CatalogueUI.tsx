@@ -1,4 +1,4 @@
-import { Boxes, Cpu, ImageOff, LayoutGrid, Link2, Package, Percent } from "lucide-react";
+import { Boxes, Cpu, ImageOff, LayoutGrid, Link2, Package, Percent, Layers } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/app/ui/Badge";
@@ -9,7 +9,7 @@ import type { Translate } from "@/src/lib/i18n";
 
 /** Catalogue building blocks, on top of the console's existing primitives. */
 
-export type CatalogueSection = "overview" | "packages" | "devices" | "compatibility" | "discounts";
+export type CatalogueSection = "overview" | "packages" | "devices" | "compatibility" | "discounts" | "groups";
 
 export function CatalogueHeader({ active, t, title, description, actions }: { active: CatalogueSection; t: Translate; title: ReactNode; description?: ReactNode; actions?: ReactNode }) {
   const tabs = [
@@ -17,6 +17,7 @@ export function CatalogueHeader({ active, t, title, description, actions }: { ac
     { key: "packages", href: "/admin/catalogue/packages", label: <><Package size={14} aria-hidden /> {t("باقات الاشتراك", "Subscription packages")}</> },
     { key: "devices", href: "/admin/catalogue/devices", label: <><Cpu size={14} aria-hidden /> {t("الأجهزة", "Devices")}</> },
     { key: "compatibility", href: "/admin/catalogue/compatibility", label: <><Link2 size={14} aria-hidden /> {t("التوافق", "Compatibility")}</> },
+    { key: "groups", href: "/admin/catalogue/groups", label: <><Layers size={14} aria-hidden /> {t("المجموعات", "Groups")}</> },
     { key: "discounts", href: "/admin/catalogue/discounts", label: <><Percent size={14} aria-hidden /> {t("الخصومات", "Discounts")}</> },
   ];
 

@@ -7,7 +7,7 @@ import { LinkButton } from "@/app/ui/Button";
 import { EmptyState, ErrorState } from "@/app/ui/States";
 import { FAQ } from "@/src/content/help";
 import { formatPrice } from "@/src/lib/i18n";
-import { getActiveDevices, getActivePackages, type CatalogDevice, type CatalogPackage } from "@/src/server/catalog";
+import { getActiveDevices, getActiveGroups, getActivePackages, type CatalogDevice, type CatalogGroup, type CatalogPackage } from "@/src/server/catalog";
 import { getI18n } from "@/src/server/i18n";
 
 export const dynamic = "force-dynamic";
@@ -57,12 +57,24 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
 
   let packages: CatalogPackage[] | null = null;
   let devices: CatalogDevice[] = [];
+  let groups: CatalogGroup[] = [];
 
   try {
-    [packages, devices] = await Promise.all([getActivePackages(), getActiveDevices()]);
+    [packages, devices, groups] = await Promise.all([getActivePackages(), getActiveDevices(), getActiveGroups()]);
   } catch (error) {
     console.error("PLANS_PAGE_ERROR:", error);
   }
+
+  // Digital platform groups, after IPTV and VIP, in the owner's order; a group with no package on sale isn't shown.
+  const platforms = groups
+    .filter((group) => group.serviceType === "DIGITAL")
+    .map((group) => ({ group, packages: packages?.filter((pkg) => pkg.serviceType === "DIGITAL" && pkg.groupId === group.id) ?? [] }))
+    .filter((item) => item.packages.length > 0);
+  const deliveryHint: Record<CatalogGroup["delivery"], [string, string]> = {
+    CODE: ["تستلم كود أو بطاقة هدية بصفحة طلبك", "You get a code or gift card on your order page"],
+    ACCOUNT: ["تستلم حساب جاهز (إيميل وكلمة مرور) بحسابك", "You get a ready account (e-mail and password) in your account"],
+    CUSTOMER_EMAIL: ["نفعّل على إيميل حسابك، تكتبه وقت الطلب", "Activated on your own account e-mail, entered at checkout"],
+  };
 
   const iptv = packages?.filter((pkg) => pkg.serviceType === "IPTV") ?? [];
   const vip = packages?.filter((pkg) => pkg.serviceType === "VIP") ?? [];
@@ -187,6 +199,37 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
               </div>
             </section>
           ) : null}
+
+          {platforms.map(({ group, packages: items }) => (
+            <section
+              key={group.id}
+              id={group.slug}
+              aria-labelledby={`${group.slug}-heading`}
+              className={`${s.wrap} scroll-mt-24`}
+              style={{ marginTop: 28, ["--group-accent" as string]: group.accent, ["--group-surface" as string]: group.surface, ["--group-on-accent" as string]: group.accentText }}
+              data-testid="plan-group"
+              data-group={group.slug}
+            >
+              <div className={`${s.chapter} ${s.chapterGroup}`}>
+                <div className={s.chapterHead}>
+                  <div>
+                    <h2 id={`${group.slug}-heading`} className={s.groupTitle} dir="auto">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {group.logoUrl ? <img src={group.logoUrl} alt="" className={s.groupLogo} loading="lazy" /> : null}
+                      {lang === "ar" ? group.name : (group.nameEn ?? group.name)}
+                    </h2>
+                    {(lang === "ar" ? group.description : (group.descriptionEn ?? group.description)) ? (
+                      <p className={s.lead} style={{ marginTop: 14 }} dir="auto">
+                        {lang === "ar" ? group.description : (group.descriptionEn ?? group.description)}
+                      </p>
+                    ) : null}
+                    <span className={s.groupDelivery}>{t(...deliveryHint[group.delivery])}</span>
+                  </div>
+                </div>
+                <PlanCards lang={lang} service="DIGITAL" plans={items.map(card)} vipArt={VIP_ART} fallbackArt={group.logoUrl} />
+              </div>
+            </section>
+          ))}
 
           {paymentFaq.length ? (
             <section className={`${s.wrap} ${s.section}`} aria-labelledby="pay-heading">

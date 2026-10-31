@@ -11,6 +11,7 @@ import {
   Bell,
   Gift,
   Percent,
+  Layers,
   Boxes,
   Briefcase,
   CircleDollarSign,
@@ -89,6 +90,7 @@ const ICONS: Record<string, typeof Inbox> = {
   settings: Settings,
   loyalty: Gift,
   discounts: Percent,
+  groups: Layers,
 };
 
 type Counts = Partial<Record<string, number>>;

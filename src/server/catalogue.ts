@@ -2,6 +2,7 @@ import { loadSection } from "@/src/lib/dashboard-section";
 import {
   matchesText,
   needsCompatibleDevice,
+  normalizeDeviceServiceType,
   normalizeServiceType,
   type CatalogueQuery,
   type DeviceView,
@@ -101,7 +102,7 @@ async function loadCatalogue() {
   });
   const deviceRows = devices.map((device) => ({
     ...device,
-    serviceType: normalizeServiceType(device.serviceType),
+    serviceType: normalizeDeviceServiceType(device.serviceType),
     updatedAt: String(device.updatedAt),
     packages: (packagesOf.get(device.id) ?? []).map((id) => packageById.get(id)).filter((pkg) => pkg !== undefined).map((pkg) => ({ id: pkg.id, name: pkg.name, isActive: pkg.isActive })),
   }));
@@ -256,7 +257,7 @@ export async function getDeviceDetail(role: string, id: number) {
 
   return {
     can: can(role),
-    device: { ...device, serviceType: normalizeServiceType(device.serviceType), updatedAt: String(device.updatedAt) },
+    device: { ...device, serviceType: normalizeDeviceServiceType(device.serviceType), updatedAt: String(device.updatedAt) },
     compatibility: catalogue?.ok
       ? {
           ok: true as const,

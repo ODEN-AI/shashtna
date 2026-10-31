@@ -2,6 +2,7 @@ import { db } from "@/src/prisma/db";
 import { defaultOption } from "@/src/lib/package-options";
 import { safeHref } from "@/src/lib/safe-href";
 import { daysLeft, discountAmount } from "@/src/lib/discounts";
+import { buttonText, isBuiltInGroup, normalizeDelivery, type DeliveryKind } from "@/src/lib/groups";
 import { activeDiscounts } from "@/src/server/discounts";
 import { optionsByPackage } from "@/src/server/package-options";
 
@@ -37,7 +38,9 @@ export type CatalogPackage = {
   id: number;
   name: string;
   slug: string;
-  serviceType: "IPTV" | "VIP";
+  serviceType: "IPTV" | "VIP" | "DIGITAL";
+  /** The /plans group (IPTV, VIP or a digital platform); null for a package not in any group yet. */
+  groupId: number | null;
   /** price, renewalPrice and duration* are the package's default option (its shortest one). */
   price: number;
   /** Price of a renewal order; null = same as price. */
@@ -89,8 +92,10 @@ export function splitLines(value: string | null | undefined) {
     .filter(Boolean);
 }
 
-export function normalizeServiceType(value: unknown): "IPTV" | "VIP" {
-  return String(value ?? "").trim().toUpperCase() === "VIP" ? "VIP" : "IPTV";
+/** IPTV, VIP or DIGITAL (platform groups). Anything else is read as IPTV, as before. */
+export function normalizeServiceType(value: unknown): "IPTV" | "VIP" | "DIGITAL" {
+  const type = String(value ?? "").trim().toUpperCase();
+  return type === "VIP" ? "VIP" : type === "DIGITAL" ? "DIGITAL" : "IPTV";
 }
 
 export { safeHref };
@@ -107,11 +112,56 @@ async function salesByPackageName() {
   );
 }
 
+export type CatalogGroup = {
+  id: number;
+  slug: string;
+  name: string;
+  nameEn: string | null;
+  description: string | null;
+  descriptionEn: string | null;
+  logoUrl: string | null;
+  sortOrder: number;
+  accent: string;
+  surface: string;
+  /** Text drawn on the accent (buttons), chosen for contrast. */
+  accentText: string;
+  delivery: DeliveryKind;
+  serviceType: "IPTV" | "VIP" | "DIGITAL";
+  builtIn: boolean;
+};
+
+/** Active groups in display order (the built-in IPTV / VIP ones included). */
+export async function getActiveGroups(): Promise<CatalogGroup[]> {
+  const rows = await db.orm.public.PackageGroup.where({ isActive: true }).all().toArray().catch(() => [] as never[]);
+
+  return rows
+    .map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      nameEn: row.nameEn ?? null,
+      description: row.description ?? null,
+      descriptionEn: row.descriptionEn ?? null,
+      logoUrl: safeHref(row.logoUrl),
+      sortOrder: row.sortOrder,
+      accent: row.accent,
+      surface: row.surface,
+      accentText: buttonText(row.accent),
+      delivery: normalizeDelivery(row.delivery),
+      serviceType: normalizeServiceType(row.serviceType),
+      builtIn: isBuiltInGroup(row.slug),
+    }))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+}
+
 export async function getActivePackages(): Promise<CatalogPackage[]> {
-  const [packages, sales] = await Promise.all([
+  const [packages, sales, groups] = await Promise.all([
     db.orm.public.Package.where({ isActive: true }).all(),
     salesByPackageName(),
+    getActiveGroups(),
   ]);
+  // A digital platform is only sold inside an active group of its own kind.
+  const digitalGroups = new Set(groups.filter((group) => group.serviceType === "DIGITAL").map((group) => group.id));
   const optionMap = await optionsByPackage(packages.map((pkg) => pkg.id));
   const discounts = await activeDiscounts([...optionMap.values()].flat().filter((option) => option.isActive).map((option) => option.id)).catch(() => new Map());
   const discountFor = (option: { id: number; price: number; renewalPrice: number | null }): CatalogDiscount | null => {
@@ -136,6 +186,7 @@ export async function getActivePackages(): Promise<CatalogPackage[]> {
 
     // A package with no length on sale can't be bought: it isn't listed.
     if (!main) return [];
+    if (normalizeServiceType(pkg.serviceType) === "DIGITAL" && !(pkg.groupId && digitalGroups.has(pkg.groupId))) return [];
 
     return [
       {
@@ -143,6 +194,7 @@ export async function getActivePackages(): Promise<CatalogPackage[]> {
         name: pkg.name,
         slug: pkg.slug,
         serviceType: normalizeServiceType(pkg.serviceType),
+        groupId: pkg.groupId ?? null,
         price: main.price,
         renewalPrice: main.renewalPrice,
         durationMonths: main.durationMonths,
@@ -177,11 +229,11 @@ export async function getActivePackages(): Promise<CatalogPackage[]> {
     }
   }
 
+  const rank = { IPTV: 0, VIP: 1, DIGITAL: 2 } as const;
+
   return mapped.sort((a, b) =>
     a.serviceType !== b.serviceType
-      ? a.serviceType === "IPTV"
-        ? -1
-        : 1
+      ? rank[a.serviceType] - rank[b.serviceType]
       : // Shortest to longest, so durations and prices read side by side.
         a.durationMonths - b.durationMonths || a.price - b.price || a.id - b.id,
   );

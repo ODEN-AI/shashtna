@@ -1,0 +1,281 @@
+[
+  {
+    "id": "table.packageGroup",
+    "label": "Create table \"packageGroup\"",
+    "summary": "Creates table \"packageGroup\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "packageGroup"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"packageGroup\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"packageGroup\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"packageGroup\"",
+        "sql": "CREATE TABLE \"public\".\"packageGroup\" (\n  \"accent\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"delivery\" text DEFAULT 'ACCOUNT' NOT NULL,\n  \"description\" text,\n  \"descriptionEn\" text,\n  \"id\" SERIAL NOT NULL,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"logoUrl\" text,\n  \"name\" text NOT NULL,\n  \"nameEn\" text,\n  \"serviceType\" text DEFAULT 'DIGITAL' NOT NULL,\n  \"slug\" text NOT NULL,\n  \"sortOrder\" int4 DEFAULT 0 NOT NULL,\n  \"surface\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"packageGroup\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"packageGroup\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.package.groupId",
+    "label": "Add column \"groupId\" to \"package\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "groupId",
+        "table": "package"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"groupId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "package",
+          "groupId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"groupId\"",
+        "sql": "ALTER TABLE \"public\".\"package\" ADD COLUMN \"groupId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"groupId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "package",
+          "groupId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.packageOption.costIqd",
+    "label": "Add column \"costIqd\" to \"packageOption\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "costIqd",
+        "table": "packageOption"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"costIqd\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "packageOption",
+          "costIqd"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"costIqd\"",
+        "sql": "ALTER TABLE \"public\".\"packageOption\" ADD COLUMN \"costIqd\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"costIqd\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "packageOption",
+          "costIqd"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.deliveryCode",
+    "label": "Add column \"deliveryCode\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "deliveryCode",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"deliveryCode\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "deliveryCode"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"deliveryCode\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"deliveryCode\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"deliveryCode\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "deliveryCode"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.subscriptionRequest.deliveryEmail",
+    "label": "Add column \"deliveryEmail\" to \"subscriptionRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "deliveryEmail",
+        "table": "subscriptionRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"deliveryEmail\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "deliveryEmail"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"deliveryEmail\"",
+        "sql": "ALTER TABLE \"public\".\"subscriptionRequest\" ADD COLUMN \"deliveryEmail\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"deliveryEmail\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "subscriptionRequest",
+          "deliveryEmail"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.packageGroup.packageGroup_slug_key",
+    "label": "Add unique constraint on \"packageGroup\" (slug)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "packageGroup_slug_key",
+        "table": "packageGroup"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"packageGroup_slug_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "packageGroup_slug_key",
+          "public",
+          "\"public\".\"packageGroup\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"packageGroup_slug_key\"",
+        "sql": "ALTER TABLE \"public\".\"packageGroup\" ADD CONSTRAINT \"packageGroup_slug_key\" UNIQUE (\"slug\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"packageGroup_slug_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "packageGroup_slug_key",
+          "public",
+          "\"public\".\"packageGroup\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "data.public.packageGroup.builtin_iptv_vip",
+    "label": "Create the built-in IPTV and VIP groups and place ungrouped IPTV / VIP packages in them",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "packageGroup"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "the built-in groups exist (kept as they are when already there)",
+        "sql": "INSERT INTO \"public\".\"packageGroup\" (\"name\", \"nameEn\", \"slug\", \"sortOrder\", \"isActive\", \"accent\", \"surface\", \"delivery\", \"serviceType\", \"createdAt\", \"updatedAt\") VALUES ('باقات IPTV', 'IPTV plans', 'iptv', 0, true, '#3d6bff', '#0b1738', 'ACCOUNT', 'IPTV', now(), now()), ('باقات VIP', 'VIP plans', 'vip', 1, true, '#f1cf7a', '#0b1738', 'ACCOUNT', 'VIP', now(), now()) ON CONFLICT (\"slug\") DO NOTHING"
+      },
+      {
+        "description": "only packages without a group join the group of their service type",
+        "sql": "UPDATE \"public\".\"package\" p SET \"groupId\" = g.\"id\" FROM \"public\".\"packageGroup\" g WHERE p.\"groupId\" IS NULL AND g.\"slug\" = lower(p.\"serviceType\") AND upper(p.\"serviceType\") IN ('IPTV', 'VIP')"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no IPTV or VIP package is left without a group",
+        "sql": "SELECT NOT EXISTS (SELECT 1 FROM \"public\".\"package\" p WHERE p.\"groupId\" IS NULL AND upper(p.\"serviceType\") IN ('IPTV', 'VIP')) AS \"result\""
+      }
+    ]
+  }
+]

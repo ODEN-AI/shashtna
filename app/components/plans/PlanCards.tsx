@@ -38,7 +38,20 @@ const monthly = (card: Shown) => Math.round(pays(card) / Math.max(1, card.durati
  * its lengths), then the name, price and action. A card filtered to one
  * length shows that length's price and opens the plan with it chosen.
  */
-export function PlanCards({ lang, service, plans, vipArt }: { lang: Lang; service: "IPTV" | "VIP"; plans: PlanCard[]; vipArt: string }) {
+export function PlanCards({
+  lang,
+  service,
+  plans,
+  vipArt,
+  fallbackArt = null,
+}: {
+  lang: Lang;
+  service: "IPTV" | "VIP" | "DIGITAL";
+  plans: PlanCard[];
+  vipArt: string;
+  /** A digital group's logo, shown on its packages that have no image. */
+  fallbackArt?: string | null;
+}) {
   const isAr = lang === "ar";
   const isVip = service === "VIP";
   const [filter, setFilter] = useState<number | "all">("all");
@@ -89,7 +102,7 @@ export function PlanCards({ lang, service, plans, vipArt }: { lang: Lang; servic
               <span className={`${s.planArt} ${isVip ? s.planArtVip : ""}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={plan.imageUrl ?? (isVip ? vipArt : "/brand/shashtna-mark-256.webp")}
+                  src={plan.imageUrl ?? (isVip ? vipArt : (fallbackArt ?? "/brand/shashtna-mark-256.webp"))}
                   alt=""
                   loading="lazy"
                   style={plan.imageUrl || isVip ? undefined : { position: "static", width: 96, height: 96, objectFit: "contain" }}

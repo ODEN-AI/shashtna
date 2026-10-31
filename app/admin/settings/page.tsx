@@ -93,9 +93,9 @@ export default async function SettingsPage() {
                 return (
                   <Field key={key} label={label} htmlFor={key}>
                     {definition.multiline ? (
-                      <Textarea id={key} name={key} rows={group.key === "legal" ? 10 : 4} defaultValue={settings[key]} />
+                      <Textarea key={`${key}:${settings[key]}`} id={key} name={key} rows={group.key === "legal" ? 10 : 4} defaultValue={settings[key]} />
                     ) : (
-                      <Input id={key} name={key} defaultValue={settings[key]} dir={key.startsWith("contact.") || key.startsWith("player.") ? "ltr" : undefined} className={key.startsWith("contact.") || key.startsWith("player.") ? "text-start" : undefined} />
+                      <Input key={`${key}:${settings[key]}`} id={key} name={key} defaultValue={settings[key]} dir={key.startsWith("contact.") || key.startsWith("player.") ? "ltr" : undefined} className={key.startsWith("contact.") || key.startsWith("player.") ? "text-start" : undefined} />
                     )}
                   </Field>
                 );
@@ -130,7 +130,7 @@ export default async function SettingsPage() {
         ) : null}
         <ActionForm action={saveSettingsAction} className="mt-5 space-y-5">
           <Field label={lang === "ar" ? SETTING_DEFINITIONS["loyalty.enabled"].labelAr : SETTING_DEFINITIONS["loyalty.enabled"].labelEn} htmlFor="loyalty.enabled">
-            <Select id="loyalty.enabled" name="loyalty.enabled" defaultValue={settings["loyalty.enabled"] === "on" ? "on" : "off"}>
+            <Select key={`loyalty.enabled:${settings["loyalty.enabled"]}`} id="loyalty.enabled" name="loyalty.enabled" defaultValue={settings["loyalty.enabled"] === "on" ? "on" : "off"}>
               <option value="off">{t("متوقف (مخفي عن العملاء)", "Off (hidden from customers)")}</option>
               <option value="on">{t("مفعّل", "On")}</option>
             </Select>
@@ -138,14 +138,14 @@ export default async function SettingsPage() {
           <div className="grid gap-5 sm:grid-cols-2">
             {LOYALTY_NUMBERS.map((key) => (
               <Field key={key} label={lang === "ar" ? SETTING_DEFINITIONS[key].labelAr : SETTING_DEFINITIONS[key].labelEn} htmlFor={key}>
-                <Input id={key} name={key} inputMode="numeric" dir="ltr" defaultValue={settings[key]} className="text-start" />
+                <Input key={`${key}:${settings[key]}`} id={key} name={key} inputMode="numeric" dir="ltr" defaultValue={settings[key]} className="text-start" />
               </Field>
             ))}
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
             {(["loyalty.reward3mOptionId", "loyalty.reward6mOptionId"] as const).map((key) => (
               <Field key={key} label={lang === "ar" ? SETTING_DEFINITIONS[key].labelAr : SETTING_DEFINITIONS[key].labelEn} htmlFor={key}>
-                <Select id={key} name={key} defaultValue={settings[key]}>
+                <Select key={`${key}:${settings[key]}`} id={key} name={key} defaultValue={settings[key]}>
                   <option value="">{t("— اختر مدة —", "— choose a length —")}</option>
                   {rewardChoices.map((option) => (
                     <option key={option.id} value={option.id}>
@@ -173,7 +173,7 @@ export default async function SettingsPage() {
           <div className="grid gap-5 sm:grid-cols-3">
             {(["automation.enabled", "automation.job.dailyDigest", "automation.dryRun"] as const).map((key) => (
               <Field key={key} label={lang === "ar" ? SETTING_DEFINITIONS[key].labelAr : SETTING_DEFINITIONS[key].labelEn} htmlFor={key}>
-                <Select id={key} name={key} defaultValue={settings[key] === "on" ? "on" : "off"}>
+                <Select key={`${key}:${settings[key]}`} id={key} name={key} defaultValue={settings[key] === "on" ? "on" : "off"}>
                   <option value="off">{t("متوقف", "Off")}</option>
                   <option value="on">{t("مفعّل", "On")}</option>
                 </Select>
@@ -181,7 +181,7 @@ export default async function SettingsPage() {
             ))}
           </div>
           <Field label={lang === "ar" ? SETTING_DEFINITIONS["automation.quietHours"].labelAr : SETTING_DEFINITIONS["automation.quietHours"].labelEn} htmlFor="automation.quietHours">
-            <Input id="automation.quietHours" name="automation.quietHours" dir="ltr" defaultValue={settings["automation.quietHours"]} className="text-start" placeholder="22:00-09:00" />
+            <Input key={`automation.quietHours:${settings["automation.quietHours"]}`} id="automation.quietHours" name="automation.quietHours" dir="ltr" defaultValue={settings["automation.quietHours"]} className="text-start" placeholder="22:00-09:00" />
           </Field>
           <SubmitButton pendingLabel={t("جاري الحفظ...", "Saving...")}>{t("حفظ", "Save")}</SubmitButton>
         </ActionForm>

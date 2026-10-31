@@ -26,6 +26,7 @@ import { orderLoyalty } from "@/src/server/loyalty";
 import { getOrder } from "@/src/server/orders";
 import { proofUploadTimes } from "@/src/server/payment-proofs";
 import { whatsappLink } from "@/src/server/settings";
+import { isFullAccess } from "@/src/lib/system";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "تفاصيل الطلب" };
@@ -238,7 +239,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
             </Card>
           ) : null}
 
-          {points && String(staff.role).toUpperCase() === "OWNER" ? (
+          {points && isFullAccess(staff.role) ? (
             <Card className="p-6">
               <CardHeader
                 title={t("نقاط هذا الطلب", "Points on this order")}

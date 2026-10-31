@@ -18,6 +18,7 @@ import { db } from "@/src/prisma/db";
 import { requireStaffPage } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
 import { loyaltyReport, missingAwards, pendingRewardOrders, rewardOption } from "@/src/server/loyalty";
+import { isFullAccess } from "@/src/lib/system";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "نقاط شاشتنا" };
@@ -38,7 +39,7 @@ export default async function LoyaltyAdminPage() {
     return <Forbidden />;
   }
 
-  const isOwner = String(user.role).toUpperCase() === "OWNER";
+  const isOwner = isFullAccess(user.role);
   const [{ t, lang }, report, queue, missing] = await Promise.all([getI18n(), loyaltyReport(), isOwner ? pendingRewardOrders() : Promise.resolve([]), missingAwards()]);
   const [reward3m, reward6m] = await Promise.all([rewardOption(report.rules, "3m"), rewardOption(report.rules, "6m")]);
   const customers = queue.length ? await db.orm.public.User.where((row) => row.id.in([...new Set(queue.map((order) => order.userId))])).select("id", "name").all() : [];

@@ -1,6 +1,7 @@
 import { db } from "@/src/prisma/db";
 import { costSnapshot, currentRate, normalizeChannel, parseCreditPurchase, rateIqdPerUsd, type CostSnapshot } from "@/src/lib/costs";
 import { logActivity } from "@/src/server/activity";
+import { isFullAccess } from "@/src/lib/system";
 
 /**
  * Real costs — database side. Credit purchases are append-only (the history
@@ -31,7 +32,7 @@ export async function currentCreditRate() {
 
 /** Owner records a credit purchase. */
 export async function addCreditPurchase(actor: Actor, input: Record<string, unknown>): Promise<{ ok: true; id: number } | { ok: false; status: number; error: string }> {
-  if (String(actor.role).toUpperCase() !== "OWNER") {
+  if (!isFullAccess(actor.role)) {
     return { ok: false, status: 403, error: "تسجيل شراء الرصيد للمالك فقط." };
   }
 

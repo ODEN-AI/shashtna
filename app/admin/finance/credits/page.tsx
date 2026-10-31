@@ -17,6 +17,7 @@ import { formatDate, formatPrice } from "@/src/lib/i18n";
 import { requireStaffPage } from "@/src/server/auth";
 import { listCreditPurchases } from "@/src/server/costs";
 import { getI18n } from "@/src/server/i18n";
+import { isFullAccess } from "@/src/lib/system";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "رصيد اللوحة" };
@@ -29,7 +30,7 @@ export const metadata: Metadata = { title: "رصيد اللوحة" };
 export default async function CreditPurchasesPage() {
   const { user, allowed } = await requireStaffPage("/admin/finance/credits", "finance");
 
-  if (!allowed || String(user.role).toUpperCase() !== "OWNER") {
+  if (!allowed || !isFullAccess(user.role)) {
     return <Forbidden />;
   }
 

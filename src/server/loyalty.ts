@@ -29,6 +29,7 @@ import { formatOrderNumber, normalizeOrderStatus, orderRef } from "@/src/lib/ord
 import { deriveSubscriptionState } from "@/src/lib/subscription-state";
 import { logActivity } from "@/src/server/activity";
 import { notify } from "@/src/server/notifications";
+import { isFullAccess } from "@/src/lib/system";
 
 /**
  * «نقاط شاشتنا» — database side. Every change to a balance happens in one
@@ -652,7 +653,7 @@ function cleanReason(value: unknown) {
 }
 
 function isOwner(actor: Actor) {
-  return String(actor.role).toUpperCase() === "OWNER";
+  return isFullAccess(actor.role);
 }
 
 /** Takes back the points an order earned (no refund status exists). Owner only; the balance may go negative. */

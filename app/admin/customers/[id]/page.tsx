@@ -32,6 +32,7 @@ import { getLoyalty } from "@/src/server/loyalty";
 import { getI18n } from "@/src/server/i18n";
 import { whatsappLink } from "@/src/server/settings";
 import { TICKET_STATUS_LABELS } from "@/src/server/tickets";
+import { isFullAccess } from "@/src/lib/system";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "ملف العميل" };
@@ -60,7 +61,7 @@ export default async function Customer360Page({ params }: { params: Promise<{ id
   const { t, lang } = await getI18n();
   const { customer, can } = data;
   const loyalty = await getLoyalty(customer.id).catch(() => null);
-  const isOwner = String(staff.role).toUpperCase() === "OWNER";
+  const isOwner = isFullAccess(staff.role);
   // The supplier form renews one of the customer's IPTV subscriptions or adds a new one.
   const iptvSubscriptions = isOwner
     ? (await db.orm.public.Subscription.where({ userId: customer.id }).select("id", "packageName", "expiryDate", "serviceType").all()).filter((row) => String(row.serviceType ?? "IPTV").toUpperCase() === "IPTV")

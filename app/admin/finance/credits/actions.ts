@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { assertStaff, getSessionUser } from "@/src/server/auth";
 import { addCreditPurchase } from "@/src/server/costs";
 import { createSupplierSubscription } from "@/src/server/supplier-orders";
+import { isFullAccess } from "@/src/lib/system";
 
 /**
  * Owner-only actions for real costs: recording a panel credit purchase and a
@@ -21,7 +22,7 @@ async function owner(permission: "finance" | "customers") {
 
   const staff = await assertStaff(permission).catch(() => null);
 
-  if (!staff || String(staff.role).toUpperCase() !== "OWNER") throw new Error("FORBIDDEN");
+  if (!staff || !isFullAccess(staff.role)) throw new Error("FORBIDDEN");
 
   return staff;
 }

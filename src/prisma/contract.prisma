@@ -412,6 +412,47 @@ model PackageGroup {
   updatedAt     temporal.updatedAtString()
 }
 
+// Automation (phase 4): one row per job run, keyed so a second trigger for the
+// same job and Baghdad day is a no-op (`runKey` is unique, e.g.
+// daily-digest:2026-11-03). `status` is validated in code: RUNNING |
+// SUCCEEDED | FAILED | SKIPPED. `stats` is a JSON object of counts only.
+model AutomationRun {
+  id         Int      @id @default(autoincrement())
+  job        String
+  runKey     String   @unique
+  status     String   @default("RUNNING")
+  attempts   Int      @default(1)
+  error      String?
+  trigger    String   @default("SCHEDULE")
+  stats      String?
+  startedAt  TimestamptzString @default(now())
+  finishedAt TimestamptzString?
+
+  @@index([job])
+}
+
+// Messages to customers, whatever the channel: IN_APP / WHATSAPP_LINK now
+// (PUSH, WHATSAPP_API later). `dedupeKey` (unique) makes each message happen
+// once, e.g. wa:before-expiry:42:2026-11-08. `status`: PENDING | SENT |
+// SKIPPED | FAILED. `payload` is JSON without credentials, codes, passwords
+// or phone numbers.
+model OutboxMessage {
+  id            Int      @id @default(autoincrement())
+  channel       String
+  template      String
+  userId        Int?
+  payload       String
+  dedupeKey     String   @unique
+  status        String   @default("PENDING")
+  attempts      Int      @default(0)
+  nextAttemptAt TimestamptzString?
+  sentAt        TimestamptzString?
+  sentBy        Int?
+  createdAt     TimestamptzString @default(now())
+
+  @@index([userId])
+}
+
 // A discount on one package option (a product at one length). `kind` is
 // validated in code: PERCENT (value 1–90) or AMOUNT (whole IQD). Active inside
 // [startsAt, endsAt) and until `endedAt`; at most one active per option at any

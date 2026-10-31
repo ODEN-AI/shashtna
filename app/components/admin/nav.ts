@@ -20,6 +20,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     en: "Operations",
     items: [
       { href: "/admin", ar: "الرئيسية", en: "Home", icon: "home" },
+      { href: "/admin/today", ar: "اليوم", en: "Today", icon: "today", permission: "orders" },
       { href: "/admin/operations", ar: "مركز العمليات", en: "Operations Center", icon: "operations", anyOf: ["orders", "subscriptions", "support"] },
       { href: "/admin/orders", ar: "الطلبات", en: "Orders", icon: "orders", permission: "orders", badgeKey: "orders" },
       { href: "/admin/activations", ar: "التفعيل", en: "Activations", icon: "activations", permission: "orders", badgeKey: "activations" },

@@ -575,6 +575,11 @@ export async function saveSettingsAction(_prev: AdminState, formData: FormData):
       return { ok: true, message: "لا توجد تغييرات للحفظ." };
     }
 
+    // Turning automation on, off or into dry run is the owner's call.
+    if (changes.some((change) => change.group === "automation") && !isFullAccess(staff.role)) {
+      return { ok: false, code: "FORBIDDEN", message: "إعدادات الأتمتة للمالك فقط." };
+    }
+
     for (const change of changes) {
       await saveSetting(change.key, change.after, staff.id);
     }
@@ -598,6 +603,10 @@ export async function saveSettingsAction(_prev: AdminState, formData: FormData):
         details: describeSettingChanges(loyaltyChanges).join("\n"),
       });
       revalidatePath("/admin/loyalty");
+    }
+
+    if (changes.some((change) => change.group === "automation")) {
+      revalidatePath("/admin/today");
     }
 
     revalidatePath("/admin/system", "layout");

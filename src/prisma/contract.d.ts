@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'1b781f2d721029377d605ba88331d8ca0b899f43c80a19d4ff9ae53284f228ae'>;
+  StorageHashBase<'0102955a274660919ea2e2dcb51d26def14278de5b5ebeeb65280c2ad8497bec'>;
 export type ExecutionHash =
   ExecutionHashBase<'e5122ced4907905b09a11a958d433005fe498bd85874a975cf18d4c75d729a92'>;
 export type ProfileHash =
@@ -291,6 +291,18 @@ export type FieldOutputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
+    readonly AutomationRun: {
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly job: CodecTypes['pg/text@1']['output'];
+      readonly runKey: CodecTypes['pg/text@1']['output'];
+      readonly status: CodecTypes['pg/text@1']['output'];
+      readonly attempts: CodecTypes['pg/int4@1']['output'];
+      readonly error: CodecTypes['pg/text@1']['output'] | null;
+      readonly trigger: CodecTypes['pg/text@1']['output'];
+      readonly stats: CodecTypes['pg/text@1']['output'] | null;
+      readonly startedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly finishedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+    };
     readonly BusinessReport: {
       readonly id: CodecTypes['pg/int4@1']['output'];
       readonly period: CodecTypes['pg/text@1']['output'];
@@ -403,6 +415,20 @@ export type FieldOutputTypes = {
       readonly link: CodecTypes['pg/text@1']['output'] | null;
       readonly dedupeKey: CodecTypes['pg/text@1']['output'] | null;
       readonly readAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
+    readonly OutboxMessage: {
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly channel: CodecTypes['pg/text@1']['output'];
+      readonly template: CodecTypes['pg/text@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'] | null;
+      readonly payload: CodecTypes['pg/text@1']['output'];
+      readonly dedupeKey: CodecTypes['pg/text@1']['output'];
+      readonly status: CodecTypes['pg/text@1']['output'];
+      readonly attempts: CodecTypes['pg/int4@1']['output'];
+      readonly nextAttemptAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly sentAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly sentBy: CodecTypes['pg/int4@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
     readonly Package: {
@@ -651,6 +677,18 @@ export type FieldInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
+    readonly AutomationRun: {
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly job: CodecTypes['pg/text@1']['input'];
+      readonly runKey: CodecTypes['pg/text@1']['input'];
+      readonly status: CodecTypes['pg/text@1']['input'];
+      readonly attempts: CodecTypes['pg/int4@1']['input'];
+      readonly error: CodecTypes['pg/text@1']['input'] | null;
+      readonly trigger: CodecTypes['pg/text@1']['input'];
+      readonly stats: CodecTypes['pg/text@1']['input'] | null;
+      readonly startedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly finishedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+    };
     readonly BusinessReport: {
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly period: CodecTypes['pg/text@1']['input'];
@@ -763,6 +801,20 @@ export type FieldInputTypes = {
       readonly link: CodecTypes['pg/text@1']['input'] | null;
       readonly dedupeKey: CodecTypes['pg/text@1']['input'] | null;
       readonly readAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+    };
+    readonly OutboxMessage: {
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly channel: CodecTypes['pg/text@1']['input'];
+      readonly template: CodecTypes['pg/text@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'] | null;
+      readonly payload: CodecTypes['pg/text@1']['input'];
+      readonly dedupeKey: CodecTypes['pg/text@1']['input'];
+      readonly status: CodecTypes['pg/text@1']['input'];
+      readonly attempts: CodecTypes['pg/int4@1']['input'];
+      readonly nextAttemptAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly sentAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly sentBy: CodecTypes['pg/int4@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
     readonly Package: {
@@ -1011,6 +1063,18 @@ export type StorageColumnTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly version: CodecTypes['pg/text@1']['output'] | null;
     };
+    readonly automationRun: {
+      readonly attempts: CodecTypes['pg/int4@1']['output'];
+      readonly error: CodecTypes['pg/text@1']['output'] | null;
+      readonly finishedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly job: CodecTypes['pg/text@1']['output'];
+      readonly runKey: CodecTypes['pg/text@1']['output'];
+      readonly startedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly stats: CodecTypes['pg/text@1']['output'] | null;
+      readonly status: CodecTypes['pg/text@1']['output'];
+      readonly trigger: CodecTypes['pg/text@1']['output'];
+    };
     readonly businessReport: {
       readonly content: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
@@ -1124,6 +1188,20 @@ export type StorageColumnTypes = {
       readonly title: CodecTypes['pg/text@1']['output'];
       readonly type: CodecTypes['pg/text@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
+    };
+    readonly outboxMessage: {
+      readonly attempts: CodecTypes['pg/int4@1']['output'];
+      readonly channel: CodecTypes['pg/text@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly dedupeKey: CodecTypes['pg/text@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly nextAttemptAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly payload: CodecTypes['pg/text@1']['output'];
+      readonly sentAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly sentBy: CodecTypes['pg/int4@1']['output'] | null;
+      readonly status: CodecTypes['pg/text@1']['output'];
+      readonly template: CodecTypes['pg/text@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'] | null;
     };
     readonly package: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
@@ -1371,6 +1449,18 @@ export type StorageColumnInputTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly version: CodecTypes['pg/text@1']['input'] | null;
     };
+    readonly automationRun: {
+      readonly attempts: CodecTypes['pg/int4@1']['input'];
+      readonly error: CodecTypes['pg/text@1']['input'] | null;
+      readonly finishedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly job: CodecTypes['pg/text@1']['input'];
+      readonly runKey: CodecTypes['pg/text@1']['input'];
+      readonly startedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly stats: CodecTypes['pg/text@1']['input'] | null;
+      readonly status: CodecTypes['pg/text@1']['input'];
+      readonly trigger: CodecTypes['pg/text@1']['input'];
+    };
     readonly businessReport: {
       readonly content: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
@@ -1484,6 +1574,20 @@ export type StorageColumnInputTypes = {
       readonly title: CodecTypes['pg/text@1']['input'];
       readonly type: CodecTypes['pg/text@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
+    };
+    readonly outboxMessage: {
+      readonly attempts: CodecTypes['pg/int4@1']['input'];
+      readonly channel: CodecTypes['pg/text@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly dedupeKey: CodecTypes['pg/text@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly nextAttemptAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly payload: CodecTypes['pg/text@1']['input'];
+      readonly sentAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly sentBy: CodecTypes['pg/int4@1']['input'] | null;
+      readonly status: CodecTypes['pg/text@1']['input'];
+      readonly template: CodecTypes['pg/text@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'] | null;
     };
     readonly package: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
@@ -2013,6 +2117,88 @@ type ContractBase = Omit<
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [{ readonly columns: readonly ['slug'] }];
               indexes: readonly [];
+              foreignKeys: readonly [];
+            };
+            readonly automationRun: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly job: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly runKey: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly status: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'RUNNING'>;
+                  };
+                };
+                readonly attempts: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 1>;
+                  };
+                };
+                readonly error: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly trigger: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'SCHEDULE'>;
+                  };
+                };
+                readonly stats: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly startedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly finishedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['runKey'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'automationRun_job_idx_68c9b9cb';
+                  readonly prefix: 'automationRun_job_idx';
+                  readonly columns: readonly ['job'];
+                  readonly unique: false;
+                },
+              ];
               foreignKeys: readonly [];
             };
             readonly businessReport: {
@@ -2691,6 +2877,94 @@ type ContractBase = Omit<
                 {
                   readonly name: 'notification_userId_idx_a489d58a';
                   readonly prefix: 'notification_userId_idx';
+                  readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [];
+            };
+            readonly outboxMessage: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly channel: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly template: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly userId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly payload: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly dedupeKey: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly status: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'PENDING'>;
+                  };
+                };
+                readonly attempts: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
+                };
+                readonly nextAttemptAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
+                };
+                readonly sentAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
+                };
+                readonly sentBy: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['dedupeKey'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'outboxMessage_userId_idx_a489d58a';
+                  readonly prefix: 'outboxMessage_userId_idx';
                   readonly columns: readonly ['userId'];
                   readonly unique: false;
                 },
@@ -4016,6 +4290,14 @@ type ContractBase = Omit<
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'PackageGroup';
     };
+    readonly automationRun: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'AutomationRun';
+    };
+    readonly outboxMessage: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'OutboxMessage';
+    };
     readonly discount: { readonly namespace: 'public' & NamespaceId; readonly model: 'Discount' };
     readonly creditPurchase: {
       readonly namespace: 'public' & NamespaceId;
@@ -4309,6 +4591,73 @@ type ContractBase = Omit<
                 readonly isActive: { readonly column: 'isActive' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
+              };
+            };
+          };
+          readonly AutomationRun: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly job: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly runKey: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly status: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly attempts: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly error: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly trigger: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly stats: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly startedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly finishedAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'automationRun';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly job: { readonly column: 'job' };
+                readonly runKey: { readonly column: 'runKey' };
+                readonly status: { readonly column: 'status' };
+                readonly attempts: { readonly column: 'attempts' };
+                readonly error: { readonly column: 'error' };
+                readonly trigger: { readonly column: 'trigger' };
+                readonly stats: { readonly column: 'stats' };
+                readonly startedAt: { readonly column: 'startedAt' };
+                readonly finishedAt: { readonly column: 'finishedAt' };
               };
             };
           };
@@ -4987,6 +5336,86 @@ type ContractBase = Omit<
                 readonly link: { readonly column: 'link' };
                 readonly dedupeKey: { readonly column: 'dedupeKey' };
                 readonly readAt: { readonly column: 'readAt' };
+                readonly createdAt: { readonly column: 'createdAt' };
+              };
+            };
+          };
+          readonly OutboxMessage: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly channel: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly template: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly userId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly payload: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly dedupeKey: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly status: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly attempts: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly nextAttemptAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly sentAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly sentBy: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'outboxMessage';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly channel: { readonly column: 'channel' };
+                readonly template: { readonly column: 'template' };
+                readonly userId: { readonly column: 'userId' };
+                readonly payload: { readonly column: 'payload' };
+                readonly dedupeKey: { readonly column: 'dedupeKey' };
+                readonly status: { readonly column: 'status' };
+                readonly attempts: { readonly column: 'attempts' };
+                readonly nextAttemptAt: { readonly column: 'nextAttemptAt' };
+                readonly sentAt: { readonly column: 'sentAt' };
+                readonly sentBy: { readonly column: 'sentBy' };
                 readonly createdAt: { readonly column: 'createdAt' };
               };
             };

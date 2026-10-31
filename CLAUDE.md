@@ -190,6 +190,11 @@ Never use `db update` or `db init` on any shared database; they are for a throwa
 - Delivery per group: `CODE` (one-off; stored on the order, masked for staff, reveal audited `ORDER_DELIVERY_CODE_REVEALED`, shown only to the owning customer), `ACCOUNT` / `CUSTOMER_EMAIL` (a DIGITAL subscription with `accountEmail`; password masked like IPTV). Fulfilment is `fulfilPlatformOrder`, not the IPTV activation route.
 - Platforms earn 1 point per 5,000 IQD (or the option's `pointsEarned`) and never redeem rewards; a fixed `packageOption.costIqd` is a known cost.
 
+**Automation** (`src/lib/automation.ts`, `src/server/automation.ts`, `docs/automation.md`):
+- Everything is off by default (`automation.*` settings, owner-only to change). Jobs run only on the production deploy (`CONTEXT`) or against a local database — never from a preview, which shares the production database.
+- One run per job per Baghdad day: `runJob` takes an advisory lock and inserts the `automationRun` row by `runKey` before any work; a second trigger is a no-op. The scheduled function proves itself with an HMAC of the run key keyed by `AUTH_SECRET`.
+- Customers are never messaged automatically: the owner sends prefilled WhatsApp links from «اليوم», each recorded once in `outboxMessage` by `dedupeKey`. Activation, payment confirmation and reward approval are never automated. Outbox payloads and run stats carry no phone numbers or credentials.
+
 ### Prices — where values come from
 
 The database is the only source of truth at runtime. **No price below is a

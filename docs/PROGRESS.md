@@ -8,8 +8,8 @@ Status marks: ✅ done (with evidence) · 🔄 in progress · ⏳ planned · ⏸
 
 ## Status now (2026-10-31)
 
-- **Production** runs `main` at `11b5299` (PRs #6–#12 merged; checked with `git log origin/main`). The owner
-  checked the live site after the deploys: it works.
+- **`main`** is at `c11eac5` (PRs #6–#13 merged; checked with `git log origin/main`). Whether the plan-groups
+  migrations are on the production database was not re-read here. ❓
 - **Production database** marker `eb9bf30b7888` with the latest migration `20261031T0021_discounts`
   (reported by the planning session after the owner-approved apply; not re-read here). ❓
 - **«نقاط شاشتنا» (loyalty points)** is **live** (switched on by the owner 2026-10-31). Reward options are set
@@ -25,8 +25,8 @@ Long-term direction, in order. A phase is marked done only with evidence.
 |---|---|---|---|
 | 1 | Stabilize the foundation (site, data, orders, payments, activation, deploys) | ✅ | Schema and code in sync on production (marker `0395c5c66aa0`). Open: see "Known risks" |
 | 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | ✅ | Real costs live (PR #9 + #10, migration `20261030T2329_real_costs` applied 2026-10-31, marker `76e80bbd5844`); data audit 2026-10-31 clean apart from accepted owner/test items — `docs/costs.md` |
-| 3 | Complete the customer and admin experience | 🔄 | Redesign (PR #6) ✅; loyalty (PR #7) ✅ live since 2026-10-31; discounts (PR #12) ✅ merged; plan groups and digital platforms built on `feat/plan-groups` (PR open, migrations `20261031T0738_plan_groups` + `20261031T0742_platform_account_email` not on production) — `docs/plan-groups.md` |
-| 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | ⏳ | — |
+| 3 | Complete the customer and admin experience | ✅ | Redesign (PR #6); loyalty (PR #7) live since 2026-10-31; discounts (PR #12); plan groups and digital platforms (PR #13) — `docs/plan-groups.md` |
+| 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | 🔄 | Step 1 (core + the owner's daily list «اليوم») built on `feat/automation-core`, PR open, migration `20261031T1006_automation_core` not on production; step 2 in-app reminders ⏳; step 3 retries / dead letter ⏳ — `docs/automation.md` |
 | 5 | SHASHTNA AI CORE and agents (Customer, Operations, Finance, Marketing) with scoped tools | ⏳ | An AI business analyst exists (aggregates only) |
 | 6 | Business intelligence and data-driven growth | ⏳ | Finance/BI dashboard exists (PR #4) |
 | 7 | Integrated AI-powered operations, desktop and mobile admin clients on the shared backend | ⏳ | Android console shell exists (`shells/mobile`) |
@@ -39,7 +39,8 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | Progress documentation (this file and the `CLAUDE.md` rule) | ✅ | PR #8 merged |
 | Real costs and supplier orders (phase 2) | ✅ | PR #9 + PR #10 merged; production marker `76e80bbd5844` |
 | Discounts (phase 3, part 2) | ✅ | PR #12 merged (`11b5299`) |
-| Plan groups and digital platforms (phase 3, part 3): owner-managed groups on /plans (colours with a contrast check, logo, delivery CODE / ACCOUNT / CUSTOMER_EMAIL), DIGITAL service, checkout e-mail, staff fulfilment with masked / audited codes, platform points, fixed IQD cost | 🔄 built and tested locally; waiting for review, the production migrations and merge | `feat/plan-groups`; `docs/plan-groups.md` |
+| Plan groups and digital platforms (phase 3, part 3) | ✅ | PR #13 merged (`c11eac5`) |
+| Automation step 1 (phase 4): `automationRun` + `outboxMessage`, settings (all off), Netlify scheduled function 06:00 Baghdad → `/api/automation/run` (HMAC, production-only, advisory lock, run key claimed before work), admin «اليوم» (subscriptions 5 days before / the day / 3 days after with prefilled WhatsApp links recorded once; stuck orders; health), owner «شغّل هسه», morning notification | 🔄 built and tested locally; waiting for review, the production migration and merge | `feat/automation-core`; `docs/automation.md` |
 
 ## Known risks
 
@@ -67,10 +68,10 @@ Long-term direction, in order. A phase is marked done only with evidence.
 
 ## Next step
 
-Review the plan-groups PR. Then, with the owner's approval: apply `20261031T0738_plan_groups` and
-`20261031T0742_platform_account_email` to production → merge (code; /plans looks the same until a platform
-group exists) → add a platform from Admin → Catalogue → «المجموعات والمنصات» and its packages. That closes
-phase 3.
+Review the automation PR. Then, with the owner's approval: apply `20261031T1006_automation_core` to
+production → merge → check «اليوم» → turn on dry run, the morning job and automation → after a morning run
+looks right, turn dry run off. Then phase 4 step 2 (in-app reminders for customers on the same outbox), then
+step 3 (retries with `attempts` / `nextAttemptAt` and a dead-letter view).
 
 ## Chapter 2 (after the 7 phases)
 
@@ -84,6 +85,8 @@ Newest first. Details are in the linked documents.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-31 | Phase 4 automation: the owner gets a daily list; customers are reached only by prefilled WhatsApp links the owner sends himself (no API, push, e-mail or SMS yet); activation, payment confirmation and reward approval are never automated; everything ships off; jobs run only on the production deploy (previews share the database); one run per job per Baghdad day, claimed before work. Steps: 1 core + daily list, 2 in-app reminders, 3 retries / dead letter | Council verdict, approved by the owner in chat |
+| 2026-10-31 | Phase 3 closed | Plan groups (PR #13) merged after loyalty and discounts |
 | 2026-10-31 | Plan groups: no new page — groups are sections of /plans, managed in the dashboard (colours as data, contrast-checked); each subscription type is its own package inside a group; one `DIGITAL` service for every platform (the group keeps platforms apart); ACCOUNT / CUSTOMER_EMAIL purchases are subscriptions that renew within their group, a CODE is one-off; platforms earn 1 point per 5,000 IQD and never redeem rewards | Owner (brief + answers in chat) |
 | 2026-10-31 | Discounts: per package option; percent 1–90 or fixed IQD, rounded down; NEW and UPGRADE always, renewals only when ticked; at most one active per option; reward and supplier orders never discounted; device discounts deferred | Owner (discount brief; devices later) |
 | 2026-10-31 | Audit findings accepted as-is: 8 IPTV lengths (+1 VIP) come from the owner's father's panel, profit split 50/50, and are not tracked in the dashboard, so their cost stays «تكلفة غير معروفة»; one expired "test" subscription, two customers with several active subscriptions and two duplicate phone numbers are deliberate test/owner accounts; old receipts/subscriptions without links are legacy | Owner: keep the dashboard simple |
@@ -115,6 +118,8 @@ Newest first.
 
 | Date | PR / commit | Change | Checks |
 |---|---|---|---|
+| 2026-10-31 | `feat/automation-core` (PR to `main`, open) | Automation step 1: `automationRun`, `outboxMessage`, automation settings, `netlify/functions/daily-digest.mts`, `/api/automation/run`, admin «اليوم» with WhatsApp links, settings card, nav entry | `TZ=UTC npm test` 242/242; tsc, ESLint (changed files), build clean; `scripts/integration/automation.mts` 6/6, costs 9/9, discounts 8/8, plan-groups 8/8; «اليوم» checked in headless Chrome RTL/LTR at 1440 and 390 (no overflow, no console errors, a WhatsApp click marks «أُرسلت»); endpoint: no / wrong token 401, valid token → SKIPPED while off |
+| 2026-10-31 | migration `20261031T1006_automation_core` | Applied on the local database only (6 additive operations) | `migration check`, `db verify` (local) |
 | 2026-10-31 | `feat/plan-groups` (PR to `main`, open) | Plan groups and digital platforms: `packageGroup`, `package.groupId`, `packageOption.costIqd`, order delivery fields, `subscription.accountEmail`; DIGITAL service end to end; /plans sections, plan details, checkout e-mail, fulfilment, admin groups, app fields | `TZ=UTC npm test` 231/231; tsc, ESLint, build clean; `scripts/integration/plan-groups.mts` 8/8, costs 9/9, discounts 8/8; e2e loyalty 13/13, package-options 17/17; /plans before/after pixel comparison (3 identical, 1 differs only in an animated tile); demo groups checked RTL/LTR at phone width; group form checked in headless Chrome |
 | 2026-10-31 | migrations `20261031T0738_plan_groups`, `20261031T0742_platform_account_email` | Applied on the local database only (6 additive + 1 guarded data step; 1 additive) | `migration check`, `db verify` (local); data step re-run: no change |
 | 2026-10-31 | `feat/discounts` (PR to `main`, open) | Discounts: `discount` table, list / discount / price on orders, server pricing in `createOrder`, catalogue + site + checkout + app, admin form with live preview and list, finance totals, analyst aggregates. Two stale test scripts fixed for PR #10's full-access rule | `npm test` 222/222 (UTC and local time); tsc, ESLint, build clean; `scripts/integration/discounts.mts` 8/8; `scripts/integration/costs.mts` 9/9; e2e loyalty 13/13, package-options 17/17; browser check RTL/LTR at phone width |

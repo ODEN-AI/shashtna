@@ -159,6 +159,33 @@ export default async function SettingsPage() {
           <SubmitButton pendingLabel={t("جاري الحفظ...", "Saving...")}>{t("حفظ", "Save")}</SubmitButton>
         </ActionForm>
       </Card>
+
+      <Card className="scroll-mt-24 p-6" as="section">
+        <div id="automation" className="scroll-mt-24" />
+        <CardHeader
+          title={t("الأتمتة", "Automation")}
+          description={t(
+            "قائمة اليوم الصباحية (6:00 بتوقيت بغداد) تنحسب وتوصلك كإشعار. ما ينرسل أي شي للعملاء تلقائياً: رسائل الواتساب أنت ترسلها من صفحة «اليوم». التغيير للمالك فقط.",
+            "The morning daily list (06:00 Baghdad) is counted and sent to you as a notification. Nothing reaches customers automatically: you send WhatsApp messages yourself from the Today page. Owner only.",
+          )}
+        />
+        <ActionForm action={saveSettingsAction} className="mt-5 space-y-5">
+          <div className="grid gap-5 sm:grid-cols-3">
+            {(["automation.enabled", "automation.job.dailyDigest", "automation.dryRun"] as const).map((key) => (
+              <Field key={key} label={lang === "ar" ? SETTING_DEFINITIONS[key].labelAr : SETTING_DEFINITIONS[key].labelEn} htmlFor={key}>
+                <Select id={key} name={key} defaultValue={settings[key] === "on" ? "on" : "off"}>
+                  <option value="off">{t("متوقف", "Off")}</option>
+                  <option value="on">{t("مفعّل", "On")}</option>
+                </Select>
+              </Field>
+            ))}
+          </div>
+          <Field label={lang === "ar" ? SETTING_DEFINITIONS["automation.quietHours"].labelAr : SETTING_DEFINITIONS["automation.quietHours"].labelEn} htmlFor="automation.quietHours">
+            <Input id="automation.quietHours" name="automation.quietHours" dir="ltr" defaultValue={settings["automation.quietHours"]} className="text-start" placeholder="22:00-09:00" />
+          </Field>
+          <SubmitButton pendingLabel={t("جاري الحفظ...", "Saving...")}>{t("حفظ", "Save")}</SubmitButton>
+        </ActionForm>
+      </Card>
     </div>
   );
 }

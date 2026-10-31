@@ -184,6 +184,12 @@ Never use `db update` or `db init` on any shared database; they are for a throwa
 - `createOrder` prices with `orderPricing` and stores `listPrice`, `discountId`, `discountIqd` next to `price` (what is charged; loyalty earns on it). A reused unpaid order is repriced; a paid order never changes.
 - Creating, editing or ending a discount is full-access only and audited.
 
+**Plan groups and digital platforms** (`src/lib/groups.ts`, `src/server/groups.ts`, `src/server/platform-orders.ts`, `docs/plan-groups.md`):
+- `/plans` shows one section per active group: IPTV and VIP (built in, first, unchanged) then the platforms the owner adds, by `sortOrder`. Group colours are data rendered as CSS variables and must pass `checkColours` (WCAG AA) before saving.
+- Platform packages have serviceType `DIGITAL` and must sit in an active DIGITAL group; `normalizeServiceType` returns IPTV / VIP / DIGITAL, devices use `normalizeDeviceServiceType` (never DIGITAL). Never mix: a platform renewal extends only a DIGITAL subscription of the same group.
+- Delivery per group: `CODE` (one-off; stored on the order, masked for staff, reveal audited `ORDER_DELIVERY_CODE_REVEALED`, shown only to the owning customer), `ACCOUNT` / `CUSTOMER_EMAIL` (a DIGITAL subscription with `accountEmail`; password masked like IPTV). Fulfilment is `fulfilPlatformOrder`, not the IPTV activation route.
+- Platforms earn 1 point per 5,000 IQD (or the option's `pointsEarned`) and never redeem rewards; a fixed `packageOption.costIqd` is a known cost.
+
 ### Prices — where values come from
 
 The database is the only source of truth at runtime. **No price below is a

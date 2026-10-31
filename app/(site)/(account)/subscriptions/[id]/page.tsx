@@ -144,6 +144,15 @@ export default async function SubscriptionDetailPage({ params }: { params: Promi
               ) : null
             ) : (
               <>
+                {subscription.accountEmail ? (
+                  <div className="flex items-center justify-between gap-3 py-3">
+                    <dt className="text-sm text-ink-3">{t("إيميل الحساب", "Account e-mail")}</dt>
+                    <dd className="flex min-w-0 items-center gap-1">
+                      <span className="truncate font-mono text-sm text-ink" dir="ltr">{subscription.accountEmail}</span>
+                      <CopyButton value={subscription.accountEmail} label={copyLabels.copyLabel} copiedLabel={copyLabels.copiedLabel} />
+                    </dd>
+                  </div>
+                ) : null}
                 {subscription.username ? (
                   <div className="flex items-center justify-between gap-3 py-3">
                     <dt className="text-sm text-ink-3">{t("اسم المستخدم", "Username")}</dt>
@@ -174,7 +183,7 @@ export default async function SubscriptionDetailPage({ params }: { params: Promi
               <dd className="nums text-sm font-semibold text-ink">{subscription.maxConnections}</dd>
             </div>
           </dl>
-          {!subscription.username && !subscription.deviceId ? (
+          {!subscription.username && !subscription.deviceId && !subscription.accountEmail ? (
             <p className="mt-3 text-sm text-ink-3">{t("البيانات راح تظهر هنا بعد ما يجهزها فريقنا.", "Details will appear here once our team adds them.")}</p>
           ) : null}
           {expired ? (

@@ -17,11 +17,13 @@ import { formatDuration } from "@/src/lib/subscription-duration";
 import {
   getActiveApps,
   getActiveDevices,
+  getActiveGroups,
   getActivePackages,
   platformName,
   platformsOf,
   type CatalogApp,
   type CatalogDevice,
+  type CatalogGroup,
   type CatalogPackage,
 } from "@/src/server/catalog";
 import { getI18n } from "@/src/server/i18n";
@@ -33,6 +35,13 @@ export const dynamic = "force-dynamic";
 
 // Pictures when the plan has none of its own.
 const VIP_ART = "/brand/vip-art.jpg";
+
+/** What a digital platform customer receives, by the group's delivery. */
+const DELIVERY_COPY: Record<CatalogGroup["delivery"], [string, string]> = {
+  CODE: ["بعد تأكيد الدفع تستلم كود أو بطاقة هدية بصفحة طلبك، وتفعّله على المنصة.", "After payment is confirmed you get a code or gift card on your order page to redeem on the platform."],
+  ACCOUNT: ["بعد تأكيد الدفع تستلم حساب جاهز (إيميل وكلمة مرور) بحسابك، وتقدر تجدده من نفس المكان.", "After payment is confirmed you get a ready account (e-mail and password) in your account, renewable from the same place."],
+  CUSTOMER_EMAIL: ["نفعّل الاشتراك على إيميل حسابك بالمنصة، تكتبه وقت الطلب، وتقدر تجدده من حسابك.", "We activate it on your own platform account e-mail, which you enter at checkout; renew it from your account."],
+};
 const MARK = "/brand/shashtna-mark-256.webp";
 
 type Params = { slug: string };
@@ -76,11 +85,11 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
   const upgradeId = positiveId(search.upgrade);
   const carry = renewId ? `renew=${renewId}` : upgradeId ? `upgrade=${upgradeId}` : "";
 
-  let data: { packages: CatalogPackage[]; devices: CatalogDevice[]; apps: CatalogApp[] } | null = null;
+  let data: { packages: CatalogPackage[]; devices: CatalogDevice[]; apps: CatalogApp[]; groups: CatalogGroup[] } | null = null;
 
   try {
-    const [packages, devices, apps] = await Promise.all([getActivePackages(), getActiveDevices(), getActiveApps().catch(() => [])]);
-    data = { packages, devices, apps };
+    const [packages, devices, apps, groups] = await Promise.all([getActivePackages(), getActiveDevices(), getActiveApps().catch(() => []), getActiveGroups().catch(() => [])]);
+    data = { packages, devices, apps, groups };
   } catch (error) {
     console.error("PLAN_PAGE_ERROR:", error);
   }
@@ -103,25 +112,29 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
   if (!plan) notFound();
 
   const isVip = plan.serviceType === "VIP";
+  // A digital platform (Netflix, beIN…): its group gives the name, logo, section and delivery.
+  const isDigital = plan.serviceType === "DIGITAL";
+  const group = isDigital ? (data.groups.find((item) => item.id === plan.groupId) ?? null) : null;
+  const groupName = group ? (lang === "ar" ? group.name : (group.nameEn ?? group.name)) : null;
   // The length shown first: the one in the address when this plan sells it, else the default.
   const requested = optionIdParam(search.option);
   const initialOption = plan.options.find((option) => option.id === requested) ?? plan.options[0];
-  const plansHref = `/plans${carry ? `?${carry}` : ""}#${isVip ? "vip" : "iptv"}`;
+  const plansHref = `/plans${carry ? `?${carry}` : ""}#${isVip ? "vip" : group ? group.slug : "iptv"}`;
   const detailsHref = (pkg: CatalogPackage) => `/plans/${encodeURIComponent(pkg.slug)}${carry ? `?${carry}` : ""}`;
 
   const description = repeatsDuration(plan.description, plan) ? null : plan.description;
   const features = distinctHighlights(plan, 12);
   const devices = isVip ? data.devices.filter((device) => device.packageIds.includes(plan.id)) : [];
   const deviceFrom = devices.length ? Math.min(...devices.map((device) => device.price)) : null;
-  const others = data.packages.filter((pkg) => pkg.serviceType === plan.serviceType && pkg.id !== plan.id);
+  const others = data.packages.filter((pkg) => pkg.serviceType === plan.serviceType && pkg.id !== plan.id && (!isDigital || pkg.groupId === plan.groupId));
   const platforms = platformsOf(data.apps).filter((item) => item.platform !== "—");
   // «هذا الطلب يعطيك X نقطة»: IPTV only, while the program is on. A renewal earns on its renewal price.
   const loyalty = isVip ? null : await getLoyaltyRules();
   const points = loyalty?.enabled
-    ? Object.fromEntries(plan.options.map((option) => [option.id, orderPointValue(orderPricing(option, renewId ? "RENEW" : "NEW", null, option.discount).price, option.pointsEarned)]))
+    ? Object.fromEntries(plan.options.map((option) => [option.id, orderPointValue(orderPricing(option, renewId ? "RENEW" : "NEW", null, option.discount).price, option.pointsEarned, plan.serviceType)]))
     : null;
   const paymentFaq = FAQ.filter((item) => item.topic === "payment" || item.id === "activation");
-  const art = plan.imageUrl ?? (isVip ? VIP_ART : null);
+  const art = plan.imageUrl ?? (isVip ? VIP_ART : (group?.logoUrl ?? null));
 
   return (
     // -mt-[80px]/pt-[80px]: the navy ground runs up behind the floating header.
@@ -141,7 +154,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
           <div className="min-w-0">
             <span className={`${p.duration} nums`}>
               <CalendarClock size={16} aria-hidden />
-              {plan.serviceType} ·{" "}
+              {groupName ?? plan.serviceType} ·{" "}
               {plan.options.length > 1
                 ? t(`${plan.options.length} مدد`, `${plan.options.length} lengths`)
                 : formatDuration(plan.durationMonths, lang)}
@@ -186,7 +199,9 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
                     "باقة ويا جهاز VIP مخصص تختاره عند الطلب. سعر الطلب يشمل الباقة والجهاز، والتجديد بعدين بدون جهاز.",
                     "A plan with a dedicated VIP device you pick when ordering. The order covers the plan and the device; later renewals need no device.",
                   )
-                : t(
+                : group
+                  ? t(...DELIVERY_COPY[group.delivery])
+                  : t(
                     "قنوات وأفلام ومسلسلات على التلفزيون أو الموبايل اللي عندك. بعد التفعيل تستلم اسم مستخدم وكلمة مرور بحسابك.",
                     "Channels, films and series on the TV or phone you already have. After activation you get a username and password in your account.",
                   )}
@@ -262,7 +277,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
                 <ArrowLeft size={16} className="ltr:rotate-180" aria-hidden />
               </Link>
             </section>
-          ) : (
+          ) : isDigital ? null : (
             <section className={p.panel} aria-labelledby="watch-title">
               <h2 id="watch-title">{t("وين تشاهد", "Where you watch")}</h2>
               <p>
@@ -335,7 +350,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
         {others.length ? (
           <section id="other-plans" className="scroll-mt-24" aria-labelledby="others-title">
             <p className={s.kicker} style={isVip ? { color: "var(--gold)" } : undefined}>
-              {plan.serviceType}
+              {groupName ?? plan.serviceType}
             </p>
             <h2 id="others-title" className={s.h2}>
               {t("باقات ثانية", "Other plans")}

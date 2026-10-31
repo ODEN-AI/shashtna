@@ -8,7 +8,7 @@ import { useLanguage } from "@/app/components/LanguageProvider";
 import { FacebookIcon, TelegramIcon, WhatsAppIcon } from "@/app/ui/BrandIcons";
 import { distinctHighlights, repeatsDuration } from "@/app/ui/catalogue-text";
 import { cn } from "@/app/ui/cn";
-import { Field, Textarea } from "@/app/ui/Field";
+import { Field, Input, Textarea } from "@/app/ui/Field";
 import { Notice } from "@/app/ui/States";
 import { SubmitButton } from "@/app/ui/SubmitButton";
 import { formatPrice } from "@/src/lib/i18n";
@@ -26,7 +26,7 @@ export type CheckoutPlan = {
   /** The package option (length + price) being ordered. */
   optionId: number | null;
   name: string;
-  serviceType: "IPTV" | "VIP";
+  serviceType: "IPTV" | "VIP" | "DIGITAL";
   price: number;
   durationMonths: number;
   durationLabel: string;
@@ -37,6 +37,10 @@ export type CheckoutPlan = {
   options: { id: number; durationMonths: number; price: number }[];
   /** Loyalty points this order earns (IPTV, program on); null hides the line. */
   points?: number | null;
+  /** Digital platform activated on the customer's own account: ask for that account's e-mail. */
+  needsAccountEmail?: boolean;
+  /** The e-mail already on the subscription being renewed (prefilled). */
+  accountEmail?: string | null;
   /** With a discount: the price before it and the badge text («خصم 20%»); `price` is what is charged. */
   listPrice?: number | null;
   discountLabel?: string | null;
@@ -308,6 +312,19 @@ export function CheckoutForm({
                 </div>
               </fieldset>
             </Section>
+
+            {plan?.needsAccountEmail ? (
+              <Section title={t("حسابك على المنصة", "Your platform account")}>
+                <Field
+                  label={t("إيميل حسابك على المنصة", "Your platform account e-mail")}
+                  htmlFor="deliveryEmail"
+                  hint={t("نفعّل الاشتراك على هذا الحساب. تأكد من الإيميل قبل التأكيد.", "We activate the subscription on this account. Check the e-mail before confirming.")}
+                  required
+                >
+                  <Input id="deliveryEmail" name="deliveryEmail" type="email" dir="ltr" autoComplete="email" required maxLength={254} defaultValue={plan.accountEmail ?? ""} data-testid="checkout-account-email" />
+                </Field>
+              </Section>
+            ) : null}
 
             {/* ---------------- Note ---------------- */}
             <Section title={t("ملاحظة", "Note")}>

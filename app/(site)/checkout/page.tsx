@@ -1,6 +1,7 @@
 import { planOrderPrice } from "@/src/lib/catalogue";
 import { discountBadge, orderPricing } from "@/src/lib/discounts";
-import { orderPointValue } from "@/src/lib/loyalty";
+import { earnsPoints, orderPointValue } from "@/src/lib/loyalty";
+import { getActiveGroups } from "@/src/server/catalog";
 import { getLoyaltyRules } from "@/src/server/loyalty";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -106,12 +107,15 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       ? `/plans/${encodeURIComponent(plan.slug)}${back.size ? `?${back.toString()}` : ""}`
       : choosePath;
 
-  const loyalty = plan && plan.serviceType === "IPTV" && mode !== "DEVICE_PURCHASE" ? await getLoyaltyRules() : null;
+  const loyalty = plan && earnsPoints(plan.serviceType) && mode !== "DEVICE_PURCHASE" ? await getLoyaltyRules() : null;
+  // A digital platform activated on the customer's own account asks for that account's e-mail.
+  const platformGroup = plan?.serviceType === "DIGITAL" ? ((await getActiveGroups().catch(() => [])).find((item) => item.id === plan.groupId) ?? null) : null;
+
   // The server's own pricing (createOrder does the same): the active discount on the package part.
   // Without a chosen length the order uses the default (shortest) one, as createOrder does.
   const pricedOption = option ?? plan?.options[0] ?? null;
   const pricing = plan && mode !== "DEVICE_PURCHASE" ? orderPricing(option ?? plan, mode, null, pricedOption?.discount ?? null) : null;
-  const orderPoints = loyalty?.enabled && plan && pricing ? orderPointValue(pricing.price, option?.pointsEarned ?? null) : null;
+  const orderPoints = loyalty?.enabled && plan && pricing ? orderPointValue(pricing.price, pricedOption?.pointsEarned ?? null, plan.serviceType) : null;
 
   const steps = [
     t("تأكيد الطلب", "Confirm"),
@@ -160,6 +164,8 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
                   imageUrl: plan.imageUrl,
                   options: plan.options.map((item) => ({ id: item.id, durationMonths: item.durationMonths, price: orderPricing(item, mode, null, item.discount).price })),
                   points: orderPoints,
+                  needsAccountEmail: platformGroup?.delivery === "CUSTOMER_EMAIL",
+                  accountEmail: null,
                 }
               : null
           }

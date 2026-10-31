@@ -32,6 +32,8 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
       contactMethod: formData.get("contactMethod") || user.preferredContact || "PENDING",
       paymentMethod: MANUAL_TRANSFER_METHOD,
       customerNote: formData.get("customerNote"),
+      // Digital platforms activated on the customer's own account (createOrder validates it).
+      deliveryEmail: formData.get("deliveryEmail"),
     });
 
     if (!result.ok) {

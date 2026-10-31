@@ -141,6 +141,8 @@ export function CheckoutForm({
       <input type="hidden" name="deviceId" value={device?.id ?? ""} />
       <input type="hidden" name="subscriptionId" value={subscriptionId ?? ""} />
       <input type="hidden" name="contactMethod" value={contact} />
+      {/* The in-app reminder this renewal came from (?r=); the server checks it belongs to this customer and subscription. */}
+      <input type="hidden" name="reminder" value={mode === "RENEW" ? new URLSearchParams(returnQuery).get("r") ?? "" : ""} />
 
       <div className={c.main}>
         {state?.error ? <Notice tone="danger">{state.error}</Notice> : null}

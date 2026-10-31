@@ -8,10 +8,10 @@ Status marks: ✅ done (with evidence) · 🔄 in progress · ⏳ planned · ⏸
 
 ## Status now (2026-10-31)
 
-- **`main`** is at `c11eac5` (PRs #6–#13 merged; checked with `git log origin/main`). Whether the plan-groups
-  migrations are on the production database was not re-read here. ❓
-- **Production database** marker `eb9bf30b7888` with the latest migration `20261031T0021_discounts`
+- **`main`** is at `0d1699c` (PRs #6–#16 merged; checked with `git log origin/main`).
+- **Production database** marker `0102955a2746` with the latest migration `20261031T1006_automation_core`
   (reported by the planning session after the owner-approved apply; not re-read here). ❓
+- **Automation step 1** runs on production in dry run (owner, 2026-10-31, per the planning session).
 - **«نقاط شاشتنا» (loyalty points)** is **live** (switched on by the owner 2026-10-31). Reward options are set
   (Star10 3 months / 6 months). The launch seed ran on 2026-10-31: 40 customers × 10 points = 400 points.
 - **Deploy Previews use production** (database, `AUTH_SECRET`, Blobs; an owner decision recorded in
@@ -26,7 +26,7 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | 1 | Stabilize the foundation (site, data, orders, payments, activation, deploys) | ✅ | Schema and code in sync on production (marker `0395c5c66aa0`). Open: see "Known risks" |
 | 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | ✅ | Real costs live (PR #9 + #10, migration `20261030T2329_real_costs` applied 2026-10-31, marker `76e80bbd5844`); data audit 2026-10-31 clean apart from accepted owner/test items — `docs/costs.md` |
 | 3 | Complete the customer and admin experience | ✅ | Redesign (PR #6); loyalty (PR #7) live since 2026-10-31; discounts (PR #12); plan groups and digital platforms (PR #13) — `docs/plan-groups.md` |
-| 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | 🔄 | Step 1 (core + the owner's daily list «اليوم») built on `feat/automation-core`, PR open, migration `20261031T1006_automation_core` not on production; step 2 in-app reminders ⏳; step 3 retries / dead letter ⏳ — `docs/automation.md` |
+| 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | 🔄 | Step 1 (core + the owner's daily list «اليوم») ✅ PR #14 + fixes #15/#16, migration `20261031T1006_automation_core` on production (marker `0102955a2746`, per the planning session); step 2 in-app customer reminders built on `feat/customer-reminders`, PR open, migration `20261031T1123_customer_reminders` not on production; step 3 retries / dead letter ⏳ — `docs/automation.md` |
 | 5 | SHASHTNA AI CORE and agents (Customer, Operations, Finance, Marketing) with scoped tools | ⏳ | An AI business analyst exists (aggregates only) |
 | 6 | Business intelligence and data-driven growth | ⏳ | Finance/BI dashboard exists (PR #4) |
 | 7 | Integrated AI-powered operations, desktop and mobile admin clients on the shared backend | ⏳ | Android console shell exists (`shells/mobile`) |
@@ -40,7 +40,8 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | Real costs and supplier orders (phase 2) | ✅ | PR #9 + PR #10 merged; production marker `76e80bbd5844` |
 | Discounts (phase 3, part 2) | ✅ | PR #12 merged (`11b5299`) |
 | Plan groups and digital platforms (phase 3, part 3) | ✅ | PR #13 merged (`c11eac5`) |
-| Automation step 1 (phase 4): `automationRun` + `outboxMessage`, settings (all off), Netlify scheduled function 06:00 Baghdad → `/api/automation/run` (HMAC, production-only, advisory lock, run key claimed before work), admin «اليوم» (subscriptions 5 days before / the day / 3 days after with prefilled WhatsApp links recorded once; stuck orders; health), owner «شغّل هسه», morning notification | 🔄 built and tested locally; waiting for review, the production migration and merge | `feat/automation-core`; `docs/automation.md` |
+| Automation step 1 (phase 4) | ✅ | PR #14 merged (`9a302ff`), fixes #15 / #16 (`0d1699c`); the owner runs it in dry run |
+| Automation step 2 (phase 4): job `customer-reminders` (own switch, off) — in-app notifications at T-5 / T-0 / T+3 with points, renewal discount and a renewal link tagged `?r=`; open unpaid renewal orders linked instead; opted-out / suspended skipped; `subscriptionRequest.reminderOutboxId`; 30 / 90-day conversion card on «اليوم» | 🔄 built and tested locally; waiting for review, the production migration and merge | `feat/customer-reminders`; `docs/automation.md` |
 
 ## Known risks
 
@@ -68,10 +69,10 @@ Long-term direction, in order. A phase is marked done only with evidence.
 
 ## Next step
 
-Review the automation PR. Then, with the owner's approval: apply `20261031T1006_automation_core` to
-production → merge → check «اليوم» → turn on dry run, the morning job and automation → after a morning run
-looks right, turn dry run off. Then phase 4 step 2 (in-app reminders for customers on the same outbox), then
-step 3 (retries with `attempts` / `nextAttemptAt` and a dead-letter view).
+Review the customer-reminders PR. Then, with the owner's approval: apply
+`20261031T1123_customer_reminders` to production → merge → turn on «تذكير العملاء داخل الموقع» in dry run →
+check the run under «اليوم» → dry run off. Then phase 4 step 3 (retries with `attempts` / `nextAttemptAt` and a
+dead-letter view).
 
 ## Chapter 2 (after the 7 phases)
 
@@ -85,6 +86,7 @@ Newest first. Details are in the linked documents.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-31 | Customer reminders (phase 4 step 2): in-app only at T-5 / T-0 / T+3, own switch, off by default; opted-out customers (`renewalReminders`) and suspended subscriptions skipped; a customer's other subscription never silences a reminder; while the job is on the dashboard's on-visit reminders stay quiet; conversion is completed renewals ÷ reminders sent | Planning brief from the owner ("start step 2 now"); go-ahead in chat |
 | 2026-10-31 | Phase 4 automation: the owner gets a daily list; customers are reached only by prefilled WhatsApp links the owner sends himself (no API, push, e-mail or SMS yet); activation, payment confirmation and reward approval are never automated; everything ships off; jobs run only on the production deploy (previews share the database); one run per job per Baghdad day, claimed before work. Steps: 1 core + daily list, 2 in-app reminders, 3 retries / dead letter | Council verdict, approved by the owner in chat |
 | 2026-10-31 | Phase 3 closed | Plan groups (PR #13) merged after loyalty and discounts |
 | 2026-10-31 | Plan groups: no new page — groups are sections of /plans, managed in the dashboard (colours as data, contrast-checked); each subscription type is its own package inside a group; one `DIGITAL` service for every platform (the group keeps platforms apart); ACCOUNT / CUSTOMER_EMAIL purchases are subscriptions that renew within their group, a CODE is one-off; platforms earn 1 point per 5,000 IQD and never redeem rewards | Owner (brief + answers in chat) |
@@ -118,6 +120,8 @@ Newest first.
 
 | Date | PR / commit | Change | Checks |
 |---|---|---|---|
+| 2026-10-31 | `feat/customer-reminders` (PR to `main`, open) | Phase 4 step 2: job `customer-reminders`, `subscriptionRequest.reminderOutboxId`, checkout `?r=` tracking, «اليوم» reminders card and run button, settings switch, scheduled function runs both jobs | `TZ=UTC npm test` 249/249 (and 249/249 in local time); tsc, ESLint (changed files), build clean; `scripts/integration/customer-reminders.mts` 6/6, automation 6/6, costs 9/9, discounts 8/8, plan-groups 8/8; headless Chrome: reminder shown in /notifications → checkout RENEW with `r` → order tagged; «اليوم» card at 1440 |
+| 2026-10-31 | migration `20261031T1123_customer_reminders` | Applied on the local database only (1 additive column) | `migration check`, `db verify` (local) |
 | 2026-10-31 | fix: automation production guard | «شغّل هسه» on production answered NOT_PRODUCTION: Netlify's CONTEXT exists only at build time. `next.config.ts` now inlines it as `SHASHTNA_DEPLOY_CONTEXT` (previews get `deploy-preview`, so they stay blocked), and the scheduled function reads the deploy context and site URL from its run-time context | unit tests, tsc, ESLint, build |
 | 2026-10-31 | fix: settings form | After a save, the settings fields showed their old values, so the next save switched other options back (seen with automation: enabled saved on, then digest/dry run flipped). Each field now remounts with the stored value | tsc, ESLint, build; audit log confirmed the cause |
 | 2026-10-31 | `feat/automation-core` (PR to `main`, open) | Automation step 1: `automationRun`, `outboxMessage`, automation settings, `netlify/functions/daily-digest.mts`, `/api/automation/run`, admin «اليوم» with WhatsApp links, settings card, nav entry | `TZ=UTC npm test` 242/242; tsc, ESLint (changed files), build clean; `scripts/integration/automation.mts` 6/6, costs 9/9, discounts 8/8, plan-groups 8/8; «اليوم» checked in headless Chrome RTL/LTR at 1440 and 390 (no overflow, no console errors, a WhatsApp click marks «أُرسلت»); endpoint: no / wrong token 401, valid token → SKIPPED while off |

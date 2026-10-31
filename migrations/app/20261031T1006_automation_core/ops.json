@@ -1,0 +1,242 @@
+[
+  {
+    "id": "table.automationRun",
+    "label": "Create table \"automationRun\"",
+    "summary": "Creates table \"automationRun\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "automationRun"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"automationRun\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"automationRun\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"automationRun\"",
+        "sql": "CREATE TABLE \"public\".\"automationRun\" (\n  \"attempts\" int4 DEFAULT 1 NOT NULL,\n  \"error\" text,\n  \"finishedAt\" timestamptz,\n  \"id\" SERIAL NOT NULL,\n  \"job\" text NOT NULL,\n  \"runKey\" text NOT NULL,\n  \"startedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"stats\" text,\n  \"status\" text DEFAULT 'RUNNING' NOT NULL,\n  \"trigger\" text DEFAULT 'SCHEDULE' NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"automationRun\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"automationRun\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.outboxMessage",
+    "label": "Create table \"outboxMessage\"",
+    "summary": "Creates table \"outboxMessage\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "outboxMessage"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"outboxMessage\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outboxMessage\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"outboxMessage\"",
+        "sql": "CREATE TABLE \"public\".\"outboxMessage\" (\n  \"attempts\" int4 DEFAULT 0 NOT NULL,\n  \"channel\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"dedupeKey\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"nextAttemptAt\" timestamptz,\n  \"payload\" text NOT NULL,\n  \"sentAt\" timestamptz,\n  \"sentBy\" int4,\n  \"status\" text DEFAULT 'PENDING' NOT NULL,\n  \"template\" text NOT NULL,\n  \"userId\" int4,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"outboxMessage\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outboxMessage\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.automationRun.automationRun_runKey_key",
+    "label": "Add unique constraint on \"automationRun\" (runKey)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "automationRun_runKey_key",
+        "table": "automationRun"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"automationRun_runKey_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "automationRun_runKey_key",
+          "public",
+          "\"public\".\"automationRun\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"automationRun_runKey_key\"",
+        "sql": "ALTER TABLE \"public\".\"automationRun\" ADD CONSTRAINT \"automationRun_runKey_key\" UNIQUE (\"runKey\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"automationRun_runKey_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "automationRun_runKey_key",
+          "public",
+          "\"public\".\"automationRun\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.outboxMessage.outboxMessage_dedupeKey_key",
+    "label": "Add unique constraint on \"outboxMessage\" (dedupeKey)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "outboxMessage_dedupeKey_key",
+        "table": "outboxMessage"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"outboxMessage_dedupeKey_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outboxMessage_dedupeKey_key",
+          "public",
+          "\"public\".\"outboxMessage\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"outboxMessage_dedupeKey_key\"",
+        "sql": "ALTER TABLE \"public\".\"outboxMessage\" ADD CONSTRAINT \"outboxMessage_dedupeKey_key\" UNIQUE (\"dedupeKey\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"outboxMessage_dedupeKey_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "outboxMessage_dedupeKey_key",
+          "public",
+          "\"public\".\"outboxMessage\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.automationRun.automationRun_job_idx_68c9b9cb",
+    "label": "Create index \"automationRun_job_idx_68c9b9cb\" on \"automationRun\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "automationRun_job_idx_68c9b9cb",
+        "table": "automationRun"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"automationRun_job_idx_68c9b9cb\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"automationRun_job_idx_68c9b9cb\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"automationRun_job_idx_68c9b9cb\"",
+        "sql": "CREATE INDEX \"automationRun_job_idx_68c9b9cb\" ON \"public\".\"automationRun\" (\"job\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"automationRun_job_idx_68c9b9cb\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"automationRun_job_idx_68c9b9cb\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.outboxMessage.outboxMessage_userId_idx_a489d58a",
+    "label": "Create index \"outboxMessage_userId_idx_a489d58a\" on \"outboxMessage\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "outboxMessage_userId_idx_a489d58a",
+        "table": "outboxMessage"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"outboxMessage_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outboxMessage_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"outboxMessage_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"outboxMessage_userId_idx_a489d58a\" ON \"public\".\"outboxMessage\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"outboxMessage_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"outboxMessage_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  }
+]

@@ -107,5 +107,5 @@ test("plan groups migrations: additive, the data step only touches ungrouped IPT
 
   assert.equal(read("20261031T0738_plan_groups/migration.json").from, read("20261031T0021_discounts/migration.json").to);
   assert.equal(read("20261031T0742_platform_account_email/migration.json").from, read("20261031T0738_plan_groups/migration.json").to);
-  assert.equal(read("20261031T0742_platform_account_email/migration.json").to, read("refs/db.json").hash);
+  assert.equal(read("20261031T1006_automation_core/migration.json").from, read("20261031T0742_platform_account_email/migration.json").to);
 });

@@ -1,4 +1,5 @@
 import { planOrderPrice } from "@/src/lib/catalogue";
+import { discountBadge, orderPricing } from "@/src/lib/discounts";
 import { orderPointValue } from "@/src/lib/loyalty";
 import { getLoyaltyRules } from "@/src/server/loyalty";
 import type { Metadata } from "next";
@@ -52,7 +53,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   const sessionUser = await getSessionUser();
   // Renewals and upgrades act on the customer's own subscription: sign in first.
   const user = sessionUser ?? (params.renew || params.upgrade ? await requireCustomer(returnTo) : null);
-  const [{ t }, selection] = await Promise.all([getI18n(), resolveCheckoutSelection(user ?? VISITOR, params)]);
+  const [{ t, lang }, selection] = await Promise.all([getI18n(), resolveCheckoutSelection(user ?? VISITOR, params)]);
 
   if (!selection.ok && selection.reason === "SUBSCRIPTION_NOT_FOUND") {
     return (
@@ -106,7 +107,11 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       : choosePath;
 
   const loyalty = plan && plan.serviceType === "IPTV" && mode !== "DEVICE_PURCHASE" ? await getLoyaltyRules() : null;
-  const orderPoints = loyalty?.enabled && plan ? orderPointValue(planOrderPrice(option ?? plan, mode), option?.pointsEarned ?? null) : null;
+  // The server's own pricing (createOrder does the same): the active discount on the package part.
+  // Without a chosen length the order uses the default (shortest) one, as createOrder does.
+  const pricedOption = option ?? plan?.options[0] ?? null;
+  const pricing = plan && mode !== "DEVICE_PURCHASE" ? orderPricing(option ?? plan, mode, null, pricedOption?.discount ?? null) : null;
+  const orderPoints = loyalty?.enabled && plan && pricing ? orderPointValue(pricing.price, option?.pointsEarned ?? null) : null;
 
   const steps = [
     t("تأكيد الطلب", "Confirm"),
@@ -145,13 +150,15 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
                   // The chosen length; what this order will cost (renewals use
                   // that length's renewal price when set).
                   optionId: option?.id ?? null,
-                  price: planOrderPrice(option ?? plan, mode),
+                  price: pricing?.price ?? planOrderPrice(option ?? plan, mode),
+                  listPrice: pricing && pricing.discountIqd > 0 ? pricing.listPrice : null,
+                  discountLabel: pricing && pricing.discountIqd > 0 && pricedOption?.discount ? discountBadge(pricedOption.discount, pricing.discountIqd, lang) : null,
                   durationMonths: (option ?? plan).durationMonths,
                   durationLabel: (option ?? plan).durationLabel,
                   description: plan.description,
                   features: plan.features.slice(0, 4),
                   imageUrl: plan.imageUrl,
-                  options: plan.options.map((item) => ({ id: item.id, durationMonths: item.durationMonths, price: planOrderPrice(item, mode) })),
+                  options: plan.options.map((item) => ({ id: item.id, durationMonths: item.durationMonths, price: orderPricing(item, mode, null, item.discount).price })),
                   points: orderPoints,
                 }
               : null

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
+import { DealTag, WasPrice, type OptionDeal } from "@/app/components/plans/DealTag";
 import { monthlyEquivalent } from "@/app/ui/PackageCard";
 import { formatPrice, type Lang } from "@/src/lib/i18n";
 import { formatDuration } from "@/src/lib/subscription-duration";
@@ -18,7 +19,7 @@ export type RailPlan = {
   durationMonths: number;
   imageUrl: string | null;
   /** Every length on sale with its price; price / durationMonths above are the default one. */
-  options: { id: number; durationMonths: number; price: number }[];
+  options: { id: number; durationMonths: number; price: number; discount?: OptionDeal | null }[];
 };
 
 // Placeholder art for a package without an uploaded image: one of a few
@@ -36,13 +37,13 @@ export function HomePlanRail({ lang, plans }: { lang: Lang; plans: RailPlan[] })
   const isAr = lang === "ar";
   const [filter, setFilter] = useState<number | "all">("all");
   const durations = [...new Set(plans.flatMap((plan) => plan.options.map((option) => option.durationMonths)))].sort((a, b) => a - b);
-  type Item = { plan: RailPlan; months: number; price: number; optionId: number | null; several: boolean };
+  type Item = { plan: RailPlan; months: number; price: number; optionId: number | null; several: boolean; deal: OptionDeal | null };
   const shown = plans.flatMap((plan): Item[] => {
-    if (filter === "all") return [{ plan, months: plan.durationMonths, price: plan.price, optionId: null, several: plan.options.length > 1 }];
+    if (filter === "all") return [{ plan, months: plan.durationMonths, price: plan.price, optionId: null, several: plan.options.length > 1, deal: plan.options[0]?.discount ?? null }];
     const option = plan.options.find((item) => item.durationMonths === filter);
-    return option ? [{ plan, months: option.durationMonths, price: option.price, optionId: plan.options.length > 1 ? option.id : null, several: false }] : [];
+    return option ? [{ plan, months: option.durationMonths, price: option.price, optionId: plan.options.length > 1 ? option.id : null, several: false, deal: option.discount ?? null }] : [];
   });
-  const monthly = (item: Item) => Math.round(item.price / Math.max(1, item.months));
+  const monthly = (item: Item) => Math.round((item.deal?.price ?? item.price) / Math.max(1, item.months));
   const bestId = shown.length > 1 ? shown.reduce((best, item) => (monthly(item) < monthly(best) ? item : best)).plan.id : null;
 
   if (!plans.length) {
@@ -73,7 +74,11 @@ export function HomePlanRail({ lang, plans }: { lang: Lang; plans: RailPlan[] })
       </div>
 
       <div className={s.rail} data-testid="home-plan-rail">
-        {shown.map(({ plan, months, price, optionId, several }) => (
+        {shown.map(({ plan, months, price: listPrice, optionId, several, deal }) => {
+          const price = deal?.price ?? listPrice;
+
+          return (
+
           <Link
             key={plan.id}
             href={`/plans/${encodeURIComponent(plan.slug)}${optionId ? `?option=${optionId}` : ""}`}
@@ -106,8 +111,10 @@ export function HomePlanRail({ lang, plans }: { lang: Lang; plans: RailPlan[] })
             </span>
             <span className={s.planFoot}>
               <span>
+                {deal ? <DealTag deal={deal} listPrice={listPrice} lang={lang} className="mb-1.5" /> : null}
                 <span className={`${s.price} nums`} data-testid="home-plan-price">
                   {several ? <small>{isAr ? "من " : "from "}</small> : null}
+                  {deal ? <WasPrice price={listPrice} lang={lang} /> : null}
                   {new Intl.NumberFormat("en-US").format(price)}
                   <small>{isAr ? "د.ع" : "IQD"}</small>
                 </span>
@@ -120,7 +127,8 @@ export function HomePlanRail({ lang, plans }: { lang: Lang; plans: RailPlan[] })
               </span>
             </span>
           </Link>
-        ))}
+          );
+        })}
       </div>
       <p className={s.note}>{isAr ? "الأسعار بالدينار العراقي، وتطلع نفسها بصفحة الطلب." : "Prices are in Iraqi dinars and are the same at checkout."}</p>
     </section>

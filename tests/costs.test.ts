@@ -131,7 +131,7 @@ test("the package form's credit per length: cents or empty; VIP keeps its own", 
   assert.equal(vip.options[0].creditCostCents, 1500);
 });
 
-test("real costs migration: additive only, chained after loyalty, the db ref points at it", async () => {
+test("real costs migration: additive only, chained after loyalty, followed by discounts", async () => {
   const { readFileSync } = await import("node:fs");
   const read = (path: string) => JSON.parse(readFileSync(new URL(`../migrations/app/${path}`, import.meta.url), "utf8"));
   const ops: { id: string; operationClass: string }[] = read("20261030T2329_real_costs/ops.json");
@@ -143,5 +143,5 @@ test("real costs migration: additive only, chained after loyalty, the db ref poi
 
   const migration = read("20261030T2329_real_costs/migration.json");
   assert.equal(migration.from, read("20261030T1747_loyalty_points/migration.json").to);
-  assert.equal(migration.to, read("refs/db.json").hash);
+  assert.equal(migration.to, read("20261031T0021_discounts/migration.json").from);
 });

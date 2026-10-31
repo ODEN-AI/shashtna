@@ -164,6 +164,11 @@ model SubscriptionRequest {
   creditCostCents  Int?
   creditCostIqd    Int?
   creditPurchaseId Int?
+  /// Discount snapshot: the price before the discount, the discount applied and its amount
+  /// (null = no discount). `price` stays what the customer pays.
+  listPrice        Int?
+  discountId       Int?
+  discountIqd      Int?
 }
 
 model Receipt {
@@ -370,6 +375,27 @@ model ConsoleDevice {
   updatedAt       temporal.updatedAtString()
 
   @@index([userId])
+}
+
+// A discount on one package option (a product at one length). `kind` is
+// validated in code: PERCENT (value 1–90) or AMOUNT (whole IQD). Active inside
+// [startsAt, endsAt) and until `endedAt`; at most one active per option at any
+// moment (checked in code). NEW / UPGRADE orders, renewals only when
+// `appliesToRenewals`. Rows are never deleted: ending sets `endedAt`.
+model Discount {
+  id                Int      @id @default(autoincrement())
+  packageOptionId   Int
+  kind              String
+  value             Int
+  appliesToRenewals Boolean  @default(false)
+  startsAt          TimestamptzString?
+  endsAt            TimestamptzString?
+  endedAt           TimestamptzString?
+  createdBy         Int?
+  createdAt         TimestamptzString @default(now())
+  updatedAt         temporal.updatedAtString()
+
+  @@index([packageOptionId])
 }
 
 // Panel credit bought by the owner (Admin → Finance → Credit). Append-only:

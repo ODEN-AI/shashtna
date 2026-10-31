@@ -8,9 +8,9 @@ Status marks: ✅ done (with evidence) · 🔄 in progress · ⏳ planned · ⏸
 
 ## Status now (2026-10-31)
 
-- **`main`** is at `0d1699c` (PRs #6–#16 merged; checked with `git log origin/main`).
-- **Production database** marker `0102955a2746` with the latest migration `20261031T1006_automation_core`
-  (reported by the planning session after the owner-approved apply; not re-read here). ❓
+- **`main`** is at `510640a` (PRs #6–#17 merged; checked with `git log origin/main`).
+- **Production database** marker `da91640c9eaf` with the latest migration `20261031T1123_customer_reminders`
+  (owner-reported production check and apply, 2026-10-31; not re-read here). ❓
 - **Automation step 1** runs on production in dry run (owner, 2026-10-31, per the planning session).
 - **«نقاط شاشتنا» (loyalty points)** is **live** (switched on by the owner 2026-10-31). Reward options are set
   (Star10 3 months / 6 months). The launch seed ran on 2026-10-31: 40 customers × 10 points = 400 points.
@@ -26,7 +26,7 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | 1 | Stabilize the foundation (site, data, orders, payments, activation, deploys) | ✅ | Schema and code in sync on production (marker `0395c5c66aa0`). Open: see "Known risks" |
 | 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | ✅ | Real costs live (PR #9 + #10, migration `20261030T2329_real_costs` applied 2026-10-31, marker `76e80bbd5844`); data audit 2026-10-31 clean apart from accepted owner/test items — `docs/costs.md` |
 | 3 | Complete the customer and admin experience | ✅ | Redesign (PR #6); loyalty (PR #7) live since 2026-10-31; discounts (PR #12); plan groups and digital platforms (PR #13) — `docs/plan-groups.md` |
-| 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | 🔄 | Step 1 (core + the owner's daily list «اليوم») ✅ PR #14 + fixes #15/#16, migration `20261031T1006_automation_core` on production (marker `0102955a2746`, per the planning session); step 2 in-app customer reminders built on `feat/customer-reminders`, PR open, migration `20261031T1123_customer_reminders` not on production; step 3 retries / dead letter ⏳ — `docs/automation.md` |
+| 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | 🔄 | Step 1 ✅ PR #14 + fixes #15/#16; step 2 in-app customer reminders ✅ PR #17 merged (`510640a`), migration `20261031T1123_customer_reminders` applied on production (marker `da91640c9eaf`, per owner report); owner dry-run validation remains; step 3 retries / dead letter ⏳ — `docs/automation.md` |
 | 5 | SHASHTNA AI CORE and agents (Customer, Operations, Finance, Marketing) with scoped tools | ⏳ | An AI business analyst exists (aggregates only) |
 | 6 | Business intelligence and data-driven growth | ⏳ | Finance/BI dashboard exists (PR #4) |
 | 7 | Integrated AI-powered operations, desktop and mobile admin clients on the shared backend | ⏳ | Android console shell exists (`shells/mobile`) |
@@ -35,14 +35,14 @@ Long-term direction, in order. A phase is marked done only with evidence.
 
 | Item | Status | Where |
 |---|---|---|
-| DIGITAL package duration fix: `parsePackageOptions` now validates the submitted MONTH / YEAR for DIGITAL as for IPTV while VIP stays fixed at 3 months | ✅ | `src/lib/package-options.ts`, `tests/package-options.test.ts`, `scripts/e2e/package-options.mjs`; local unit + API E2E, TypeScript, ESLint and build passed; uncommitted, no PR |
+| DIGITAL package duration fix: `parsePackageOptions` now validates the submitted MONTH / YEAR for DIGITAL as for IPTV while VIP stays fixed at 3 months | ✅ | PR #18 on `codex/digital-duration-fix`; unit + local API E2E, TypeScript, ESLint and build passed |
 | Launch «نقاط شاشتنا»: reward options ✅ → `seed --check` ✅ → seed ✅ (40 customers, 400 points) → owner enables ✅ (2026-10-31) → announcement ⏳ | 🔄 | Admin → Settings → نقاط شاشتنا; `scripts/loyalty/`; `docs/loyalty.md` |
 | Progress documentation (this file and the `CLAUDE.md` rule) | ✅ | PR #8 merged |
 | Real costs and supplier orders (phase 2) | ✅ | PR #9 + PR #10 merged; production marker `76e80bbd5844` |
 | Discounts (phase 3, part 2) | ✅ | PR #12 merged (`11b5299`) |
 | Plan groups and digital platforms (phase 3, part 3) | ✅ | PR #13 merged (`c11eac5`) |
 | Automation step 1 (phase 4) | ✅ | PR #14 merged (`9a302ff`), fixes #15 / #16 (`0d1699c`); the owner runs it in dry run |
-| Automation step 2 (phase 4): job `customer-reminders` (own switch, off) — in-app notifications at T-5 / T-0 / T+3 with points, renewal discount and a renewal link tagged `?r=`; open unpaid renewal orders linked instead; opted-out / suspended skipped; `subscriptionRequest.reminderOutboxId`; 30 / 90-day conversion card on «اليوم» | 🔄 built and tested locally; waiting for review, the production migration and merge | `feat/customer-reminders`; `docs/automation.md` |
+| Automation step 2 (phase 4): job `customer-reminders` (own switch, off) — in-app notifications at T-5 / T-0 / T+3 with points, renewal discount and a renewal link tagged `?r=`; open unpaid renewal orders linked instead; opted-out / suspended skipped; `subscriptionRequest.reminderOutboxId`; 30 / 90-day conversion card on «اليوم» | ✅ PR #17 merged and reported deployed; owner dry-run validation remains; the shared automation dry-run switch also controls the morning list | `docs/automation.md` |
 
 ## Known risks
 
@@ -121,9 +121,9 @@ Newest first.
 
 | Date | PR / commit | Change | Checks |
 |---|---|---|---|
-| 2026-10-31 | `feat/customer-reminders` (PR to `main`, open) | Phase 4 step 2: job `customer-reminders`, `subscriptionRequest.reminderOutboxId`, checkout `?r=` tracking, «اليوم» reminders card and run button, settings switch, scheduled function runs both jobs | `TZ=UTC npm test` 249/249 (and 249/249 in local time); tsc, ESLint (changed files), build clean; `scripts/integration/customer-reminders.mts` 6/6, automation 6/6, costs 9/9, discounts 8/8, plan-groups 8/8; headless Chrome: reminder shown in /notifications → checkout RENEW with `r` → order tagged; «اليوم» card at 1440 |
-| 2026-10-31 | migration `20261031T1123_customer_reminders` | Applied on the local database only (1 additive column) | `migration check`, `db verify` (local) |
-| 2026-10-31 | — (working tree; no commit or PR) | Fixed DIGITAL package options silently defaulting to 3 months: all non-VIP options now parse and validate their submitted duration. Added DIGITAL duration unit tests and extended the package-options E2E to verify POST stores 1 month and PATCH stores the updated length. No migration or production access. | `tests/package-options.test.ts` 11/11; `npm test` 244/244; E2E `scripts/e2e/package-options.mjs` 18/18 against local `127.0.0.1/shashtna_dev`; `npx tsc --noEmit`, ESLint on the three changed files, script syntax check and `npm run build` passed |
+| 2026-10-31 | PR #17 (`510640a`) | Customer reminders step 2 merged. Owner reports production migration `20261031T1123_customer_reminders` applied (marker `da91640c9eaf`), Preview succeeded, and live site returned HTTP 200. Reminders remain off until the owner enables them in dry-run mode and validates the counts. | `TZ=UTC npm test` 249/249; integration and browser flow passed (per owner report) |
+| 2026-10-31 | migration `20261031T1123_customer_reminders` | Additive reminder tracking column applied on production (marker `da91640c9eaf`, per owner report) | production verification and apply reported by owner |
+| 2026-10-31 | PR #18 (commit `07c7477`) | Fixed DIGITAL package options silently defaulting to 3 months: all non-VIP options now parse and validate their submitted duration. Added DIGITAL duration unit tests and extended the package-options E2E to verify POST stores 1 month and PATCH stores the updated length. No migration or production access. | `tests/package-options.test.ts` 11/11; latest `npm test` 251/251; E2E `scripts/e2e/package-options.mjs` 18/18 against local `127.0.0.1/shashtna_dev`; `npx tsc --noEmit`, ESLint on the three changed files, script syntax check and `npm run build` passed |
 | 2026-10-31 | fix: automation production guard | «شغّل هسه» on production answered NOT_PRODUCTION: Netlify's CONTEXT exists only at build time. `next.config.ts` now inlines it as `SHASHTNA_DEPLOY_CONTEXT` (previews get `deploy-preview`, so they stay blocked), and the scheduled function reads the deploy context and site URL from its run-time context | unit tests, tsc, ESLint, build |
 | 2026-10-31 | fix: settings form | After a save, the settings fields showed their old values, so the next save switched other options back (seen with automation: enabled saved on, then digest/dry run flipped). Each field now remounts with the stored value | tsc, ESLint, build; audit log confirmed the cause |
 | 2026-10-31 | `feat/automation-core` (PR to `main`, open) | Automation step 1: `automationRun`, `outboxMessage`, automation settings, `netlify/functions/daily-digest.mts`, `/api/automation/run`, admin «اليوم» with WhatsApp links, settings card, nav entry | `TZ=UTC npm test` 242/242; tsc, ESLint (changed files), build clean; `scripts/integration/automation.mts` 6/6, costs 9/9, discounts 8/8, plan-groups 8/8; «اليوم» checked in headless Chrome RTL/LTR at 1440 and 390 (no overflow, no console errors, a WhatsApp click marks «أُرسلت»); endpoint: no / wrong token 401, valid token → SKIPPED while off |

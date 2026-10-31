@@ -1,4 +1,4 @@
-import { getActiveDevices, getActivePackages } from "@/src/server/catalog";
+import { getActiveDevices, getActiveGroups, getActivePackages } from "@/src/server/catalog";
 import { ok, withPublic } from "@/src/server/mobile/http";
 import { absoluteUrl } from "@/src/server/mobile/shape";
 
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  * on every request, so a price change needs no app update.
  */
 export const GET = withPublic(async ({ request }) => {
-  const [packages, devices] = await Promise.all([getActivePackages(), getActiveDevices()]);
+  const [packages, devices, groups] = await Promise.all([getActivePackages(), getActiveDevices(), getActiveGroups()]);
 
   return ok({
     packages: packages.map((pkg) => ({
@@ -30,6 +30,24 @@ export const GET = withPublic(async ({ request }) => {
       imageUrl: absoluteUrl(request, pkg.imageUrl),
       isPopular: pkg.isPopular,
       requiresDevice: pkg.serviceType === "VIP",
+      // Additive: the /plans group (IPTV, VIP or a digital platform).
+      groupId: pkg.groupId,
+    })),
+    // Additive: the sections of the plans page, in display order, with their colours and delivery.
+    groups: groups.map((group) => ({
+      id: group.id,
+      slug: group.slug,
+      name: group.name,
+      nameEn: group.nameEn,
+      description: group.description,
+      descriptionEn: group.descriptionEn,
+      logoUrl: absoluteUrl(request, group.logoUrl),
+      serviceType: group.serviceType,
+      delivery: group.delivery,
+      accent: group.accent,
+      surface: group.surface,
+      accentText: group.accentText,
+      builtIn: group.builtIn,
     })),
     devices: devices
       .filter((device) => device.serviceType.toUpperCase() === "VIP")

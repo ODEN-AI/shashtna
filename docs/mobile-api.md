@@ -39,6 +39,7 @@ app (v1.0.0 / v2.0.0)  →  app/api/mobile/*  →  src/server/mobile/*  →  web
 | `GET notifications`, `POST notifications/read` | `notifications.ts` |
 | `POST/DELETE devices` | accepted, not stored (no push-device table): `deviceId: null` |
 | `GET dashboard?order=` | the services above |
+| `GET catalog` → `groups[]`, `packages[].groupId`; `POST orders` → `deliveryEmail`; `GET orders/{id}` → `deliveryCode` | Plan groups and digital platforms (`docs/plan-groups.md`, additive): groups in display order with `serviceType` (IPTV / VIP / DIGITAL), `delivery` (CODE / ACCOUNT / CUSTOMER_EMAIL) and colours; a CUSTOMER_EMAIL platform order sends the account e-mail; a delivered code appears only on the owning customer's order detail. `credentials.accountEmail` is in `GET subscriptions/{id}` only |
 | `GET loyalty`, `POST loyalty/redeem` | `src/server/loyalty.ts` («نقاط شاشتنا»): `{ loyalty: { enabled: false } }` while the program is off; redeem takes `{ reward: "3m" \| "6m", subscriptionId }` → 201 `{ order, loyalty }`, or 409 `CANNOT_REDEEM` / 404 `NOT_FOUND` / 400 `INVALID` with an Arabic `message` |
 | `GET config`, `GET receipts`, `GET/POST subscription-requests`, `PUT account/profile` | older app build (v1.0.0), unchanged responses |
 

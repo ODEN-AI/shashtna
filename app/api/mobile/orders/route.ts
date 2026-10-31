@@ -28,6 +28,8 @@ export const POST = withMobileUser(async ({ request, user }) => {
     contactMethod: body.contactMethod || user.preferredContact || "PENDING",
     paymentMethod: MANUAL_TRANSFER_METHOD,
     customerNote: body.customerNote,
+    // Additive: digital platforms activated on the customer's own account send its e-mail.
+    deliveryEmail: body.deliveryEmail,
   });
 
   if (!result.ok) {

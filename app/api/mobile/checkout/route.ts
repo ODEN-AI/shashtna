@@ -1,4 +1,4 @@
-import { planOrderPrice } from "@/src/lib/catalogue";
+import { orderPricing } from "@/src/lib/discounts";
 import { resolveCheckoutSelection } from "@/src/server/checkout-selection";
 import { fail, ok, withMobileUser } from "@/src/server/mobile/http";
 import { absoluteUrl } from "@/src/server/mobile/shape";
@@ -36,6 +36,10 @@ export const GET = withMobileUser(async ({ request, user }) => {
     imageUrl: absoluteUrl(request, device.imageUrl),
   });
 
+  // Same pricing as createOrder: the chosen length, else the default (shortest) one.
+  const pricedOption = selection.option ?? selection.plan?.options[0] ?? null;
+  const pricing = orderPricing(selection.option ?? selection.plan ?? { price: 0 }, selection.mode, null, pricedOption?.discount ?? null);
+
   return ok({
     mode: selection.mode,
     customer: { name: user.name, phone: user.phone },
@@ -47,12 +51,15 @@ export const GET = withMobileUser(async ({ request, user }) => {
           // The length being ordered (the chosen one, else the default) and the
           // price this order will be charged (renewal price on renewals).
           optionId: selection.option?.id ?? null,
-          price: planOrderPrice(selection.option ?? selection.plan, selection.mode),
+          price: pricing.price,
           normalPrice: (selection.option ?? selection.plan).price,
+          // Additive: the price before the discount and the discount applied (null when none).
+          listPrice: pricing.listPrice,
+          discount: pricing.discountIqd > 0 && pricedOption?.discount ? { ...pricedOption.discount, amount: pricing.discountIqd } : null,
           durationMonths: (selection.option ?? selection.plan).durationMonths,
           durationLabel: (selection.option ?? selection.plan).durationLabel,
           // Every length on sale (additive), shortest first.
-          options: selection.plan.options.map((option) => ({ ...option, orderPrice: planOrderPrice(option, selection.mode) })),
+          options: selection.plan.options.map((option) => ({ ...option, orderPrice: orderPricing(option, selection.mode, null, option.discount).price })),
           description: selection.plan.description,
           features: selection.plan.features.slice(0, 4),
           imageUrl: absoluteUrl(request, selection.plan.imageUrl),

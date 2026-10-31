@@ -8,13 +8,12 @@ Status marks: ✅ done (with evidence) · 🔄 in progress · ⏳ planned · ⏸
 
 ## Status now (2026-10-31)
 
-- **Production** runs `main` at `0598628` (PR #7 merged on top of PR #6). The owner checked the live
+- **Production** runs `main` at `1d9192f` (PRs #6–#10). The owner checked the live
   site after the deploy: it works.
-- **Production database** marker `0395c5c66aa0`, 21 migrations, the latest
-  `20261030T1747_loyalty_points`; `prisma db verify` passed.
-- **«نقاط شاشتنا» (loyalty points)** is deployed and **switched off** (`loyalty.enabled = off`). Reward options are set
+- **Production database** marker `76e80bbd5844`, 22 migrations, the latest
+  `20261030T2329_real_costs`; `prisma db verify` passed.
+- **«نقاط شاشتنا» (loyalty points)** is **live** (switched on by the owner 2026-10-31). Reward options are set
   (Star10 3 months / 6 months). The launch seed ran on 2026-10-31: 40 customers × 10 points = 400 points.
-  The owner switched the program on (2026-10-31).
 - **Deploy Previews use production** (database, `AUTH_SECRET`, Blobs; an owner decision recorded in
   PR #6). Treat any preview as production.
 
@@ -25,7 +24,7 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | # | Phase | Status | Evidence / notes |
 |---|---|---|---|
 | 1 | Stabilize the foundation (site, data, orders, payments, activation, deploys) | ✅ | Schema and code in sync on production (marker `0395c5c66aa0`). Open: see "Known risks" |
-| 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | 🔄 | Real costs and supplier orders built on `feat/real-costs` (PR open, not merged; migration `20261030T2329_real_costs` not on production) — `docs/costs.md` |
+| 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | ✅ | Real costs live (PR #9 + #10, migration `20261030T2329_real_costs` applied 2026-10-31, marker `76e80bbd5844`); data audit 2026-10-31 clean apart from accepted owner/test items — `docs/costs.md` |
 | 3 | Complete the customer and admin experience | 🔄 | Redesign (PR #6) ✅; loyalty (PR #7) ✅ live since 2026-10-31. Next: discounts, plan groups and digital platforms |
 | 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | ⏳ | — |
 | 5 | SHASHTNA AI CORE and agents (Customer, Operations, Finance, Marketing) with scoped tools | ⏳ | An AI business analyst exists (aggregates only) |
@@ -71,6 +70,8 @@ Newest first. Details are in the linked documents.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-10-31 | Audit findings accepted as-is: 8 IPTV lengths (+1 VIP) come from the owner's father's panel, profit split 50/50, and are not tracked in the dashboard, so their cost stays «تكلفة غير معروفة»; one expired "test" subscription, two customers with several active subscriptions and two duplicate phone numbers are deliberate test/owner accounts; old receipts/subscriptions without links are legacy | Owner: keep the dashboard simple |
+| 2026-10-31 | Phase 2 closed | Real costs live; audit clean apart from the accepted items above |
 | 2026-10-31 | "Owner only" means full access (`OWNER` or legacy `ADMIN`), matching `src/lib/roles.ts` | The owner's own account is `ADMIN` ("مدير (كامل الصلاحيات)") and cannot change its own role |
 | 2026-10-31 | Supplier orders only for customers who already have an account; the admin cannot create accounts | Owner (no new account path for now) |
 | 2026-10-31 | No estimated cost backfill for old orders: they stay «تكلفة غير معروفة» and are reported separately | Owner: every cost figure must be a recorded one |
@@ -98,6 +99,7 @@ Newest first.
 
 | Date | PR / commit | Change | Checks |
 |---|---|---|---|
+| 2026-10-31 | — | Read-only data audit of production (counts only): 77 customers, 54 active IPTV subscriptions, 96 orders. No stuck or unpaid orders, every completed order has a subscription and receipt, receipt amounts match, loyalty ledger reconciles (51 accounts, 550 points). Panel credit recorded (900 IQD/$) and set on the owner's IPTV lengths | READ ONLY transaction |
 | 2026-10-31 | fix: full-access checks | Owner-only actions (loyalty approvals and adjustments, panel credit, supplier orders, cost settings) now accept every full-access role (`OWNER` and the legacy `ADMIN`, via `isFullAccess`). The owner's account is `ADMIN` and was refused | 213/213 unit (TZ=UTC); tsc, lint, build clean |
 | 2026-10-31 | `feat/real-costs` (PR to `main`, open) | Real costs and supplier orders: `creditPurchase`, `packageOption.creditCostCents`, order channel / supplier share / cost snapshot; owner pages; profit by channel; analyst aggregates | `npm test` 212/213 (the 1 failure is the clock-dependent domain test above; 12/12 with `TZ=UTC`); tsc, ESLint, build clean; `scripts/integration/costs.mts` 9/9; e2e loyalty 13/13, package-options 17/17; pages checked in the browser |
 | 2026-10-31 | migration `20261030T2329_real_costs` | Planned and applied on the local database only (8 additive operations); not on production | `migration check`, `db verify` (local) |

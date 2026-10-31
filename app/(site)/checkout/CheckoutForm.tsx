@@ -37,6 +37,9 @@ export type CheckoutPlan = {
   options: { id: number; durationMonths: number; price: number }[];
   /** Loyalty points this order earns (IPTV, program on); null hides the line. */
   points?: number | null;
+  /** With a discount: the price before it and the badge text («خصم 20%»); `price` is what is charged. */
+  listPrice?: number | null;
+  discountLabel?: string | null;
 };
 
 export type CheckoutDevice = {
@@ -368,7 +371,16 @@ export function CheckoutForm({
             {plan ? (
               <div className={c.row}>
                 <dt>{t("سعر الباقة", "Plan price")}</dt>
-                <dd className="nums">{formatPrice(plan.price, language)}</dd>
+                <dd className="nums">{formatPrice(plan.listPrice ?? plan.price, language)}</dd>
+              </div>
+            ) : null}
+            {plan?.listPrice && plan.listPrice > plan.price ? (
+              <div className={c.row} data-testid="summary-discount">
+                <dt>
+                  {t("الخصم", "Discount")}
+                  {plan.discountLabel ? <span className="ms-2 text-xs font-bold text-success">{plan.discountLabel}</span> : null}
+                </dt>
+                <dd className="nums text-success" dir="ltr">−{formatPrice(plan.listPrice - plan.price, language)}</dd>
               </div>
             ) : null}
             {plan?.points ? (

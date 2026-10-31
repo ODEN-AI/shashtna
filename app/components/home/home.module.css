@@ -1279,3 +1279,35 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Discounts: the old price struck through (muted), a badge, and how long it lasts. */
+.wasPrice {
+  color: var(--ink-3);
+  font-size: 0.8em;
+  font-weight: 600;
+  margin-inline-end: 8px;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.deal {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 6px;
+}
+
+.dealBadge {
+  background: color-mix(in srgb, var(--color-success) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-success) 45%, transparent);
+  border-radius: 999px;
+  color: var(--color-success);
+  padding: 3px 10px;
+}
+
+.dealEnds {
+  color: var(--color-warning);
+  font-weight: 700;
+}

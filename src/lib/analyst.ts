@@ -30,6 +30,8 @@ export type FactPack = {
   netProfit: { status: "ok" | "incomplete"; current: number | null; previous: number | null };
   /** Real cost of sales by channel; optional so stored reports from before costs still load. */
   costOfSales?: { siteOrDirect: ChannelProfit; supplier: ChannelProfit; total: ChannelProfit; previousTotal: ChannelProfit };
+  /** Discounted sales and the total discount given; optional so older stored reports still load. */
+  discounts?: { sales: number; amount: number; previousSales: number; previousAmount: number };
   averageOrderValue: { current: number | null; previous: number | null };
   products: { name: string; kind: string; units: number; revenue: number; sharePct: number; previousUnits: number }[];
   mostSold: { name: string; units: number; revenue: number; sharePct: number } | null;

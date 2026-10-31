@@ -178,6 +178,12 @@ Never use `db update` or `db init` on any shared database; they are for a throwa
 - An unknown cost is `null` («تكلفة غير معروفة») and is never counted as zero in profit.
 - `channel` is `SITE` (site or direct) or `SUPPLIER` (made by the supplier from his panel: credit cost 0, `supplierShareIqd` stored). Supplier orders never earn loyalty points. Recording credit and supplier orders is OWNER-only.
 
+**Discounts** (`src/lib/discounts.ts`, `src/server/discounts.ts`, `docs/discounts.md`):
+- A discount belongs to one package option: `PERCENT` (1–90) or `AMOUNT` (whole IQD), rounded down, never below 0, active inside its optional window until ended. At most one active per option (checked under a row lock).
+- It applies to `NEW` / `UPGRADE`, and to `RENEW` only with `appliesToRenewals`; a VIP device is always full price. Reward and supplier orders are never discounted.
+- `createOrder` prices with `orderPricing` and stores `listPrice`, `discountId`, `discountIqd` next to `price` (what is charged; loyalty earns on it). A reused unpaid order is repriced; a paid order never changes.
+- Creating, editing or ending a discount is full-access only and audited.
+
 ### Prices — where values come from
 
 The database is the only source of truth at runtime. **No price below is a

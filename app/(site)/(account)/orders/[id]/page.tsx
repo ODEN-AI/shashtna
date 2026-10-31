@@ -87,6 +87,8 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     { label: order.requestType === "DEVICE_PURCHASE" ? t("الجهاز", "Device") : t("الباقة", "Plan"), value: order.serviceName },
     order.requestType !== "DEVICE_PURCHASE" ? { label: t("المدة", "Duration"), value: order.durationLabel } : null,
     order.deviceName && order.requestType !== "DEVICE_PURCHASE" ? { label: t("جهاز VIP", "VIP device"), value: order.deviceName } : null,
+    order.discountIqd && order.listPrice ? { label: t("السعر قبل الخصم", "Price before discount"), value: <span className="nums">{formatPrice(order.listPrice, lang)}</span> } : null,
+    order.discountIqd ? { label: t("الخصم", "Discount"), value: <span className="nums text-success" dir="ltr">−{formatPrice(order.discountIqd, lang)}</span> } : null,
     { label: t("المبلغ", "Amount"), value: <span className="nums">{reward ? `${t("مكافأة نقاط", "Points reward")} — ${formatPrice(0, lang)}` : formatPrice(order.price, lang)}</span> },
     points && loyaltyRules.enabled
       ? { label: t("نقاط شاشتنا", "Shashtna Points"), value: <span className="nums">{t(`+${pointsLabel(points.points, "ar")} على هذا الطلب`, `+${pointsLabel(points.points, "en")} on this order`)} ({pointsState})</span> }

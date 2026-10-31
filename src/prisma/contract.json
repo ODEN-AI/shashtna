@@ -32,6 +32,10 @@
       "model": "Device",
       "namespace": "public"
     },
+    "discount": {
+      "model": "Discount",
+      "namespace": "public"
+    },
     "expense": {
       "model": "Expense",
       "namespace": "public"
@@ -1036,6 +1040,127 @@
               },
               "namespaceId": "public",
               "table": "device"
+            }
+          },
+          "Discount": {
+            "fields": {
+              "appliesToRenewals": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdBy": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "endedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "endsAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "kind": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "packageOptionId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "startsAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "value": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "appliesToRenewals": {
+                  "column": "appliesToRenewals"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "createdBy": {
+                  "column": "createdBy"
+                },
+                "endedAt": {
+                  "column": "endedAt"
+                },
+                "endsAt": {
+                  "column": "endsAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "kind": {
+                  "column": "kind"
+                },
+                "packageOptionId": {
+                  "column": "packageOptionId"
+                },
+                "startsAt": {
+                  "column": "startsAt"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "value": {
+                  "column": "value"
+                }
+              },
+              "namespaceId": "public",
+              "table": "discount"
             }
           },
           "Expense": {
@@ -2843,6 +2968,20 @@
                   "kind": "scalar"
                 }
               },
+              "discountId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "discountIqd": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "durationLabel": {
                 "nullable": false,
                 "type": {
@@ -2859,6 +2998,13 @@
               },
               "id": {
                 "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "listPrice": {
+                "nullable": true,
                 "type": {
                   "codecId": "pg/int4@1",
                   "kind": "scalar"
@@ -3018,6 +3164,12 @@
                 "devicePrice": {
                   "column": "devicePrice"
                 },
+                "discountId": {
+                  "column": "discountId"
+                },
+                "discountIqd": {
+                  "column": "discountIqd"
+                },
                 "durationLabel": {
                   "column": "durationLabel"
                 },
@@ -3026,6 +3178,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "listPrice": {
+                  "column": "listPrice"
                 },
                 "loyaltyReward": {
                   "column": "loyaltyReward"
@@ -3903,6 +4058,94 @@
                   ]
                 }
               ]
+            },
+            "discount": {
+              "columns": {
+                "appliesToRenewals": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "createdBy": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "endedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "endsAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "kind": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "packageOptionId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "startsAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "value": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [
+                {
+                  "columns": [
+                    "packageOptionId"
+                  ],
+                  "name": "discount_packageOptionId_idx_398e19b0",
+                  "prefix": "discount_packageOptionId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
             },
             "expense": {
               "columns": {
@@ -5308,6 +5551,16 @@
                   "nativeType": "int4",
                   "nullable": true
                 },
+                "discountId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "discountIqd": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
                 "durationLabel": {
                   "codecId": "pg/text@1",
                   "default": {
@@ -5334,6 +5587,11 @@
                   },
                   "nativeType": "int4",
                   "nullable": false
+                },
+                "listPrice": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
                 },
                 "loyaltyReward": {
                   "codecId": "pg/bool@1",
@@ -5565,10 +5823,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "76e80bbd5844429e363e648371af22c236ec16159cd44d41918c8a95346d2dcd"
+    "storageHash": "eb9bf30b7888769924bb5c75d3d0a0c9367da8fdf1aa10e55fabdee317351cda"
   },
   "execution": {
-    "executionHash": "d8addb4cc0af42d953fb10a2186e958644888c9a878dd60aac358599ccb8eda8",
+    "executionHash": "511baf34df232f6650f9bb9b687e71a1e19d4e3a5ebd31b443b45545a45b584d",
     "mutations": {
       "defaults": [
         {
@@ -5629,6 +5887,21 @@
             "column": "updatedAt",
             "namespace": "public",
             "table": "device"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "discount"
           }
         },
         {

@@ -105,6 +105,12 @@ export function buildFactPack(snapshot: FinanceSnapshot, lang: Lang): FactPack {
       total: snapshot.costs.current.total,
       previousTotal: snapshot.costs.previous.total,
     },
+    discounts: {
+      sales: snapshot.discounts.current.sales,
+      amount: snapshot.discounts.current.amount,
+      previousSales: snapshot.discounts.previous.sales,
+      previousAmount: snapshot.discounts.previous.amount,
+    },
     averageOrderValue: { current: round(snapshot.orders.averageOrderValue, 0), previous: round(snapshot.orders.previousAverageOrderValue, 0) },
     products: snapshot.products.slice(0, 8).map((row) => ({
       name: row.name,

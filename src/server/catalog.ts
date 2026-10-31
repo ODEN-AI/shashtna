@@ -1,6 +1,8 @@
 import { db } from "@/src/prisma/db";
 import { defaultOption } from "@/src/lib/package-options";
 import { safeHref } from "@/src/lib/safe-href";
+import { daysLeft, discountAmount } from "@/src/lib/discounts";
+import { activeDiscounts } from "@/src/server/discounts";
 import { optionsByPackage } from "@/src/server/package-options";
 
 /** One length a package is sold in, with its own price. */
@@ -13,6 +15,22 @@ export type CatalogOption = {
   renewalPrice: number | null;
   /** Loyalty points override (null = price ÷ 1,000). */
   pointsEarned: number | null;
+  /** The option's active discount right now, with the prices it gives (null = none). */
+  discount: CatalogDiscount | null;
+};
+
+export type CatalogDiscount = {
+  id: number;
+  kind: "PERCENT" | "AMOUNT";
+  value: number;
+  appliesToRenewals: boolean;
+  endsAt: string | null;
+  /** Whole days until endsAt, computed on the server (null without an end). */
+  endsInDays: number | null;
+  /** What a NEW order of this length costs after the discount (package part). */
+  price: number;
+  /** What a renewal costs after the discount, or null when renewals keep their price. */
+  renewalPrice: number | null;
 };
 
 export type CatalogPackage = {
@@ -95,6 +113,22 @@ export async function getActivePackages(): Promise<CatalogPackage[]> {
     salesByPackageName(),
   ]);
   const optionMap = await optionsByPackage(packages.map((pkg) => pkg.id));
+  const discounts = await activeDiscounts([...optionMap.values()].flat().filter((option) => option.isActive).map((option) => option.id)).catch(() => new Map());
+  const discountFor = (option: { id: number; price: number; renewalPrice: number | null }): CatalogDiscount | null => {
+    const rule = discounts.get(option.id);
+    if (!rule) return null;
+    const renewalBase = option.renewalPrice ?? option.price;
+    return {
+      id: rule.id,
+      kind: rule.kind,
+      value: rule.value,
+      appliesToRenewals: rule.appliesToRenewals,
+      endsAt: rule.endsAt,
+      endsInDays: daysLeft(rule.endsAt),
+      price: option.price - discountAmount(option.price, rule),
+      renewalPrice: rule.appliesToRenewals ? renewalBase - discountAmount(renewalBase, rule) : null,
+    };
+  };
 
   const mapped = packages.flatMap((pkg) => {
     const onSale = (optionMap.get(pkg.id) ?? []).filter((option) => option.isActive);
@@ -120,6 +154,7 @@ export async function getActivePackages(): Promise<CatalogPackage[]> {
           price: option.price,
           renewalPrice: option.renewalPrice,
           pointsEarned: option.pointsEarned ?? null,
+          discount: discountFor(option),
         })),
         description: pkg.description,
         features: splitLines(pkg.specifications),

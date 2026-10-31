@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
+import { DiscountForm } from "@/app/components/admin/catalogue/DiscountForm";
+import { isActiveAt, isScheduled } from "@/src/lib/discounts";
+import { isFullAccess } from "@/src/lib/system";
+import { discountsForOptions } from "@/src/server/discounts";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Eye, Globe, History, Link2, Power } from "lucide-react";
+import { Eye, Globe, History, Link2, Percent, Power } from "lucide-react";
+import { Badge } from "@/app/ui/Badge";
 
 import { PackageForm, ProductActions } from "@/app/components/admin/catalogue/CatalogueClient";
 import { ActiveBadge, CatalogueHeader, CompatChip, TypeBadge } from "@/app/components/admin/catalogue/CatalogueUI";
@@ -35,6 +40,10 @@ export default async function CataloguePackagePage({ params }: { params: Promise
   if (!data) notFound();
 
   const [{ t, lang }, allOptions] = await Promise.all([getI18n(), packageOptions(packageId)]);
+  const canDiscount = isFullAccess(user.role);
+  const now = new Date();
+  // Per length: its live or upcoming discounts (ended and expired ones are history).
+  const discounts = (await discountsForOptions(allOptions.map((option) => option.id))).filter((rule) => isActiveAt(rule, now) || isScheduled(rule, now));
   const { pkg, compatibility, usage, activity } = data;
   // Lengths parked by the server (removed, but kept for past orders) are not edited here.
   const options = allOptions.filter((option) => option.durationMonths > 0);
@@ -85,6 +94,39 @@ export default async function CataloguePackagePage({ params }: { params: Promise
             // Without the current links the form could overwrite them: don't offer it.
             <SectionError label={t("تعذر تحميل الأجهزة المتوافقة — التعديل غير متاح الآن. حدّث الصفحة.", "Couldn't load compatible devices — editing is unavailable. Refresh the page.")} />
           )}
+
+          <SectionCard title={t("الخصومات", "Discounts")} icon={<Percent size={14} aria-hidden />} action={{ href: "/admin/catalogue/discounts", label: t("كل الخصومات", "All discounts") }} className="mt-5" testId="catalogue-discounts">
+            <p className="text-xs leading-6 text-ink-3">
+              {t(
+                "خصم واحد لكل مدة بنفس الوقت. يطبّق على الاشتراك الجديد، والتجديد بس إذا فعّلته. جهاز VIP يبقى بسعره.",
+                "One discount per length at a time. It applies to new subscriptions, and to renewals only if you tick it. A VIP device keeps its price.",
+              )}
+            </p>
+            <ul className="mt-4 space-y-4">
+              {onSale.map((option) => {
+                const current = discounts.filter((rule) => rule.packageOptionId === option.id);
+                const editing = current[0] ?? null;
+
+                return (
+                  <li key={option.id} className="rounded-2xl border border-line bg-surface-2 p-4" data-testid="discount-option" data-option-id={option.id}>
+                    <p className="nums mb-3 flex flex-wrap items-center gap-2 text-sm font-bold text-ink">
+                      {option.durationLabel} · {formatPrice(option.price, lang)}
+                      {editing ? <Badge tone={isActiveAt(editing, now) ? "success" : "info"}>{isActiveAt(editing, now) ? t("خصم فعّال", "Active") : t("مجدول", "Scheduled")}</Badge> : null}
+                    </p>
+                    {canDiscount ? (
+                      <DiscountForm packageId={pkg.id} option={{ id: option.id, durationLabel: option.durationLabel, price: option.price, renewalPrice: option.renewalPrice }} discount={editing} />
+                    ) : editing ? (
+                      <p className="nums text-sm text-ink-2">{editing.kind === "PERCENT" ? `${editing.value}%` : formatPrice(editing.value, lang)}</p>
+                    ) : (
+                      <EmptyLine>{t("بدون خصم.", "No discount.")}</EmptyLine>
+                    )}
+                    {current.length > 1 ? <p className="mt-2 text-xs text-ink-3">{t(`+${current.length - 1} خصم مجدول بعده`, `+${current.length - 1} more scheduled`)}</p> : null}
+                  </li>
+                );
+              })}
+            </ul>
+            {!canDiscount ? <p className="mt-3 text-xs text-ink-3">{t("إضافة الخصومات وتعديلها لصاحب الصلاحية الكاملة فقط.", "Adding and editing discounts is full-access only.")}</p> : null}
+          </SectionCard>
         </div>
 
         <aside className="min-w-0 space-y-4">
@@ -161,7 +203,7 @@ export default async function CataloguePackagePage({ params }: { params: Promise
                   renewalPrice: pkg.renewalPrice ?? null,
                   durationMonths: pkg.durationMonths,
                   durationLabel: pkg.durationLabel,
-                  options: onSale.map((option) => ({ id: option.id, durationMonths: option.durationMonths, durationLabel: option.durationLabel, price: option.price, renewalPrice: option.renewalPrice, pointsEarned: option.pointsEarned ?? null })),
+                  options: onSale.map((option) => ({ id: option.id, durationMonths: option.durationMonths, durationLabel: option.durationLabel, price: option.price, renewalPrice: option.renewalPrice, pointsEarned: option.pointsEarned ?? null, discount: null })),
                   description: pkg.description,
                   features: splitLines(pkg.specifications),
                   notes: pkg.notes,

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import s from "@/app/components/home/home.module.css";
+import { DealTag, WasPrice, type OptionDeal } from "@/app/components/plans/DealTag";
 import { monthlyEquivalent } from "@/app/ui/PackageCard";
 import { formatPrice, type Lang } from "@/src/lib/i18n";
 import { formatDuration } from "@/src/lib/subscription-duration";
@@ -21,12 +22,14 @@ export type PlanCard = {
   /** VIP only: the cheapest compatible device. */
   deviceFrom?: number | null;
   /** Every length on sale with its price; the fields above are the default one. */
-  options: { id: number; durationMonths: number; price: number; renewalPrice: number | null }[];
+  options: { id: number; durationMonths: number; price: number; renewalPrice: number | null; discount?: OptionDeal | null }[];
 };
 
-type Shown = { plan: PlanCard; option: PlanCard["options"][number] | null; price: number; renewalPrice: number | null; durationMonths: number };
+type Shown = { plan: PlanCard; option: PlanCard["options"][number] | null; price: number; renewalPrice: number | null; durationMonths: number; deal: OptionDeal | null };
 
-const monthly = (card: Shown) => Math.round(card.price / Math.max(1, card.durationMonths));
+/** What the customer pays for the shown length: the discounted price when there is one. */
+const pays = (card: Shown) => card.deal?.price ?? card.price;
+const monthly = (card: Shown) => Math.round(pays(card) / Math.max(1, card.durationMonths));
 
 /**
  * One service's plans as product cards. IPTV gets a length filter over
@@ -41,9 +44,10 @@ export function PlanCards({ lang, service, plans, vipArt }: { lang: Lang; servic
   const [filter, setFilter] = useState<number | "all">("all");
   const durations = [...new Set(plans.flatMap((plan) => plan.options.map((option) => option.durationMonths)))].sort((a, b) => a - b);
   const shown: Shown[] = plans.flatMap((plan): Shown[] => {
-    if (filter === "all") return [{ plan, option: null, price: plan.price, renewalPrice: plan.renewalPrice, durationMonths: plan.durationMonths }];
+    // The "all" card shows the default (shortest) length, which the plan's own fields mirror.
+    if (filter === "all") return [{ plan, option: null, price: plan.price, renewalPrice: plan.renewalPrice, durationMonths: plan.durationMonths, deal: plan.options[0]?.discount ?? null }];
     const option = plan.options.find((item) => item.durationMonths === filter);
-    return option ? [{ plan, option, price: option.price, renewalPrice: option.renewalPrice, durationMonths: option.durationMonths }] : [];
+    return option ? [{ plan, option, price: option.price, renewalPrice: option.renewalPrice, durationMonths: option.durationMonths, deal: option.discount ?? null }] : [];
   });
   const bestId = !isVip && shown.length > 1 ? shown.reduce((best, card) => (monthly(card) < monthly(best) ? card : best)).plan.id : null;
   const linkFor = (card: Shown) =>
@@ -110,13 +114,15 @@ export function PlanCards({ lang, service, plans, vipArt }: { lang: Lang; servic
               ) : null}
               <span className={s.planFoot}>
                 <span>
-                  <span className={`${s.price} nums`}>
+                  {card.deal ? <DealTag deal={card.deal} listPrice={card.price} lang={lang} className="mb-1.5" /> : null}
+                  <span className={`${s.price} nums`} data-testid="package-card-price">
                     {several ? <small>{isAr ? "من " : "from "}</small> : null}
-                    {new Intl.NumberFormat("en-US").format(card.price)}
+                    {card.deal ? <WasPrice price={card.price} lang={lang} /> : null}
+                    {new Intl.NumberFormat("en-US").format(pays(card))}
                     <small>{isAr ? "د.ع" : "IQD"}</small>
                   </span>
                   <span className={`${s.perMonth} nums`} style={{ display: "block" }}>
-                    {isAr ? `≈ ${formatPrice(monthlyEquivalent(card.price, card.durationMonths) ?? 0, lang)} بالشهر` : `≈ ${formatPrice(monthlyEquivalent(card.price, card.durationMonths) ?? 0, lang)} a month`}
+                    {isAr ? `≈ ${formatPrice(monthlyEquivalent(pays(card), card.durationMonths) ?? 0, lang)} بالشهر` : `≈ ${formatPrice(monthlyEquivalent(pays(card), card.durationMonths) ?? 0, lang)} a month`}
                   </span>
                 </span>
                 <span className={`${s.planGo} ${isVip ? s.planGoVip : ""}`} aria-hidden>

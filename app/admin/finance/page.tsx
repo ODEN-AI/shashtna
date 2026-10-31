@@ -341,6 +341,12 @@ function CostSection({ snapshot, lang }: { snapshot: FinanceSnapshot; lang: Lang
           </tbody>
         </table>
       </div>
+      <p className="nums mt-3 text-xs leading-6 text-ink-2" data-testid="discount-totals">
+        {t(
+          `الخصومات: ${snapshot.discounts.current.sales} مبيعة مخفّضة، مجموع الخصم ${money(snapshot.discounts.current.amount, lang)} (الفترة السابقة: ${snapshot.discounts.previous.sales} / ${money(snapshot.discounts.previous.amount, lang)}). الإيراد محسوب بعد الخصم.`,
+          `Discounts: ${snapshot.discounts.current.sales} discounted sales, ${money(snapshot.discounts.current.amount, lang)} given (previous period: ${snapshot.discounts.previous.sales} / ${money(snapshot.discounts.previous.amount, lang)}). Revenue is after discounts.`,
+        )}
+      </p>
       {total.unknownCostSales ? (
         <p className="nums mt-3 flex items-start gap-2 text-xs leading-6 text-warning" data-testid="cost-unknown">
           <AlertTriangle size={14} className="mt-1 shrink-0" aria-hidden />

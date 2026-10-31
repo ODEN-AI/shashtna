@@ -82,6 +82,8 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
     { label: t("الخدمة", "Service"), value: `${order.serviceName} (${order.serviceType})` },
     { label: t("المدة", "Duration"), value: order.durationLabel },
     order.deviceName ? { label: t("الجهاز", "Device"), value: `${order.deviceName}${order.devicePrice ? ` · ${formatPrice(order.devicePrice, lang)}` : ""}` } : null,
+    order.discountIqd && order.listPrice ? { label: t("السعر قبل الخصم", "Price before discount"), value: formatPrice(order.listPrice, lang) } : null,
+    order.discountIqd ? { label: t("الخصم", "Discount"), value: `−${formatPrice(order.discountIqd, lang)}` } : null,
     { label: t("المبلغ", "Amount"), value: formatPrice(order.price, lang) },
     order.channel === "SUPPLIER" ? { label: t("القناة", "Channel"), value: t("عن طريق المورّد", "Through the supplier") } : null,
     // Costs are financial: only for staff who can see Finance.

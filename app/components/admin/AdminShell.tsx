@@ -10,6 +10,7 @@ import {
   BrainCircuit,
   Bell,
   Gift,
+  Percent,
   Boxes,
   Briefcase,
   CircleDollarSign,
@@ -87,6 +88,7 @@ const ICONS: Record<string, typeof Inbox> = {
   audit: ScrollText,
   settings: Settings,
   loyalty: Gift,
+  discounts: Percent,
 };
 
 type Counts = Partial<Record<string, number>>;

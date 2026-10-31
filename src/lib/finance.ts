@@ -44,6 +44,8 @@ export type OrderInput = {
   /** Cost snapshot from completion (null/undefined = unknown). */
   creditCostIqd?: number | null;
   supplierShareIqd?: number | null;
+  /** Discount given on the order (null / 0 = none). */
+  discountIqd?: number | null;
 };
 
 export type ReceiptInput = {
@@ -79,6 +81,8 @@ export type Sale = {
   /** Credit cost in IQD; null = unknown («تكلفة غير معروفة»), never treated as zero. */
   costIqd: number | null;
   supplierShareIqd: number | null;
+  /** Discount given on this sale (0 = none). Revenue is already net of it. */
+  discountIqd: number;
 };
 
 export function parseInstant(value: string | null | undefined) {
@@ -159,6 +163,7 @@ export function recognizeSales(input: {
       channel: normalizeChannel(order.channel),
       costIqd: typeof order.creditCostIqd === "number" ? order.creditCostIqd : null,
       supplierShareIqd: typeof order.supplierShareIqd === "number" ? order.supplierShareIqd : null,
+      discountIqd: typeof order.discountIqd === "number" && order.discountIqd > 0 ? order.discountIqd : 0,
     });
   }
 
@@ -180,6 +185,7 @@ export function recognizeSales(input: {
       channel: "SITE",
       costIqd: null,
       supplierShareIqd: null,
+      discountIqd: 0,
     });
   }
 
@@ -193,6 +199,13 @@ export function inRange(date: Date | null, range: Range) {
 /** Revenue, credit cost, supplier share and net profit by channel for a range (unknown costs flagged). */
 export function costProfit(sales: Sale[], range: Range) {
   return profitByChannel(sales.filter((sale) => inRange(sale.at, range)));
+}
+
+/** Discounted sales in a range and the total discount given. */
+export function discountTotals(sales: Sale[], range: Range) {
+  const discounted = sales.filter((sale) => sale.discountIqd > 0 && inRange(sale.at, range));
+
+  return { sales: discounted.length, amount: discounted.reduce((sum, sale) => sum + sale.discountIqd, 0) };
 }
 
 export function sumSales(sales: Sale[], range: Range) {

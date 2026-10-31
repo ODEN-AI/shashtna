@@ -4,13 +4,21 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 
+import { DealTag, WasPrice, type OptionDeal } from "@/app/components/plans/DealTag";
 import { monthlyEquivalent } from "@/app/ui/PackageCard";
 import { formatPrice, translator, type Lang } from "@/src/lib/i18n";
 import { formatDuration } from "@/src/lib/subscription-duration";
 
 import p from "./plan.module.css";
 
-export type BuyOption = { id: number; durationMonths: number; durationLabel: string; price: number; renewalPrice: number | null };
+export type BuyOption = {
+  id: number;
+  durationMonths: number;
+  durationLabel: string;
+  price: number;
+  renewalPrice: number | null;
+  discount?: (OptionDeal & { appliesToRenewals: boolean; renewalPrice: number | null }) | null;
+};
 
 /**
  * The buying part of a plan's page: the lengths it is sold in (when there
@@ -44,7 +52,12 @@ export function PlanBuy({
   const t = translator(lang);
   const [selectedId, setSelectedId] = useState(initialId);
   const selected = options.find((option) => option.id === selectedId) ?? options[0];
-  const perMonth = monthlyEquivalent(selected.price, selected.durationMonths);
+  // A renewal (renew=… in the address) keeps its price unless the discount covers renewals.
+  const renewing = carry.startsWith("renew=");
+  const deal = selected.discount && (!renewing || selected.discount.appliesToRenewals) ? selected.discount : null;
+  const listPrice = renewing ? (selected.renewalPrice ?? selected.price) : selected.price;
+  const pays = deal ? (renewing ? (deal.renewalPrice ?? listPrice) : deal.price) : listPrice;
+  const perMonth = monthlyEquivalent(pays, selected.durationMonths);
   const orderHref = `/checkout?plan=${encodeURIComponent(slug)}&option=${selected.id}${carry ? `&${carry}` : ""}`;
 
   return (
@@ -76,7 +89,7 @@ export function PlanBuy({
                     {active ? <Check size={14} /> : null}
                   </span>
                   <span className={`${p.lengthName} nums`}>{formatDuration(option.durationMonths, lang)}</span>
-                  <span className={`${p.lengthPrice} nums`}>{formatPrice(option.price, lang)}</span>
+                  <span className={`${p.lengthPrice} nums`}>{formatPrice(option.discount && !renewing ? option.discount.price : option.price, lang)}</span>
                 </label>
               );
             })}
@@ -84,9 +97,11 @@ export function PlanBuy({
         </fieldset>
       ) : null}
 
+      {deal ? <DealTag deal={deal} listPrice={listPrice} lang={lang} className="mb-2" /> : null}
       <div className={p.priceRow}>
         <span className={`${p.price} nums`} data-testid="plan-price" data-option-id={selected.id}>
-          {new Intl.NumberFormat("en-US").format(selected.price)}
+          {deal ? <WasPrice price={listPrice} lang={lang} /> : null}
+          {new Intl.NumberFormat("en-US").format(pays)}
           <small>{t("د.ع", "IQD")}</small>
         </span>
         <span className={`${p.perMonth} nums`}>

@@ -96,7 +96,7 @@ export function parsePackageOptions(raw: unknown, serviceType: "IPTV" | "VIP" | 
     let durationMonths: number = VIP_DURATION_MONTHS;
     let durationUnit: DurationUnit = "MONTH";
 
-    if (serviceType === "IPTV") {
+    if (serviceType !== "VIP") {
       const duration = parseDuration(row.durationValue, row.durationUnit);
       if (!duration.ok) return { ok: false, error: `${position}: ${duration.error}` };
       durationMonths = duration.months;

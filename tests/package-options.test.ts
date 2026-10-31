@@ -50,6 +50,48 @@ test("any length the system supports: 1 to 60 months, not only 3/6/12/24", () =>
   assert.equal(options.parsePackageOptions([{ durationValue: 3, durationUnit: "DAY", price: 1000 }], "IPTV").ok, false, "days are not a unit");
 });
 
+test("DIGITAL packages preserve supported month and year lengths", () => {
+  const inputs = [
+    { durationValue: 1, durationUnit: "MONTH", months: 1 },
+    { durationValue: 7, durationUnit: "MONTH", months: 7 },
+    { durationValue: 1, durationUnit: "YEAR", months: 12 },
+    { durationValue: 2, durationUnit: "YEAR", months: 24 },
+  ] as const;
+
+  for (const input of inputs) {
+    const result = options.parsePackageOptions(
+      [{ durationValue: input.durationValue, durationUnit: input.durationUnit, price: 1000 }],
+      "DIGITAL",
+    );
+    assert.ok(result.ok, `${input.durationValue} ${input.durationUnit}`);
+    assert.equal(result.options[0].durationMonths, input.months);
+    assert.equal(result.options[0].durationUnit, input.durationUnit);
+  }
+});
+
+test("DIGITAL package durations reject invalid values and duplicates", () => {
+  for (const bad of [0, -1, 1.5, "6", 61]) {
+    assert.equal(
+      options.parsePackageOptions([{ durationValue: bad, durationUnit: "MONTH", price: 1000 }], "DIGITAL").ok,
+      false,
+      String(bad),
+    );
+  }
+
+  for (const [value, unit] of [[6, "YEAR"], [3, "DAY"]] as const) {
+    assert.equal(options.parsePackageOptions([{ durationValue: value, durationUnit: unit, price: 1000 }], "DIGITAL").ok, false);
+  }
+
+  const duplicate = options.parsePackageOptions(
+    [
+      { durationValue: 12, durationUnit: "MONTH", price: 15000 },
+      { durationValue: 1, durationUnit: "YEAR", price: 14000 },
+    ],
+    "DIGITAL",
+  );
+  assert.equal(duplicate.ok, false, "12 months and 1 year are duplicate lengths");
+});
+
 test("prices are validated per option, never coerced", () => {
   for (const price of [-1, 1.5, "6000", null, undefined, 1e12]) {
     assert.equal(options.parsePackageOptions([{ durationValue: 3, durationUnit: "MONTH", price }], "IPTV").ok, false, String(price));

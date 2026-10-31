@@ -94,6 +94,8 @@ const password = `Pw-${RUN}-ok`;
 const phones = { customer: `0795${RUN}`, staff: `0796${RUN}` };
 const slug = `e2e-${RUN}-options`;
 const otherSlug = `e2e-${RUN}-other`;
+const digitalSlug = `e2e-${RUN}-digital`;
+const digitalGroupSlug = `e2e-${RUN}-digital-group`;
 let customer, staff, customerId, packageId, otherPackageId;
 const optionIds = {};
 const orders = {};
@@ -172,6 +174,35 @@ try {
     assert.equal(vip.status, 400, "VIP keeps one three-month length");
     assert.equal(await sql(`select count(*) from package where slug like 'e2e-${RUN}-bad-%'`), "0");
     assert.equal((await call("POST", "/api/admin/packages", { token: customer, body: { ...base, slug: `e2e-${RUN}-bad-x`, options: [{ durationValue: 3, durationUnit: "MONTH", price: 1 }] } })).status, 403);
+  });
+
+  await check("admin creates and edits a DIGITAL package without replacing its duration with three months", async () => {
+    const groupId = Number(await sql(`insert into "packageGroup" ("name", "slug", "accent", "surface", "updatedAt") values ('E2E Digital ${RUN}', '${digitalGroupSlug}', '#b69cff', '#120b2a', now()) returning id`));
+    assert.ok(Number.isInteger(groupId) && groupId > 0, "a throwaway DIGITAL group was created locally");
+
+    const created = await call("POST", "/api/admin/packages", {
+      token: staff,
+      body: {
+        name: `E2E Digital ${RUN}`,
+        slug: digitalSlug,
+        serviceType: "DIGITAL",
+        groupId,
+        isActive: true,
+        options: [{ durationValue: 1, durationUnit: "MONTH", price: 1000 }],
+      },
+    });
+    assert.equal(created.status, 201, created.data?.message);
+    const id = created.data.package.id;
+    assert.deepEqual(await optionRows(id), ["1:1000:-:true"], "POST stores one month");
+    assert.equal(await sql(`select "durationMonths" from package where id=${id}`), "1", "POST mirrors the one-month default");
+
+    const edited = await call("PATCH", `/api/admin/packages/${id}`, {
+      token: staff,
+      body: { options: [{ durationValue: 2, durationUnit: "MONTH", price: 1800 }] },
+    });
+    assert.equal(edited.status, 200, edited.data?.message);
+    assert.deepEqual(await optionRows(id), ["2:1800:-:true"], "PATCH stores the submitted two-month length");
+    assert.equal(await sql(`select "durationMonths" from package where id=${id}`), "2", "PATCH mirrors the two-month default");
   });
 
   await check("admin edits lengths in the package form: change a price, remove one, add one", async () => {
@@ -372,6 +403,7 @@ try {
     await sql(`delete from "packageOption" where "packageId" in (select id from package where slug like 'e2e-${RUN}-%')`);
     await sql(`delete from "activityEvent" where "entityType"='PACKAGE' and "entityId" in (select id::text from package where slug like 'e2e-${RUN}-%')`);
     await sql(`delete from package where slug like 'e2e-${RUN}-%'`);
+    await sql(`delete from "packageGroup" where slug='${digitalGroupSlug}'`);
   } catch (error) {
     console.error("cleanup failed:", String(error?.message ?? error).split("\n")[0]);
   }

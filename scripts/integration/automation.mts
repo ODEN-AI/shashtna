@@ -179,6 +179,7 @@ try {
   await db.orm.public.Notification.where((n) => n.userId.in([owner.id, operator.id])).deleteAndCount();
   // Other local full-access staff got day notifications too; they carry the 2031 dedupe keys.
   await db.orm.public.Notification.where((n) => n.dedupeKey.like("daily-digest:2031-03-%")).deleteAndCount();
+  await db.orm.public.OutboxMessage.where((m) => m.dedupeKey.like("daily-digest:2031-03-%")).deleteAndCount();
   await db.orm.public.ActivityEvent.where((event) => event.createdAt.gte(start)).deleteAndCount();
   await db.orm.public.Subscription.where((s) => s.id.in(subIds)).deleteAndCount();
   await db.orm.public.SiteSetting.where((s) => s.key.like("automation.%")).deleteAndCount();

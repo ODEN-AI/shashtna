@@ -240,7 +240,8 @@ test("retry eligibility: never after SUCCEEDED, at most 3 attempts, backoff resp
   // RUNNING: busy while fresh; re-claimed once it was cut off (30 min).
   assert.equal(a.runDecision({ ...failed, status: "RUNNING", startedAt: "2026-11-06T03:45:00.000Z" }, now), "BUSY");
   assert.equal(a.runDecision({ ...failed, status: "RUNNING", startedAt: "2026-11-06T03:15:00.000Z" }, now), "RECLAIM");
-  assert.equal(a.runDecision({ ...failed, status: "RUNNING", attempts: 3, startedAt: "2026-11-06T03:15:00.000Z" }, now), "BUSY");
+  assert.equal(a.runDecision({ ...failed, status: "RUNNING", attempts: 3, startedAt: "2026-11-06T03:45:00.000Z" }, now), "BUSY", "a fresh last attempt");
+  assert.equal(a.runDecision({ ...failed, status: "RUNNING", attempts: 3, startedAt: "2026-11-06T03:15:00.000Z" }, now), "EXPIRE", "a cut-off last attempt is closed, not left RUNNING");
 });
 
 test("error history: appended per attempt, error text capped, phones and e-mails masked", () => {
@@ -254,6 +255,8 @@ test("error history: appended per attempt, error text capped, phones and e-mails
   assert.equal(JSON.parse(a.appendError("not json", { attempt: 1, at: "t", error: "e" })).length, 1);
   assert.equal(a.safeError("duplicate key (phone)=(07701234567) for ali@example.com"), "duplicate key (phone)=(…) for …@…");
   assert.equal(a.safeError("timeout after 30s on id 42"), "timeout after 30s on id 42");
+  assert.equal(a.safeError('invalid input syntax for type timestamp: "2026-11-06 03:00:00" after 1500000 ms'), 'invalid input syntax for type timestamp: "2026-11-06 03:00:00" after 1500000 ms', "dates and timings stay readable");
+  assert.equal(a.safeError("sent to +9647701234567, 0770 123 4567 and 770-123-4567"), "sent to …, … and …");
 });
 
 test("heartbeat: from 09:00 Baghdad, only switched-on jobs without a SUCCEEDED run today", () => {
@@ -268,6 +271,11 @@ test("heartbeat: from 09:00 Baghdad, only switched-on jobs without a SUCCEEDED r
   assert.deepEqual(a.missedJobs({ enabled: false, jobs, succeededToday: [] }, at9), [], "automation off → no alert");
   assert.deepEqual(a.missedJobs({ enabled: true, jobs: { ...jobs, "customer-reminders": true }, succeededToday: ["daily-digest"] }, at("2026-11-06T20:30:00Z")), ["customer-reminders"], "23:30 is still today");
   assert.deepEqual(a.missedJobs({ enabled: true, jobs, succeededToday: [] }, at("2026-11-06T21:30:00Z")), [], "00:30 next day is before 09:00 again");
+  // Switched on after today's 06:00 run: nothing was scheduled yet, so no alarm until tomorrow.
+  assert.equal(a.morningRunAt(at("2026-11-06T11:00:00Z")).toISOString(), "2026-11-06T03:00:00.000Z");
+  assert.deepEqual(a.missedJobs({ enabled: true, jobs, succeededToday: [], switchedOnAt: { "daily-digest": "2026-11-06T11:00:00.000Z" } }, at("2026-11-06T11:20:00Z")), []);
+  assert.deepEqual(a.missedJobs({ enabled: true, jobs, succeededToday: [], switchedOnAt: { "daily-digest": "2026-11-06T02:00:00.000Z" } }, at("2026-11-06T11:20:00Z")), ["daily-digest"], "switched on before 06:00 → it should have run");
+  assert.deepEqual(a.missedJobs({ enabled: true, jobs, succeededToday: [], switchedOnAt: { "daily-digest": "2026-11-05T11:00:00.000Z" } }, at("2026-11-06T11:20:00Z")), ["daily-digest"], "switched on yesterday");
 });
 
 test("outbox retry eligibility: FAILED once due, PENDING after a 10-minute grace, never SENT/SKIPPED or out of attempts", () => {

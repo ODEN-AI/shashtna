@@ -29,7 +29,8 @@ if (host !== "localhost" && host !== "127.0.0.1") {
 }
 
 const { db } = await import("@/src/prisma/db");
-const { automationMaintenance, retryOutboxMessage, runJob } = await import("@/src/server/automation");
+const { automationMaintenance, deliverOutbox, retryOutboxMessage, runJob } = await import("@/src/server/automation");
+const sql = db.raw.sql;
 
 const R = Date.now().toString().slice(-7);
 const start = new Date(Date.now() - 60_000).toISOString();
@@ -89,7 +90,7 @@ try {
     assert.doesNotMatch(String(row?.error), /07701234567/, "the phone in the error is masked");
 
     const early = await automationMaintenance(t(`${D1}T03:05:00Z`));
-    assert.equal((early as { retried?: Record<string, string> }).retried?.["daily-digest"], "SKIPPED:RETRY_LATER");
+    assert.equal((early as { retried?: Record<string, string> }).retried?.["daily-digest"], undefined, "not due yet: left alone, nothing logged");
     assert.equal((await run(D1))?.attempts, 1);
 
     fixJob();
@@ -122,7 +123,7 @@ try {
     assert.equal(row?.nextAttemptAt ?? null, null);
     assert.equal(JSON.parse(String(row?.errorLog)).length, 3);
     fixJob();
-    assert.equal(((await automationMaintenance(t(`${D2}T05:21:00Z`))) as { retried?: Record<string, string> }).retried?.["daily-digest"], "SKIPPED:GAVE_UP");
+    assert.equal(((await automationMaintenance(t(`${D2}T05:21:00Z`))) as { retried?: Record<string, string> }).retried?.["daily-digest"], undefined, "given up: left alone, nothing logged");
     assert.equal(((await runJob("daily-digest", { trigger: "MANUAL", actor: ownerActor, now: t(`${D2}T05:30:00Z`) })) as { reason?: string }).reason, "GAVE_UP");
     assert.equal((await run(D2))?.attempts, 3);
   });
@@ -144,11 +145,36 @@ try {
 
   await check("a cut-off RUNNING run is re-claimed after 30 minutes and finishes", async () => {
     await db.orm.public.AutomationRun.create({ job: "daily-digest", runKey: keys[2], status: "RUNNING", attempts: 1, trigger: "SCHEDULE", startedAt: `${D3}T03:00:00.000Z` });
-    assert.equal(((await automationMaintenance(t(`${D3}T03:20:00Z`))) as { retried?: Record<string, string> }).retried?.["daily-digest"], "SKIPPED:BUSY", "still fresh");
+    assert.equal(((await automationMaintenance(t(`${D3}T03:20:00Z`))) as { retried?: Record<string, string> }).retried?.["daily-digest"], undefined, "still fresh: left alone");
     assert.equal(((await automationMaintenance(t(`${D3}T03:40:00Z`))) as { retried?: Record<string, string> }).retried?.["daily-digest"], "SUCCEEDED");
     const row = await run(D3);
     assert.equal(row?.attempts, 2);
     assert.match(String(row?.errorLog), /cut off/);
+  });
+
+  await check("a cut-off LAST attempt is closed as FAILED for good (never left RUNNING), with the cut-off in its history", async () => {
+    await db.orm.public.AutomationRun.where({ runKey: keys[2] }).update({ status: "RUNNING", attempts: 3, startedAt: `${D3}T04:00:00.000Z`, finishedAt: null });
+    assert.equal(((await automationMaintenance(t(`${D3}T04:20:00Z`))) as { retried?: Record<string, string> }).retried?.["daily-digest"], undefined, "fresh: left alone");
+    const closed = await automationMaintenance(t(`${D3}T04:40:00Z`));
+    assert.equal((closed as { retried?: Record<string, string> }).retried?.["daily-digest"], "SKIPPED:GAVE_UP");
+    const row = await run(D3);
+    assert.equal(row?.status, "FAILED");
+    assert.equal(row?.attempts, 3);
+    assert.equal(row?.nextAttemptAt ?? null, null);
+    assert.match(String(row?.errorLog), /"attempt":3,[^}]*cut off/);
+    // Once given up, the hourly pass doesn't touch (or log) it again.
+    const quiet = await automationMaintenance(t(`${D3}T05:40:00Z`));
+    assert.equal((quiet as { retried?: Record<string, string> }).retried?.["daily-digest"], undefined);
+  });
+
+  await check("heartbeat: no false alarm for a job switched on after that day's 06:00 run", async () => {
+    // D3's run gave up above. Pin when the job switch was saved, then check at 15:00 Baghdad that day.
+    const savedAt = async (iso: string) =>
+      db.runtime().query(sql`UPDATE "public"."siteSetting" SET "updatedAt" = ${iso}::timestamptz WHERE "key" = 'automation.job.dailyDigest' RETURNING "id"`.returnsRow({ id: "pg/int4@1" }).build()).toArray();
+    await savedAt(`${D3}T11:00:00.000Z`);
+    assert.deepEqual(((await automationMaintenance(t(`${D3}T12:00:00Z`))) as { missed?: string[] }).missed, [], "switched on at 14:00, after the 06:00 run");
+    await savedAt(`${D3}T02:00:00.000Z`);
+    assert.deepEqual(((await automationMaintenance(t(`${D3}T12:00:00Z`))) as { missed?: string[] }).missed, ["daily-digest"], "switched on before 06:00: it should have run");
   });
 
   await check("kill switch: a job switched off mid-retry stops cleanly (SKIPPED) and stays FAILED", async () => {
@@ -194,6 +220,14 @@ try {
     assert.equal(gaveUp?.status, "FAILED");
     assert.equal(gaveUp?.attempts, 3);
     assert.equal(gaveUp?.nextAttemptAt ?? null, null);
+  });
+
+  await check("two deliveries of the same row at once: one notification, and the row ends SENT", async () => {
+    const row = await db.orm.public.OutboxMessage.create({ channel: "IN_APP", template: "expiry-day", userId: customer.id, dedupeKey: `retry-race:${R}`, status: "PENDING", attempts: 0, payload: JSON.stringify({ notification: { type: "RENEWAL_REMINDER", title: "race", body: "b", link: null } }) });
+    const results = await Promise.all([deliverOutbox(row.id), deliverOutbox(row.id), deliverOutbox(row.id)]);
+    assert.ok(results.some((result) => result.delivered));
+    assert.equal((await db.orm.public.Notification.where({ dedupeKey: row.dedupeKey }).all()).length, 1);
+    assert.equal((await db.orm.public.OutboxMessage.first({ id: row.id }))?.status, "SENT");
   });
 
   await check("manual outbox retry: owner only, idempotent, logged", async () => {

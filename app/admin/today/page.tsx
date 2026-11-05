@@ -90,7 +90,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       {health.missed.length ? (
         <Notice tone="danger" title={t("المهمة الصباحية ما اشتغلت اليوم", "The morning job didn't run today")}>
           <span data-testid="today-heartbeat">
-            {t(`ما نجح اليوم لحد هسه: ${health.missed.map((job) => JOB_LABELS[job]).join("، ")}. `, `Not succeeded yet today: ${health.missed.join(", ")}. `)}
+            {t(`ما نجح اليوم لحد هسه: ${health.missed.map((job) => JOB_LABELS[job].ar).join("، ")}. `, `Not succeeded yet today: ${health.missed.map((job) => JOB_LABELS[job].en).join(", ")}. `)}
             <Link href="/admin/jobs" className="font-semibold underline">
               {t("افتح «المهام»", "Open Jobs")}
             </Link>

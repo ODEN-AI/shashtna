@@ -272,7 +272,7 @@ export function nextRetryAt(attempts: number, failedAt: Date) {
 
 export type RunRow = { status: string; attempts: number; startedAt: string; nextAttemptAt: string | null };
 
-export type RunDecision = "NEW" | "RETRY" | "RECLAIM" | "DONE" | "BUSY" | "WAIT" | "GAVE_UP";
+export type RunDecision = "NEW" | "RETRY" | "RECLAIM" | "EXPIRE" | "DONE" | "BUSY" | "WAIT" | "GAVE_UP";
 
 /**
  * What a trigger may do with today's run row. A SUCCEEDED run is never re-run;
@@ -285,8 +285,13 @@ export function runDecision(row: RunRow | null, now: Date, manual = false): RunD
   const status = row.status.toUpperCase();
 
   if (status === "SUCCEEDED") return "DONE";
-  if (row.attempts >= MAX_ATTEMPTS) return status === "RUNNING" ? "BUSY" : "GAVE_UP";
-  if (status === "RUNNING") return now.getTime() - Date.parse(row.startedAt) > STALE_RUN_MINUTES * 60_000 ? "RECLAIM" : "BUSY";
+  if (status === "RUNNING") {
+    if (now.getTime() - Date.parse(row.startedAt) <= STALE_RUN_MINUTES * 60_000) return "BUSY";
+
+    // Cut off: re-claim it while attempts remain; the last one is closed as FAILED for good.
+    return row.attempts >= MAX_ATTEMPTS ? "EXPIRE" : "RECLAIM";
+  }
+  if (row.attempts >= MAX_ATTEMPTS) return "GAVE_UP";
   if (status !== "FAILED") return "DONE";
   if (manual || !row.nextAttemptAt || now.getTime() >= Date.parse(row.nextAttemptAt)) return "RETRY";
 
@@ -307,11 +312,11 @@ export function appendError(log: string | null | undefined, entry: { attempt: nu
   return JSON.stringify([...list, { ...entry, error: entry.error.slice(0, 300) }].slice(-MAX_ATTEMPTS * 2));
 }
 
-/** Error text for the run history and the jobs page: long digit runs (phones, ids in values) and e-mails are masked. */
+/** Error text for the run history and the jobs page: phone numbers and e-mails are masked; dates, ids and timings stay readable. */
 export function safeError(message: string) {
   return message
     .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "…@…")
-    .replace(/\+?\d[\d\s-]{6,}\d/g, "…")
+    .replace(/(?:\+|00)?964[\s-]?7\d{2}[\s-]?\d{3}[\s-]?\d{4}|\b0?7\d{2}[\s-]?\d{3}[\s-]?\d{4}\b|\+\d{8,15}\b/g, "…")
     .slice(0, 300);
 }
 
@@ -322,11 +327,29 @@ export function baghdadMinutes(now: Date) {
   return (now.getUTCHours() * 60 + now.getUTCMinutes() + 3 * 60) % (24 * 60);
 }
 
-/** Switched-on jobs with no SUCCEEDED run today, once it is 09:00 Baghdad or later. */
-export function missedJobs(input: { enabled: boolean; jobs: Record<Job, boolean>; succeededToday: Job[] }, now: Date): Job[] {
+/** Today's 06:00 Baghdad, when the morning jobs are scheduled. */
+export function morningRunAt(now: Date) {
+  return new Date(`${businessDay(now)}T03:00:00.000Z`);
+}
+
+/**
+ * Switched-on jobs with no SUCCEEDED run today, once it is 09:00 Baghdad or
+ * later. A job (or automation) switched on after today's 06:00 run had nothing
+ * scheduled yet, so it is not reported until tomorrow.
+ */
+export function missedJobs(
+  input: { enabled: boolean; jobs: Record<Job, boolean>; succeededToday: Job[]; switchedOnAt?: Partial<Record<Job, string | null>> },
+  now: Date,
+): Job[] {
   if (!input.enabled || baghdadMinutes(now) < HEARTBEAT_HOUR * 60) return [];
 
-  return JOBS.filter((job) => input.jobs[job] && !input.succeededToday.includes(job));
+  const morning = morningRunAt(now).getTime();
+
+  return JOBS.filter((job) => {
+    const since = input.switchedOnAt?.[job];
+
+    return input.jobs[job] && !input.succeededToday.includes(job) && !(since && Date.parse(since) > morning);
+  });
 }
 
 /** The outbox row a retry pass may pick up: due, attempts left, never a SENT/SKIPPED one. */

@@ -56,6 +56,12 @@ const SITE_URL = (process.env.URL || "https://shashtna.netlify.app").replace(/\/
 export async function automationSettings() {
   const rows = await db.orm.public.SiteSetting.where((s) => s.key.like("automation.%")).all().toArray().catch(() => []);
   const value = (key: string, fallback: string) => rows.find((row) => row.key === key)?.value ?? fallback;
+  const changedAt = (key: string) => {
+    const at = rows.find((row) => row.key === key)?.updatedAt;
+    return at ? String(at) : null;
+  };
+  // When a job last became able to run: the later of its own switch and the master switch.
+  const switchedOnAt = (key: string) => [changedAt("automation.enabled"), changedAt(key)].filter((at): at is string => Boolean(at)).sort((a, b) => Date.parse(b) - Date.parse(a))[0] ?? null;
 
   return {
     enabled: value("automation.enabled", "off") === "on",
@@ -65,6 +71,10 @@ export async function automationSettings() {
       "customer-reminders": value("automation.job.customerReminders", "off") === "on",
     } as Record<Job, boolean>,
     quietHours: value("automation.quietHours", "22:00-09:00"),
+    switchedOnAt: {
+      "daily-digest": switchedOnAt("automation.job.dailyDigest"),
+      "customer-reminders": switchedOnAt("automation.job.customerReminders"),
+    } as Record<Job, string | null>,
   };
 }
 
@@ -187,6 +197,7 @@ export async function dailyList(now = new Date()) {
           enabled: settings.enabled,
           jobs: settings.jobs,
           succeededToday: [lastRun?.runKey === todayKey && lastRun.status === "SUCCEEDED" ? "daily-digest" : null, lastReminders?.status === "SUCCEEDED" ? "customer-reminders" : null].filter((job): job is Job => job !== null),
+          switchedOnAt: settings.switchedOnAt,
         },
         now,
       ),
@@ -290,6 +301,20 @@ export async function runJob(job: Job, options: { trigger: Trigger; actor?: Acto
       return { id: inserted[0]?.id ?? null, attempt: 1, reason: "DUPLICATE", reclaimed: false };
     }
 
+    if (decision === "EXPIRE") {
+      await tx
+        .query(
+          sql`UPDATE "public"."automationRun"
+            SET "status" = 'FAILED', "error" = 'cut off before finishing', "nextAttemptAt" = NULL, "finishedAt" = ${now.toISOString()}::timestamptz
+            WHERE "id" = ${row!.id} RETURNING "id"`
+            .returnsRow({ id: "pg/int4@1" })
+            .build(),
+        )
+        .toArray();
+
+      return { id: null, attempt: row!.attempts, reason: "GAVE_UP", reclaimed: false, expiredId: row!.id };
+    }
+
     if (decision === "RETRY" || decision === "RECLAIM") {
       const updated = await tx
         .query(
@@ -307,6 +332,12 @@ export async function runJob(job: Job, options: { trigger: Trigger; actor?: Acto
 
     return { id: null, attempt: row?.attempts ?? 0, reason: { DONE: "DUPLICATE", BUSY: "BUSY", WAIT: "RETRY_LATER", GAVE_UP: "GAVE_UP" }[decision], reclaimed: false };
   });
+
+  if ("expiredId" in claimed && claimed.expiredId) {
+    const previous = await db.orm.public.AutomationRun.first({ id: claimed.expiredId });
+    await db.orm.public.AutomationRun.where({ id: claimed.expiredId }).update({ errorLog: appendError(previous?.errorLog, { attempt: claimed.attempt, at: clock().toISOString(), error: "cut off before finishing" }) });
+    await logActivity({ actor: options.actor ?? null, entityType: "SETTING", action: "AUTOMATION_RUN_FAILED", summary: `فشل تشغيل ${job} نهائياً: انقطعت المحاولة ${claimed.attempt}`, details: JSON.stringify({ runKey: key, attempt: claimed.attempt, error: "cut off before finishing" }) });
+  }
 
   if (claimed.id === null) return { ok: true, status: "SKIPPED", runKey: key, reason: claimed.reason };
 
@@ -458,27 +489,20 @@ async function customerReminders(now: Date, dryRun: boolean) {
 
       // A dry run records under its own per-day key, so it never blocks the real reminder of that cycle.
       const key = dryRun ? `dryrun:${runKey("customer-reminders", now)}:${reminderDedupeKey(reminder, row.id, endDate)}` : reminderDedupeKey(reminder, row.id, endDate);
-      const inserted = await db
-        .runtime()
-        .query(
-          sql`INSERT INTO "public"."outboxMessage" ("channel", "template", "userId", "payload", "dedupeKey", "status", "attempts")
-            VALUES ('IN_APP', ${reminder}, ${row.userId}, ${JSON.stringify({ subscriptionId: row.id, endDate })}, ${key}, ${dryRun ? "SKIPPED" : "PENDING"}, 0)
-            ON CONFLICT ("dedupeKey") DO NOTHING RETURNING "id"`
-            .returnsRow({ id: "pg/int4@1" })
-            .build(),
-        )
-        .toArray();
-      const outboxId = inserted[0]?.id;
 
-      if (!outboxId) {
+      if (await db.orm.public.OutboxMessage.first({ dedupeKey: key })) {
         stats.alreadyRecorded += 1;
         continue;
       }
 
-      stats.recorded += 1;
-
-      if (dryRun) continue;
-
+      // The link carries the row's own id (?r=), so take the id first and write the row
+      // with its whole payload in one statement: a run cut off mid-way never leaves a
+      // row the outbox retries can't deliver.
+      const reserved = await db
+        .runtime()
+        .query(sql`SELECT nextval(pg_get_serial_sequence('"public"."outboxMessage"', 'id'))::int4 AS "id"`.returnsRow({ id: "pg/int4@1" }).build())
+        .toArray();
+      const outboxId = reserved[0]!.id;
       const optionId = lastOption.get(row.id);
       const option = optionId ? optionById.get(optionId) : undefined;
       const rule = option ? discounts.get(option.id) : null;
@@ -490,12 +514,28 @@ async function customerReminders(now: Date, dryRun: boolean) {
       const en = renderInAppReminder(reminder, { ...data, discountLabel: discountLabelEn }, "en");
       const link = reminderLink({ subscriptionId: row.id, optionId: option?.id ?? null, outboxId, openOrderId });
 
-      if (openOrderId) stats.openOrders += 1;
-
       // The whole event is kept for push (Chapter 2): template, link and both languages; no phone or credentials.
       const notification = { type: reminder === "win-back" ? "SUBSCRIPTION_EXPIRED" : "RENEWAL_REMINDER", title: ar.title, body: ar.body, link };
+      const inserted = await db
+        .runtime()
+        .query(
+          sql`INSERT INTO "public"."outboxMessage" ("id", "channel", "template", "userId", "payload", "dedupeKey", "status", "attempts")
+            VALUES (${outboxId}, 'IN_APP', ${reminder}, ${row.userId}, ${JSON.stringify({ subscriptionId: row.id, endDate, link, openOrderId, pushEligible: true, ar, en, notification })}, ${key}, ${dryRun ? "SKIPPED" : "PENDING"}, 0)
+            ON CONFLICT ("dedupeKey") DO NOTHING RETURNING "id"`
+            .returnsRow({ id: "pg/int4@1" })
+            .build(),
+        )
+        .toArray();
 
-      await db.orm.public.OutboxMessage.where({ id: outboxId }).update({ payload: JSON.stringify({ subscriptionId: row.id, endDate, link, openOrderId, pushEligible: true, ar, en, notification }) });
+      if (!inserted[0]) {
+        stats.alreadyRecorded += 1;
+        continue;
+      }
+
+      stats.recorded += 1;
+
+      if (dryRun) continue;
+      if (openOrderId) stats.openOrders += 1;
 
       if ((await deliverOutbox(outboxId, now)).delivered) stats.created += 1;
       else stats.failed += 1;
@@ -611,8 +651,18 @@ export async function deliverOutbox(id: number, now = new Date()) {
   }
 
   const retryAt = payload.notification ? nextRetryAt(attempt, now) : null;
+  // A concurrent delivery may have sent it meanwhile (its notify won the dedupe key): never overwrite SENT.
+  const failed = await db
+    .runtime()
+    .query(
+      sql`UPDATE "public"."outboxMessage" SET "status" = 'FAILED', "attempts" = "attempts" + 1, "nextAttemptAt" = NULLIF(${retryAt ? retryAt.toISOString() : ""}, '')::timestamptz
+        WHERE "id" = ${id} AND "status" NOT IN ('SENT', 'SKIPPED') RETURNING "id"`
+        .returnsRow({ id: "pg/int4@1" })
+        .build(),
+    )
+    .toArray();
 
-  await db.orm.public.OutboxMessage.where({ id }).update({ status: "FAILED", attempts: attempt, nextAttemptAt: retryAt?.toISOString() ?? null });
+  if (!failed[0]) return { delivered: true, reason: null };
 
   return { delivered: false, reason: retryAt ? ("RETRY_LATER" as const) : ("GAVE_UP" as const) };
 }
@@ -656,8 +706,10 @@ export async function automationMaintenance(now = new Date()) {
     if (!settings.jobs[job]) continue;
 
     const row = await db.orm.public.AutomationRun.first({ runKey: runKey(job, now) });
+    const decision = row ? runDecision({ status: row.status, attempts: row.attempts, startedAt: String(row.startedAt), nextAttemptAt: row.nextAttemptAt ? String(row.nextAttemptAt) : null }, now) : null;
 
-    if (row && (row.status === "FAILED" || row.status === "RUNNING")) {
+    // Only when there is something to do: a due retry, a cut-off run to re-claim or to close.
+    if (decision === "RETRY" || decision === "RECLAIM" || decision === "EXPIRE") {
       const result = await runJob(job, { trigger: "RETRY", now });
       retried[job] = result.ok ? `${result.status}${result.reason ? `:${result.reason.slice(0, 40)}` : ""}` : "ERROR";
     }
@@ -673,12 +725,12 @@ export async function automationMaintenance(now = new Date()) {
   }
 
   const todays = await db.orm.public.AutomationRun.where((r) => r.runKey.in(JOBS.map((job) => runKey(job, now)))).all();
-  const missed = missedJobs({ enabled: settings.enabled, jobs: settings.jobs, succeededToday: todays.filter((r) => r.status === "SUCCEEDED").map((r) => r.job as Job) }, now);
+  const missed = missedJobs({ enabled: settings.enabled, jobs: settings.jobs, succeededToday: todays.filter((r) => r.status === "SUCCEEDED").map((r) => r.job as Job), switchedOnAt: settings.switchedOnAt }, now);
   let alerted = 0;
 
   if (missed.length) {
     const staff = (await db.orm.public.User.select("id", "role").all()).filter((user) => isFullAccess(user.role));
-    const names = missed.map((job) => JOB_LABELS[job]).join("، ");
+    const names = missed.map((job) => JOB_LABELS[job].ar).join("، ");
 
     for (const user of staff) {
       const outboxId = await enqueueInApp({
@@ -699,7 +751,10 @@ export async function automationMaintenance(now = new Date()) {
   return { ok: true as const, status: "SUCCEEDED" as const, reason: null, retried, outbox, missed, alerted };
 }
 
-export const JOB_LABELS: Record<Job, string> = { "daily-digest": "قائمة اليوم الصباحية", "customer-reminders": "تذكير العملاء" };
+export const JOB_LABELS: Record<Job, { ar: string; en: string }> = {
+  "daily-digest": { ar: "قائمة اليوم الصباحية", en: "Morning daily list" },
+  "customer-reminders": { ar: "تذكير العملاء", en: "Customer reminders" },
+};
 
 /** «المهام»: recent runs per job and outbox rows that need attention. Counts and error text only — no customer data. */
 export async function jobsOverview(now = new Date()) {
@@ -719,7 +774,7 @@ export async function jobsOverview(now = new Date()) {
 
   return {
     settings,
-    missed: missedJobs({ enabled: settings.enabled, jobs: settings.jobs, succeededToday: todays.filter((run) => run.status === "SUCCEEDED").map((run) => run.job as Job) }, now),
+    missed: missedJobs({ enabled: settings.enabled, jobs: settings.jobs, succeededToday: todays.filter((run) => run.status === "SUCCEEDED").map((run) => run.job as Job), switchedOnAt: settings.switchedOnAt }, now),
     runs: runs.map((run) => ({
       id: run.id,
       job: run.job,

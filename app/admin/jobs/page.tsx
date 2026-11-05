@@ -66,7 +66,7 @@ export default async function JobsPage() {
 
       {overview.missed.length ? (
         <Notice tone="danger" title={t("المهمة الصباحية ما اشتغلت اليوم", "The morning job didn't run today")}>
-          <span data-testid="jobs-heartbeat">{t(`ما نجح اليوم لحد هسه: ${overview.missed.map((job) => JOB_LABELS[job]).join("، ")}.`, `Not succeeded yet today: ${overview.missed.join(", ")}.`)}</span>
+          <span data-testid="jobs-heartbeat">{t(`ما نجح اليوم لحد هسه: ${overview.missed.map((job) => JOB_LABELS[job].ar).join("، ")}.`, `Not succeeded yet today: ${overview.missed.map((job) => JOB_LABELS[job].en).join(", ")}.`)}</span>
         </Notice>
       ) : null}
       {!overview.settings.enabled ? (
@@ -81,7 +81,7 @@ export default async function JobsPage() {
           const on = overview.settings.enabled && overview.settings.jobs[job];
 
           return (
-            <SectionCard key={job} title={JOB_LABELS[job]} icon={<PlayCircle size={14} aria-hidden />} testId={`jobs-today-${job}`}>
+            <SectionCard key={job} title={t(JOB_LABELS[job].ar, JOB_LABELS[job].en)} icon={<PlayCircle size={14} aria-hidden />} testId={`jobs-today-${job}`}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="space-y-1 text-sm">
                   <p className="flex flex-wrap items-center gap-2">
@@ -102,7 +102,8 @@ export default async function JobsPage() {
                     </p>
                   ) : null}
                 </div>
-                {isOwner && on && today?.status !== "SUCCEEDED" && !(today && today.attempts >= MAX_ATTEMPTS && today.status === "FAILED") ? (
+                {/* Nothing to press while it runs, after it succeeded, or once it is out of attempts. */}
+                {isOwner && on && today?.status !== "SUCCEEDED" && today?.status !== "RUNNING" && !(today && today.attempts >= MAX_ATTEMPTS && today.status === "FAILED") ? (
                   <ActionForm action={runNowAction}>
                     <input type="hidden" name="job" value={job} />
                     <SubmitButton size="sm" variant="secondary" pendingLabel={t("جاري…", "Running…")}>
@@ -123,7 +124,7 @@ export default async function JobsPage() {
             {overview.runs.map((run) => (
               <li key={run.id} className="space-y-1 py-3 text-sm" data-testid="jobs-run">
                 <p className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-ink">{JOB_LABELS[run.job as Job] ?? run.job}</span>
+                  <span className="font-semibold text-ink">{JOB_LABELS[run.job as Job] ? t(JOB_LABELS[run.job as Job].ar, JOB_LABELS[run.job as Job].en) : run.job}</span>
                   <span className="nums text-ink-3">{run.runKey.split(":")[1]}</span>
                   <Badge tone={STATUS_TONE[run.status] ?? "neutral"}>{run.status}</Badge>
                   <Badge tone="neutral">

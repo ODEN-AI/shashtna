@@ -8,7 +8,7 @@ Status marks: ✅ done (with evidence) · 🔄 in progress · ⏳ planned · ⏸
 
 ## Status now (2026-10-31)
 
-- **`main`** is at `510640a` (PRs #6–#17 merged; checked with `git log origin/main`).
+- **`main`** is at `9df0d7e` (PRs #6–#18 merged; checked with `git log origin/main`).
 - **Production database** marker `da91640c9eaf` with the latest migration `20261031T1123_customer_reminders`
   (owner-reported production check and apply, 2026-10-31; not re-read here). ❓
 - **Automation step 1** runs on production in dry run (owner, 2026-10-31, per the planning session).
@@ -26,7 +26,7 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | 1 | Stabilize the foundation (site, data, orders, payments, activation, deploys) | ✅ | Schema and code in sync on production (marker `0395c5c66aa0`). Open: see "Known risks" |
 | 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | ✅ | Real costs live (PR #9 + #10, migration `20261030T2329_real_costs` applied 2026-10-31, marker `76e80bbd5844`); data audit 2026-10-31 clean apart from accepted owner/test items — `docs/costs.md` |
 | 3 | Complete the customer and admin experience | ✅ | Redesign (PR #6); loyalty (PR #7) live since 2026-10-31; discounts (PR #12); plan groups and digital platforms (PR #13) — `docs/plan-groups.md` |
-| 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | 🔄 | Step 1 ✅ PR #14 + fixes #15/#16; step 2 in-app customer reminders ✅ PR #17 merged (`510640a`), migration `20261031T1123_customer_reminders` applied on production (marker `da91640c9eaf`, per owner report); owner dry-run validation remains; step 3 retries / dead letter ⏳ — `docs/automation.md` |
+| 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | 🔄 | Step 1 ✅ PR #14 + fixes #15/#16; step 2 in-app customer reminders ✅ PR #17 merged (`510640a`), migration `20261031T1123_customer_reminders` applied on production (marker `da91640c9eaf`, per owner report); owner dry-run validation done (owner, per the planning session); step 3 hardening (run retries, outbox retries, «المهام», 09:00 heartbeat) built on `feat/automation-hardening`, PR open, migration `20261105T2208_automation_retries` not on production — `docs/automation.md`. Phase 4 ✅ once step 3 is merged and verified |
 | 5 | SHASHTNA AI CORE and agents (Customer, Operations, Finance, Marketing) with scoped tools | ⏳ | An AI business analyst exists (aggregates only) |
 | 6 | Business intelligence and data-driven growth | ⏳ | Finance/BI dashboard exists (PR #4) |
 | 7 | Integrated AI-powered operations, desktop and mobile admin clients on the shared backend | ⏳ | Android console shell exists (`shells/mobile`) |
@@ -42,7 +42,8 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | Discounts (phase 3, part 2) | ✅ | PR #12 merged (`11b5299`) |
 | Plan groups and digital platforms (phase 3, part 3) | ✅ | PR #13 merged (`c11eac5`) |
 | Automation step 1 (phase 4) | ✅ | PR #14 merged (`9a302ff`), fixes #15 / #16 (`0d1699c`); the owner runs it in dry run |
-| Automation step 2 (phase 4): job `customer-reminders` (own switch, off) — in-app notifications at T-5 / T-0 / T+3 with points, renewal discount and a renewal link tagged `?r=`; open unpaid renewal orders linked instead; opted-out / suspended skipped; `subscriptionRequest.reminderOutboxId`; 30 / 90-day conversion card on «اليوم» | ✅ PR #17 merged and reported deployed; owner dry-run validation remains; the shared automation dry-run switch also controls the morning list | `docs/automation.md` |
+| Automation step 2 (phase 4): job `customer-reminders` (own switch, off) — in-app notifications at T-5 / T-0 / T+3 with points, renewal discount and a renewal link tagged `?r=`; open unpaid renewal orders linked instead; opted-out / suspended skipped; `subscriptionRequest.reminderOutboxId`; 30 / 90-day conversion card on «اليوم» | ✅ PR #17 merged and reported deployed; owner dry-run validated; the shared automation dry-run switch also controls the morning list | `docs/automation.md` |
+| Automation step 3 (phase 4): a FAILED run is retried the same day on its own row (3 attempts, +15 / +60 min, masked error history), a cut-off run re-claimed; in-app outbox rows retried with the same backoff and never duplicated; hourly scheduled function; «المهام» page with owner retry; 09:00 heartbeat alert; switch changes logged | 🔄 built and tested locally; waiting for review, the production migration and merge | `feat/automation-hardening`; `docs/automation.md` |
 
 ## Known risks
 
@@ -70,10 +71,9 @@ Long-term direction, in order. A phase is marked done only with evidence.
 
 ## Next step
 
-Review the customer-reminders PR. Then, with the owner's approval: apply
-`20261031T1123_customer_reminders` to production → merge → turn on «تذكير العملاء داخل الموقع» in dry run →
-check the run under «اليوم» → dry run off. Then phase 4 step 3 (retries with `attempts` / `nextAttemptAt` and a
-dead-letter view).
+Review the automation-hardening PR. Then, with the owner's approval: apply
+`20261105T2208_automation_retries` to production → merge → after the next morning, check «المهام» (today's runs
+SUCCEEDED, no failed messages). That closes phase 4.
 
 ## Chapter 2 (after the 7 phases)
 
@@ -87,6 +87,7 @@ Newest first. Details are in the linked documents.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-11-06 | Automation hardening (phase 4 step 3): one run row per job per day, re-claimed on retry; 3 attempts with +15 / +60 min backoff; a SUCCEEDED run is never re-run, not even by hand; manual retries skip the wait but not the limit; outbox rows use the same backoff and the notification's dedupe key; hourly pass at :20; heartbeat from 09:00 Baghdad for today only | Planning brief from the owner ("Yes, send it"); go-ahead in chat |
 | 2026-10-31 | Customer reminders (phase 4 step 2): in-app only at T-5 / T-0 / T+3, own switch, off by default; opted-out customers (`renewalReminders`) and suspended subscriptions skipped; a customer's other subscription never silences a reminder; while the job is on the dashboard's on-visit reminders stay quiet; conversion is completed renewals ÷ reminders sent | Planning brief from the owner ("start step 2 now"); go-ahead in chat |
 | 2026-10-31 | Phase 4 automation: the owner gets a daily list; customers are reached only by prefilled WhatsApp links the owner sends himself (no API, push, e-mail or SMS yet); activation, payment confirmation and reward approval are never automated; everything ships off; jobs run only on the production deploy (previews share the database); one run per job per Baghdad day, claimed before work. Steps: 1 core + daily list, 2 in-app reminders, 3 retries / dead letter | Council verdict, approved by the owner in chat |
 | 2026-10-31 | Phase 3 closed | Plan groups (PR #13) merged after loyalty and discounts |
@@ -121,6 +122,8 @@ Newest first.
 
 | Date | PR / commit | Change | Checks |
 |---|---|---|---|
+| 2026-11-06 | `feat/automation-hardening` (PR to `main`, open) | Phase 4 step 3: run retries on the same row, masked error history, outbox delivery and retries, hourly scheduled function, `/api/automation/run` maintenance pass, «المهام» page, heartbeat on «اليوم», automation switch changes logged | `TZ=UTC npm test` 258/258 (local time 257/258: the known clock-dependent domain test, run at 01:24 local); tsc, ESLint (changed files), build clean; `scripts/integration/automation-retries.mts` 7/7, automation 6/6, customer-reminders 6/6, costs 9/9, discounts 8/8, plan-groups 8/8; «المهام» checked in headless Chrome RTL/LTR at 1440 and 390 (no overflow, no console errors, «إعادة المحاولة» delivered the failed message) |
+| 2026-11-06 | migration `20261105T2208_automation_retries` | Applied on the local database only (2 additive columns) | `migration check`, `db verify` (local) |
 | 2026-10-31 | PR #17 (`510640a`) | Customer reminders step 2 merged. Owner reports production migration `20261031T1123_customer_reminders` applied (marker `da91640c9eaf`), Preview succeeded, and live site returned HTTP 200. Reminders remain off until the owner enables them in dry-run mode and validates the counts. | `TZ=UTC npm test` 249/249; integration and browser flow passed (per owner report) |
 | 2026-10-31 | migration `20261031T1123_customer_reminders` | Additive reminder tracking column applied on production (marker `da91640c9eaf`, per owner report) | production verification and apply reported by owner |
 | 2026-10-31 | PR #18 (commit `07c7477`) | Fixed DIGITAL package options silently defaulting to 3 months: all non-VIP options now parse and validate their submitted duration. Added DIGITAL duration unit tests and extended the package-options E2E to verify POST stores 1 month and PATCH stores the updated length. No migration or production access. | `tests/package-options.test.ts` 11/11; latest `npm test` 251/251; E2E `scripts/e2e/package-options.mjs` 18/18 against local `127.0.0.1/shashtna_dev`; `npx tsc --noEmit`, ESLint on the three changed files, script syntax check and `npm run build` passed |

@@ -10,6 +10,7 @@ import {
   BrainCircuit,
   Bell,
   CalendarCheck,
+  ListChecks,
   Gift,
   Percent,
   Layers,
@@ -93,6 +94,7 @@ const ICONS: Record<string, typeof Inbox> = {
   discounts: Percent,
   groups: Layers,
   today: CalendarCheck,
+  jobs: ListChecks,
 };
 
 type Counts = Partial<Record<string, number>>;

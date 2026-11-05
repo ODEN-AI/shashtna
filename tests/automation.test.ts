@@ -211,3 +211,95 @@ test("automation settings: the customer reminders switch is on/off like the othe
   assert.ok(settingProblem("automation.job.customerReminders", "maybe"));
   assert.deepEqual(a.JOBS, ["daily-digest", "customer-reminders"]);
 });
+
+// ------------------------------------------------------------------- step 3: retries, heartbeat, hourly pass
+
+test("backoff: +15 min after attempt 1, +60 min after attempt 2, nothing after the 3rd", () => {
+  const failedAt = at("2026-11-06T03:00:00Z");
+
+  assert.equal(a.MAX_ATTEMPTS, 3);
+  assert.equal(a.nextRetryAt(1, failedAt)?.toISOString(), "2026-11-06T03:15:00.000Z");
+  assert.equal(a.nextRetryAt(2, failedAt)?.toISOString(), "2026-11-06T04:00:00.000Z");
+  assert.equal(a.nextRetryAt(3, failedAt), null);
+  assert.equal(a.nextRetryAt(7, failedAt), null);
+});
+
+test("retry eligibility: never after SUCCEEDED, at most 3 attempts, backoff respected unless the owner retries by hand", () => {
+  const now = at("2026-11-06T04:00:00Z");
+  const failed = { status: "FAILED", attempts: 1, startedAt: "2026-11-06T03:00:00.000Z", nextAttemptAt: "2026-11-06T03:15:00.000Z" };
+
+  assert.equal(a.runDecision(null, now), "NEW");
+  assert.equal(a.runDecision({ ...failed, status: "SUCCEEDED" }, now), "DONE");
+  assert.equal(a.runDecision({ ...failed, status: "SUCCEEDED" }, now, true), "DONE", "not even by hand");
+  assert.equal(a.runDecision(failed, now), "RETRY");
+  assert.equal(a.runDecision({ ...failed, nextAttemptAt: "2026-11-06T05:00:00.000Z" }, now), "WAIT");
+  assert.equal(a.runDecision({ ...failed, nextAttemptAt: "2026-11-06T05:00:00.000Z" }, now, true), "RETRY", "the owner skips the wait");
+  assert.equal(a.runDecision({ ...failed, nextAttemptAt: null }, now), "RETRY", "a step-1 FAILED row without a retry time");
+  assert.equal(a.runDecision({ ...failed, attempts: 3, nextAttemptAt: null }, now), "GAVE_UP");
+  assert.equal(a.runDecision({ ...failed, attempts: 3, nextAttemptAt: null }, now, true), "GAVE_UP", "max attempts hold for the owner too");
+  // RUNNING: busy while fresh; re-claimed once it was cut off (30 min).
+  assert.equal(a.runDecision({ ...failed, status: "RUNNING", startedAt: "2026-11-06T03:45:00.000Z" }, now), "BUSY");
+  assert.equal(a.runDecision({ ...failed, status: "RUNNING", startedAt: "2026-11-06T03:15:00.000Z" }, now), "RECLAIM");
+  assert.equal(a.runDecision({ ...failed, status: "RUNNING", attempts: 3, startedAt: "2026-11-06T03:45:00.000Z" }, now), "BUSY", "a fresh last attempt");
+  assert.equal(a.runDecision({ ...failed, status: "RUNNING", attempts: 3, startedAt: "2026-11-06T03:15:00.000Z" }, now), "EXPIRE", "a cut-off last attempt is closed, not left RUNNING");
+});
+
+test("error history: appended per attempt, error text capped, phones and e-mails masked", () => {
+  const one = a.appendError(null, { attempt: 1, at: "2026-11-06T03:00:00Z", error: "boom" });
+  const two = a.appendError(one, { attempt: 2, at: "2026-11-06T03:15:00Z", error: "x".repeat(500) });
+  const list = JSON.parse(two);
+
+  assert.equal(list.length, 2);
+  assert.equal(list[0].error, "boom");
+  assert.equal(list[1].error.length, 300);
+  assert.equal(JSON.parse(a.appendError("not json", { attempt: 1, at: "t", error: "e" })).length, 1);
+  assert.equal(a.safeError("duplicate key (phone)=(07701234567) for ali@example.com"), "duplicate key (phone)=(…) for …@…");
+  assert.equal(a.safeError("timeout after 30s on id 42"), "timeout after 30s on id 42");
+  assert.equal(a.safeError('invalid input syntax for type timestamp: "2026-11-06 03:00:00" after 1500000 ms'), 'invalid input syntax for type timestamp: "2026-11-06 03:00:00" after 1500000 ms', "dates and timings stay readable");
+  assert.equal(a.safeError("sent to +9647701234567, 0770 123 4567 and 770-123-4567"), "sent to …, … and …");
+});
+
+test("heartbeat: from 09:00 Baghdad, only switched-on jobs without a SUCCEEDED run today", () => {
+  const jobs = { "daily-digest": true, "customer-reminders": false };
+  const before9 = at("2026-11-06T05:59:00Z"); // 08:59 Baghdad
+  const at9 = at("2026-11-06T06:00:00Z"); // 09:00 Baghdad
+
+  assert.equal(a.baghdadMinutes(at9), 9 * 60);
+  assert.deepEqual(a.missedJobs({ enabled: true, jobs, succeededToday: [] }, before9), []);
+  assert.deepEqual(a.missedJobs({ enabled: true, jobs, succeededToday: [] }, at9), ["daily-digest"]);
+  assert.deepEqual(a.missedJobs({ enabled: true, jobs, succeededToday: ["daily-digest"] }, at9), []);
+  assert.deepEqual(a.missedJobs({ enabled: false, jobs, succeededToday: [] }, at9), [], "automation off → no alert");
+  assert.deepEqual(a.missedJobs({ enabled: true, jobs: { ...jobs, "customer-reminders": true }, succeededToday: ["daily-digest"] }, at("2026-11-06T20:30:00Z")), ["customer-reminders"], "23:30 is still today");
+  assert.deepEqual(a.missedJobs({ enabled: true, jobs, succeededToday: [] }, at("2026-11-06T21:30:00Z")), [], "00:30 next day is before 09:00 again");
+  // Switched on after today's 06:00 run: nothing was scheduled yet, so no alarm until tomorrow.
+  assert.equal(a.morningRunAt(at("2026-11-06T11:00:00Z")).toISOString(), "2026-11-06T03:00:00.000Z");
+  assert.deepEqual(a.missedJobs({ enabled: true, jobs, succeededToday: [], switchedOnAt: { "daily-digest": "2026-11-06T11:00:00.000Z" } }, at("2026-11-06T11:20:00Z")), []);
+  assert.deepEqual(a.missedJobs({ enabled: true, jobs, succeededToday: [], switchedOnAt: { "daily-digest": "2026-11-06T02:00:00.000Z" } }, at("2026-11-06T11:20:00Z")), ["daily-digest"], "switched on before 06:00 → it should have run");
+  assert.deepEqual(a.missedJobs({ enabled: true, jobs, succeededToday: [], switchedOnAt: { "daily-digest": "2026-11-05T11:00:00.000Z" } }, at("2026-11-06T11:20:00Z")), ["daily-digest"], "switched on yesterday");
+});
+
+test("outbox retry eligibility: FAILED once due, PENDING after a 10-minute grace, never SENT/SKIPPED or out of attempts", () => {
+  const now = at("2026-11-06T04:00:00Z");
+  const row = { status: "FAILED", attempts: 1, nextAttemptAt: "2026-11-06T03:15:00.000Z", createdAt: "2026-11-06T03:00:00.000Z" };
+
+  assert.equal(a.outboxDue(row, now), true);
+  assert.equal(a.outboxDue({ ...row, nextAttemptAt: "2026-11-06T05:00:00.000Z" }, now), false);
+  assert.equal(a.outboxDue({ ...row, attempts: 3 }, now), false);
+  assert.equal(a.outboxDue({ ...row, status: "PENDING", attempts: 0, nextAttemptAt: null, createdAt: "2026-11-06T03:55:00.000Z" }, now), false, "its run may still be delivering it");
+  assert.equal(a.outboxDue({ ...row, status: "PENDING", attempts: 0, nextAttemptAt: null }, now), true);
+  assert.equal(a.outboxDue({ ...row, status: "SENT" }, now), false);
+  assert.equal(a.outboxDue({ ...row, status: "SKIPPED" }, now), false);
+});
+
+test("hourly pass: preview guard still blocks, its own signed key, and the function runs hourly in production only", () => {
+  assert.equal(a.canRunHere({ CONTEXT: "deploy-preview" }, "ep-x.neon.tech"), false);
+  assert.equal(a.maintenanceKey(at("2026-11-06T21:30:00Z")), "maintenance:2026-11-07");
+  const secret = "s".repeat(40);
+  assert.equal(verifyAutomationToken(secret, a.maintenanceKey(at("2026-11-06T09:00:00Z")), automationToken(secret, "daily-digest:2026-11-06")), false, "a job token is not a maintenance token");
+
+  const source = readFileSync(new URL("../netlify/functions/automation-hourly.mts", import.meta.url), "utf8");
+  assert.match(source, /deployContext !== "production"/);
+  assert.match(source, /schedule: "20 \* \* \* \*"/);
+  assert.match(source, /update\(`automation:maintenance:\$\{day\}`\)/);
+  assert.match(source, /job: "maintenance"/);
+});

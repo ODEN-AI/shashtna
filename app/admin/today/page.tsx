@@ -18,7 +18,7 @@ import { formatDate, formatDateTime } from "@/src/lib/i18n";
 import { formatOrderNumber } from "@/src/lib/order-status";
 import { isFullAccess } from "@/src/lib/system";
 import { requireStaffPage } from "@/src/server/auth";
-import { dailyList, reminderReport } from "@/src/server/automation";
+import { JOB_LABELS, dailyList, reminderReport } from "@/src/server/automation";
 import { getI18n } from "@/src/server/i18n";
 
 export const dynamic = "force-dynamic";
@@ -86,6 +86,17 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           ) : null
         }
       />
+
+      {health.missed.length ? (
+        <Notice tone="danger" title={t("المهمة الصباحية ما اشتغلت اليوم", "The morning job didn't run today")}>
+          <span data-testid="today-heartbeat">
+            {t(`ما نجح اليوم لحد هسه: ${health.missed.map((job) => JOB_LABELS[job].ar).join("، ")}. `, `Not succeeded yet today: ${health.missed.map((job) => JOB_LABELS[job].en).join(", ")}. `)}
+            <Link href="/admin/jobs" className="font-semibold underline">
+              {t("افتح «المهام»", "Open Jobs")}
+            </Link>
+          </span>
+        </Notice>
+      ) : null}
 
       {!list.settings.enabled ? (
         <Notice tone="info" title={t("الأتمتة متوقفة", "Automation is off")}>

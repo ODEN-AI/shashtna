@@ -1,0 +1,86 @@
+[
+  {
+    "id": "column.public.automationRun.errorLog",
+    "label": "Add column \"errorLog\" to \"automationRun\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "errorLog",
+        "table": "automationRun"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"errorLog\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "automationRun",
+          "errorLog"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"errorLog\"",
+        "sql": "ALTER TABLE \"public\".\"automationRun\" ADD COLUMN \"errorLog\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"errorLog\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "automationRun",
+          "errorLog"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.automationRun.nextAttemptAt",
+    "label": "Add column \"nextAttemptAt\" to \"automationRun\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "nextAttemptAt",
+        "table": "automationRun"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"nextAttemptAt\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "automationRun",
+          "nextAttemptAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"nextAttemptAt\"",
+        "sql": "ALTER TABLE \"public\".\"automationRun\" ADD COLUMN \"nextAttemptAt\" timestamptz"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"nextAttemptAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "automationRun",
+          "nextAttemptAt"
+        ]
+      }
+    ]
+  }
+]

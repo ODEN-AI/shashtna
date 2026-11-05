@@ -429,6 +429,10 @@ model AutomationRun {
   stats      String?
   startedAt  TimestamptzString @default(now())
   finishedAt TimestamptzString?
+  /// When a FAILED run may be retried (null = not retryable: succeeded, or out of attempts).
+  nextAttemptAt TimestamptzString?
+  /// JSON list of { attempt, at, error } for every failed attempt (error text only, no customer data).
+  errorLog   String?
 
   @@index([job])
 }

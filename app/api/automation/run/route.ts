@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { JOBS, runKey, type Job } from "@/src/lib/automation";
+import { JOBS, maintenanceKey, runKey, type Job } from "@/src/lib/automation";
 import { verifyAutomationToken } from "@/src/lib/automation-token";
-import { runJob } from "@/src/server/automation";
+import { automationMaintenance, runJob } from "@/src/server/automation";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +14,22 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as { job?: string } | null;
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? null;
+
+  // The hourly pass (netlify/functions/automation-hourly.mts): retries, outbox retries, heartbeat.
+  if (body?.job === "maintenance") {
+    if (!verifyAutomationToken(process.env.AUTH_SECRET, maintenanceKey(), token)) {
+      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+    }
+
+    const result = await automationMaintenance();
+
+    return NextResponse.json(result);
+  }
+
   const job = (JOBS as readonly string[]).includes(String(body?.job)) ? (body!.job as Job) : null;
 
   if (!job) return NextResponse.json({ ok: false, error: "UNKNOWN_JOB" }, { status: 400 });
-
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? null;
 
   if (!verifyAutomationToken(process.env.AUTH_SECRET, runKey(job), token)) {
     return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });

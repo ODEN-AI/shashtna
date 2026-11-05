@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'da91640c9eafe0e06d21c57669390b11804d709dc60efd36fe90721f0eb74f0b'>;
+  StorageHashBase<'ee3176d3c328a92a2dff5918330256ee1c8490da64d994c58cc51668fb801cf5'>;
 export type ExecutionHash =
   ExecutionHashBase<'e5122ced4907905b09a11a958d433005fe498bd85874a975cf18d4c75d729a92'>;
 export type ProfileHash =
@@ -302,6 +302,8 @@ export type FieldOutputTypes = {
       readonly stats: CodecTypes['pg/text@1']['output'] | null;
       readonly startedAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly finishedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly nextAttemptAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly errorLog: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly BusinessReport: {
       readonly id: CodecTypes['pg/int4@1']['output'];
@@ -689,6 +691,8 @@ export type FieldInputTypes = {
       readonly stats: CodecTypes['pg/text@1']['input'] | null;
       readonly startedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly finishedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly nextAttemptAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly errorLog: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly BusinessReport: {
       readonly id: CodecTypes['pg/int4@1']['input'];
@@ -1068,9 +1072,11 @@ export type StorageColumnTypes = {
     readonly automationRun: {
       readonly attempts: CodecTypes['pg/int4@1']['output'];
       readonly error: CodecTypes['pg/text@1']['output'] | null;
+      readonly errorLog: CodecTypes['pg/text@1']['output'] | null;
       readonly finishedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
       readonly id: CodecTypes['pg/int4@1']['output'];
       readonly job: CodecTypes['pg/text@1']['output'];
+      readonly nextAttemptAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
       readonly runKey: CodecTypes['pg/text@1']['output'];
       readonly startedAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly stats: CodecTypes['pg/text@1']['output'] | null;
@@ -1455,9 +1461,11 @@ export type StorageColumnInputTypes = {
     readonly automationRun: {
       readonly attempts: CodecTypes['pg/int4@1']['input'];
       readonly error: CodecTypes['pg/text@1']['input'] | null;
+      readonly errorLog: CodecTypes['pg/text@1']['input'] | null;
       readonly finishedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly job: CodecTypes['pg/text@1']['input'];
+      readonly nextAttemptAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
       readonly runKey: CodecTypes['pg/text@1']['input'];
       readonly startedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly stats: CodecTypes['pg/text@1']['input'] | null;
@@ -2190,6 +2198,16 @@ type ContractBase = Omit<
                 readonly finishedAt: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
+                };
+                readonly nextAttemptAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
+                };
+                readonly errorLog: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
                   readonly nullable: true;
                 };
               };
@@ -4651,6 +4669,17 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-string@1';
                 };
               };
+              readonly nextAttemptAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly errorLog: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
             };
             readonly relations: Record<string, never>;
             readonly storage: {
@@ -4667,6 +4696,8 @@ type ContractBase = Omit<
                 readonly stats: { readonly column: 'stats' };
                 readonly startedAt: { readonly column: 'startedAt' };
                 readonly finishedAt: { readonly column: 'finishedAt' };
+                readonly nextAttemptAt: { readonly column: 'nextAttemptAt' };
+                readonly errorLog: { readonly column: 'errorLog' };
               };
             };
           };

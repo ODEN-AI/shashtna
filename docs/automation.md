@@ -153,18 +153,21 @@ job's advisory lock, `runJob` reads today's row and decides (`runDecision`):
 | FAILED, attempts < 3, backoff passed (or a manual retry) | re-claim the same row: RUNNING, attempts + 1 |
 | FAILED, backoff not passed | RETRY_LATER |
 | FAILED, 3 attempts | GAVE_UP for the day (FAILED for good; tomorrow is a new row) |
-| RUNNING for more than 30 minutes (cut off) | re-claim it; "cut off before finishing" goes into the history |
+| RUNNING for more than 30 minutes (cut off), attempts < 3 | re-claim it; "cut off before finishing" goes into the history |
+| RUNNING for more than 30 minutes, 3rd attempt | closed as FAILED for good (never left RUNNING), the cut-off recorded as attempt 3 |
 | RUNNING, fresh | BUSY |
 
-A failure stores the masked error (`safeError`: long digit runs and e-mails hidden), appends
+A failure stores the masked error (`safeError`: phone numbers and e-mails hidden; dates, ids and timings kept), appends
 `{ attempt, at, error }` to `errorLog`, and sets `nextAttemptAt` (+15 min after attempt 1, +60 min after
 attempt 2, none after 3). Every re-claim logs `AUTOMATION_RETRY` (trigger and attempt); every run logs its
 attempt.
 
 **Triggers**, all through the same guards (production or local database, master switch, the job's switch,
 HMAC, lock): the 06:00 schedule, the hourly pass (`RETRY`), and «شغّل هسه» / «إعادة المحاولة هسه»
-(`MANUAL`, owner only, skips the backoff wait but not the 3-attempt limit). A job switched off mid-retry
-stops cleanly: the hourly pass skips it and a manual run returns JOB_OFF; its row stays FAILED.
+(`MANUAL`, owner only, skips the backoff wait but not the 3-attempt limit). The hourly pass only calls a
+job when there is something to do (a due retry, or a cut-off run to re-claim or close), so a run that is
+waiting or has given up is not touched or logged again. A job switched off mid-retry stops cleanly: the
+hourly pass skips it and a manual run returns JOB_OFF; its row stays FAILED.
 
 **Outbox retries.** Every in-app message (customer reminders, the owner's morning digest, the heartbeat
 alert) goes through `deliverOutbox`: it creates the notification under the row's own dedupe key (an
@@ -173,13 +176,16 @@ sets `nextAttemptAt` with the same backoff, and after 3 attempts the row stays F
 swallows errors and returns null; that is now treated as a failure instead of being marked SENT. The hourly
 pass retries FAILED rows once due, and PENDING rows older than 10 minutes (their run was cut off). The
 owner's «إعادة المحاولة» delivers once more even after the third attempt (idempotent, logged
-`AUTOMATION_OUTBOX_RETRY`).
+`AUTOMATION_OUTBOX_RETRY`). A customer reminder's row is written with its whole payload in one statement
+(its id is reserved first, because the link carries `?r=<id>`), so a run cut off mid-way never leaves a row
+that can't be delivered. A failed delivery never overwrites a row a concurrent delivery already marked SENT.
 
 **Heartbeat.** From 09:00 Baghdad, a switched-on job with no SUCCEEDED run today raises «المهمة الصباحية ما
 اشتغلت اليوم»: a red notice on «اليوم» and «المهام» (computed live), and one notification to each
 full-access user per day (`heartbeat:{day}:{userId}`, through the outbox). The hourly pass checks it, so a
-missed 06:00 trigger is noticed. It looks at today only: before 09:00 nothing is raised, and yesterday is not
-re-checked.
+missed 06:00 trigger is noticed. It looks at today only: before 09:00 nothing is raised, yesterday is not
+re-checked, and a job (or automation) switched on after that day's 06:00 run is not reported until the next
+day (the switch's saved time is compared with 06:00).
 
 **«المهام»** (`/admin/jobs`, read with `orders`, actions owner-only): each job's switch and today's status,
 attempts and next automatic retry; the last 40 runs with timings, stored counts and the masked error
@@ -198,7 +204,7 @@ on top of the general settings entry.
 | Unit (step 2): T-5 / T-0 / T+3 across month end, skip rules, re-arming after a renewal, text with points and discount, links, `?r=` parsing, conversion | `tests/automation.test.ts` |
 | Integration (step 2, local DB): switch, dry run creates nothing and doesn't block, the right notifications once, repeat no-op, open order link, tracking and forged `r`, measurement | `scripts/integration/customer-reminders.mts` |
 | Unit (step 3): backoff, retry eligibility (never after SUCCEEDED, 3 attempts, manual skips the wait), error history and masking, heartbeat timing in Baghdad time, outbox eligibility, preview guard, the hourly function's guard / schedule / key | `tests/automation.test.ts` |
-| Integration (step 3, local DB): a failed run waits, is retried and succeeds once; three failures give up for good; heartbeat once per day; a cut-off run is re-claimed; kill switch mid-retry; outbox retries never duplicate and give up after 3; manual retry owner-only | `scripts/integration/automation-retries.mts` |
+| Integration (step 3, local DB): a failed run waits, is retried and succeeds once; three failures give up for good; heartbeat once per day; no heartbeat for a job switched on after 06:00; a cut-off run is re-claimed and a cut-off last attempt closed; kill switch mid-retry; outbox retries never duplicate and give up after 3; concurrent deliveries end SENT with one notification; manual retry owner-only | `scripts/integration/automation-retries.mts` |
 
 ## Deploy order
 

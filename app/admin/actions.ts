@@ -580,6 +580,11 @@ export async function saveSettingsAction(_prev: AdminState, formData: FormData):
       return { ok: false, code: "FORBIDDEN", message: "إعدادات الأتمتة للمالك فقط." };
     }
 
+    // Switching the AI assistants on or off is the owner's call too.
+    if (changes.some((change) => change.group === "ai") && !isFullAccess(staff.role)) {
+      return { ok: false, code: "FORBIDDEN", message: "إعدادات الذكاء الاصطناعي للمالك فقط." };
+    }
+
     for (const change of changes) {
       await saveSetting(change.key, change.after, staff.id);
     }
@@ -603,6 +608,18 @@ export async function saveSettingsAction(_prev: AdminState, formData: FormData):
         details: describeSettingChanges(loyaltyChanges).join("\n"),
       });
       revalidatePath("/admin/loyalty");
+    }
+
+    const aiChanges = changes.filter((change) => change.group === "ai");
+
+    if (aiChanges.length) {
+      await logActivity({
+        actor: staff,
+        entityType: "SETTING",
+        action: "AI_SETTINGS_CHANGED",
+        summary: `تحديث إعدادات الذكاء الاصطناعي: ${aiChanges.map((change) => `${change.key} ${change.before || "—"} → ${change.after}`).join("، ")}`,
+        details: describeSettingChanges(aiChanges).join("\n"),
+      });
     }
 
     const automationChanges = changes.filter((change) => change.group === "automation");

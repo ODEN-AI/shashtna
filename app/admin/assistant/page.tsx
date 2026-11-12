@@ -8,7 +8,7 @@ import { LinkButton } from "@/app/ui/Button";
 import { PageHeader } from "@/app/ui/Page";
 import { Notice } from "@/app/ui/States";
 import { LinkTabs } from "@/app/ui/Tabs";
-import { AGENTS, type AgentId } from "@/src/lib/ai-core";
+import { AGENTS, TICKET_AGENTS, type AgentId } from "@/src/lib/ai-core";
 import { isFullAccess } from "@/src/lib/system";
 import { agentTools, aiAgentsEnabled } from "@/src/server/ai-core";
 import { requireStaffPage } from "@/src/server/auth";
@@ -24,7 +24,10 @@ const TOOL_LABELS: Record<string, { ar: string; en: string }> = {
   finance_trend: { ar: "اتجاه المبيعات", en: "Sales trend" },
 };
 
-const AGENT_COPY: Record<AgentId, { title: { ar: string; en: string }; description: { ar: string; en: string }; suggestions: { ar: string; en: string }[] }> = {
+/** Agents asked from this page; ticket agents (customer replies) live on the ticket page. */
+type PageAgent = Exclude<AgentId, "customer">;
+
+const AGENT_COPY: Record<PageAgent, { title: { ar: string; en: string }; description: { ar: string; en: string }; suggestions: { ar: string; en: string }[] }> = {
   operations: {
     title: { ar: "مساعد العمليات", en: "Operations assistant" },
     description: {
@@ -66,8 +69,8 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
   }
 
   const [{ t, lang }, enabled, params] = await Promise.all([getI18n(), aiAgentsEnabled(), searchParams]);
-  const available = AGENTS.filter((id) => agentTools(id, user.role).length > 0);
-  const agent: AgentId = available.find((id) => id === params.agent) ?? available[0] ?? "operations";
+  const available = AGENTS.filter((id): id is PageAgent => !TICKET_AGENTS.includes(id) && agentTools(id, user.role).length > 0);
+  const agent: PageAgent = available.find((id) => id === params.agent) ?? available[0] ?? "operations";
   const configured = Boolean(process.env.ANTHROPIC_API_KEY);
   const tools = agentTools(agent, user.role);
   const isOwner = isFullAccess(user.role);

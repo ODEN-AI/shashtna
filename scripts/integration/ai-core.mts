@@ -173,15 +173,38 @@ await check("the switch: off by default, a run is refused without calling the mo
   assert.equal(model.seen.length, 0);
 });
 
+await check("finance agent: owner gets both finance tools and the trend runs; other roles are refused", async () => {
+  assert.deepEqual(agentTools("finance", "OWNER").map((tool) => tool.name).sort(), ["finance_facts", "finance_trend"]);
+  assert.equal(agentTools("finance", "OPERATOR").length, 0, "money stays owner/admin");
+
+  const model = scripted([
+    { stopReason: "tool_use", model: "fake", content: [toolUse("t1", "finance_trend", { view: "month" }), toolUse("t2", "operations_today", {})] },
+    { stopReason: "end_turn", model: "fake", content: [text("المبيعات ثابتة.")] },
+  ]);
+  const result = await runAgent(ownerActor, "finance", "شلون المبيعات؟", { callModel: model.callModel, skipSwitch: true });
+
+  assert.equal(result.ok, true, JSON.stringify(result));
+  if (!result.ok) return;
+  assert.deepEqual(result.trace.map((call) => [call.tool, call.ok]), [["finance_trend", true], ["operations_today", false]], "a tool of another agent is not available here");
+  const [trend] = lastToolResults(model.seen);
+  const parsed = JSON.parse(trend.content) as { currency: string; points: { key: string; revenue: number }[] };
+  assert.equal(parsed.currency, "IQD");
+  assert.equal(parsed.points.length, 12, "12 monthly points");
+
+  const refused = await runAgent(operator, "finance", "شكد الربح؟", { callModel: model.callModel, skipSwitch: true });
+  assert.equal(refused.ok, false);
+  if (!refused.ok) assert.equal(refused.reason, "FORBIDDEN");
+});
+
 await check("bad requests: unknown agent, empty question", async () => {
-  assert.equal((await runAgent(ownerActor, "finance", "x", { skipSwitch: true })).ok, false);
+  assert.equal((await runAgent(ownerActor, "marketing", "x", { skipSwitch: true })).ok, false);
   assert.equal((await runAgent(ownerActor, "operations", "   ", { skipSwitch: true })).ok, false);
 });
 
 await check("the activity log keeps tool names, never the question or the data", async () => {
   const rows = await db.orm.public.ActivityEvent.where((e) => e.action.in(["AI_AGENT_RUN", "AI_AGENT_FAILED"])).where((e) => e.createdAt.gte(start)).all();
 
-  assert.ok(rows.length >= 6, `expected the runs above to be logged, got ${rows.length}`);
+  assert.ok(rows.length >= 7, `expected the runs above to be logged, got ${rows.length}`);
   for (const row of rows) {
     const blob = `${row.summary} ${row.details ?? ""}`;
     assert.doesNotMatch(blob, /07701234567|أهم شي|revenue|subscriptionsToContact/);

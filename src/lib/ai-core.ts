@@ -58,7 +58,7 @@ export type ToolSpec = {
   input: InputSchema;
 };
 
-export const AGENTS = ["operations"] as const;
+export const AGENTS = ["operations", "finance"] as const;
 export type AgentId = (typeof AGENTS)[number];
 
 export function isAgentId(value: unknown): value is AgentId {

@@ -15,10 +15,11 @@ const TOOL_LABELS: Record<string, { ar: string; en: string }> = {
   operations_today: { ar: "شغل اليوم", en: "Today's work" },
   automation_status: { ar: "حالة الأتمتة", en: "Automation status" },
   finance_facts: { ar: "أرقام المالية", en: "Finance figures" },
+  finance_trend: { ar: "اتجاه المبيعات", en: "Sales trend" },
 };
 
-/** The Operations assistant: one question, one answer, with the tools it read. Nothing here changes data. */
-export function AssistantPanel({ suggestions, disabled }: { suggestions: { ar: string; en: string }[]; disabled: boolean }) {
+/** One assistant: one question, one answer, with the tools it read. Nothing here changes data. */
+export function AssistantPanel({ agent, label, suggestions, disabled }: { agent: string; label: string; suggestions: { ar: string; en: string }[]; disabled: boolean }) {
   const { t, language } = useLanguage();
   const [state, formAction] = useActionState<AssistantState, FormData>(askAssistantAction, null);
   const [draft, setDraft] = useState("");
@@ -28,8 +29,9 @@ export function AssistantPanel({ suggestions, disabled }: { suggestions: { ar: s
     <div className="space-y-5">
       <Card className="p-5 sm:p-6">
         <form ref={formRef} action={formAction} className="space-y-4">
+          <input type="hidden" name="agent" value={agent} />
           <label htmlFor="question" className="block text-sm font-semibold text-ink-2">
-            {t("اسأل مساعد العمليات", "Ask the operations assistant")}
+            {t(`اسأل ${label}`, `Ask the ${label.toLowerCase()}`)}
           </label>
           <Textarea
             id="question"
@@ -44,7 +46,7 @@ export function AssistantPanel({ suggestions, disabled }: { suggestions: { ar: s
             onKeyDown={(event) => {
               if (event.key === "Enter" && (event.ctrlKey || event.metaKey) && draft.trim()) formRef.current?.requestSubmit();
             }}
-            placeholder={t("مثلاً: شنو أهم شي لازم أسويه اليوم؟", "e.g. What should I do first today?")}
+            placeholder={suggestions[0] ? t(`مثلاً: ${suggestions[0].ar}`, `e.g. ${suggestions[0].en}`) : undefined}
           />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="flex items-center gap-1.5 text-xs text-ink-3">

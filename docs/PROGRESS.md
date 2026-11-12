@@ -27,7 +27,7 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | ✅ | Real costs live (PR #9 + #10, migration `20261030T2329_real_costs` applied 2026-10-31, marker `76e80bbd5844`); data audit 2026-10-31 clean apart from accepted owner/test items — `docs/costs.md` |
 | 3 | Complete the customer and admin experience | ✅ | Redesign (PR #6); loyalty (PR #7) live since 2026-10-31; discounts (PR #12); plan groups and digital platforms (PR #13) — `docs/plan-groups.md` |
 | 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | ✅ (provisional) | Step 1 ✅ PR #14 + fixes #15/#16; step 2 in-app customer reminders ✅ PR #17 merged (`510640a`), migration `20261031T1123_customer_reminders` applied on production (marker `da91640c9eaf`, per owner report); owner dry-run validation done (owner, per the planning session); step 3 hardening (run retries, outbox retries, «المهام», 09:00 heartbeat) PR #19 merged 2026-11-13 (`d5f71ce`, owner-approved, deploy preview passed), migration `20261105T2208_automation_retries` applied on production 2026-11-13 (owner-approved, marker `ee3176d3c328`, `db verify` passed) — `docs/automation.md`. Closed provisionally by the owner (2026-11-13); ❓ still to confirm on «المهام» after a morning run (today's runs SUCCEEDED, no failed messages) |
-| 5 | SHASHTNA AI CORE and agents (Customer, Operations, Finance, Marketing) with scoped tools | 🔄 | Step 1 (core + read-only tools, switch `ai.agents.enabled` off) PR #20, not merged; step 2 (Operations assistant page `/admin/assistant`) built on `feat/ai-operations-assistant` (stacked on PR #20), not merged — `docs/ai-core.md`. Plan (owner-approved 2026-11-13): 1 core, 2 Operations, 3 Finance, 4 Customers, 5 Marketing. An AI business analyst exists (aggregates only) |
+| 5 | SHASHTNA AI CORE and agents (Customer, Operations, Finance, Marketing) with scoped tools | 🔄 | Step 1 (AI core) PR #20 and step 2 (Operations assistant page `/admin/assistant`) PR #21 merged 2026-11-13 (`f4377a5`); owner switched the assistant on and reported it works on production (2026-11-13) — `docs/ai-core.md`. Plan (owner-approved 2026-11-13): 1 core, 2 Operations, 3 Finance, 4 Customers, 5 Marketing. An AI business analyst exists (aggregates only) |
 | 6 | Business intelligence and data-driven growth | ⏳ | Finance/BI dashboard exists (PR #4) |
 | 7 | Integrated AI-powered operations, desktop and mobile admin clients on the shared backend | ⏳ | Android console shell exists (`shells/mobile`) |
 
@@ -74,7 +74,7 @@ Long-term direction, in order. A phase is marked done only with evidence.
 Phase 4 is closed provisionally: PR #19 merged and the migration applied (2026-11-13). Still to confirm:
 after a morning run, «المهام» shows today's runs SUCCEEDED and no failed messages.
 
-Phase 5: step 1 (AI core) is PR #20; step 2 (Operations assistant page) is built on `feat/ai-operations-assistant`. Next: merge both with the owner's approval, add `ANTHROPIC_API_KEY` check on Netlify, switch the assistant on, and try real questions; then step 3 (Finance assistant). No migrations. ⏳
+Phase 5: steps 1–2 are live and owner-verified (the Operations assistant answers on production). Next: step 3, the Finance assistant. ⏳
 
 ## Chapter 2 (after the 7 phases)
 

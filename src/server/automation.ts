@@ -1,7 +1,9 @@
+import { businessDay } from "@/src/lib/business-time";
 import { db } from "@/src/prisma/db";
 import {
   JOBS,
   MAX_ATTEMPTS,
+  PENDING_GRACE_MINUTES,
   REMINDERS,
   appendError,
   canRunHere,
@@ -256,7 +258,9 @@ export type RunResult =
  */
 export async function runJob(job: Job, options: { trigger: Trigger; actor?: Actor; now?: Date } = { trigger: "SCHEDULE" }): Promise<RunResult> {
   const now = options.now ?? new Date();
-  const clock = () => options.now ?? new Date();
+  // `now` plus the time this run has taken: a passed-in `now` (the hourly pass, tests) still advances.
+  const startedClock = Date.now();
+  const clock = () => new Date(now.getTime() + (Date.now() - startedClock));
   const key = runKey(job, now);
 
   if (options.trigger === "MANUAL" && (!options.actor || !isFullAccess(options.actor.role))) return { ok: false, status: 403, error: "التشغيل اليدوي للمالك فقط." };
@@ -402,7 +406,7 @@ async function dailyDigest(now: Date, dryRun: boolean) {
 
   if (!dryRun) {
     const staff = (await db.orm.public.User.select("id", "role").all()).filter((user) => isFullAccess(user.role));
-    const day = runKey("daily-digest", now).split(":")[1];
+    const day = businessDay(now);
 
     const notification = {
       type: "DAILY_DIGEST",
@@ -642,7 +646,15 @@ export async function deliverOutbox(id: number, now = new Date()) {
     }
   })();
   const attempt = row.attempts + 1;
-  const note = payload.notification && row.userId ? await notify({ userId: row.userId, ...payload.notification, dedupeKey: row.dedupeKey }) : null;
+
+  // A row written before step 3 carries no notification to deliver: close it as SKIPPED, not a failure nobody can fix.
+  if (!payload.notification) {
+    await db.orm.public.OutboxMessage.where({ id }).update({ status: "SKIPPED", nextAttemptAt: null });
+
+    return { delivered: false, reason: "NOT_DELIVERABLE" as const };
+  }
+
+  const note = row.userId ? await notify({ userId: row.userId, ...payload.notification, dedupeKey: row.dedupeKey }) : null;
 
   if (note) {
     await db.orm.public.OutboxMessage.where({ id }).update({ status: "SENT", attempts: attempt, sentAt: now.toISOString(), nextAttemptAt: null });
@@ -650,7 +662,7 @@ export async function deliverOutbox(id: number, now = new Date()) {
     return { delivered: true, reason: null };
   }
 
-  const retryAt = payload.notification ? nextRetryAt(attempt, now) : null;
+  const retryAt = nextRetryAt(attempt, now);
   // A concurrent delivery may have sent it meanwhile (its notify won the dedupe key): never overwrite SENT.
   const failed = await db
     .runtime()
@@ -692,7 +704,7 @@ export async function retryOutboxMessage(actor: Actor, id: number, now = new Dat
  * automation on, each job's own switch.
  */
 export async function automationMaintenance(now = new Date()) {
-  const day = runKey("daily-digest", now).split(":")[1];
+  const day = businessDay(now);
 
   if (!canRunHere({ CONTEXT: process.env.SHASHTNA_DEPLOY_CONTEXT || process.env.CONTEXT }, databaseHost())) return { ok: true as const, status: "SKIPPED" as const, reason: "NOT_PRODUCTION" };
 
@@ -791,7 +803,7 @@ export async function jobsOverview(now = new Date()) {
     })),
     // A PENDING row only needs attention once its run had time to finish.
     outbox: attention
-      .filter((row) => row.status === "FAILED" || now.getTime() - Date.parse(String(row.createdAt)) > 10 * 60_000)
+      .filter((row) => row.status === "FAILED" || now.getTime() - Date.parse(String(row.createdAt)) >= PENDING_GRACE_MINUTES * 60_000)
       .map((row) => ({ id: row.id, template: row.template, status: row.status, attempts: row.attempts, createdAt: String(row.createdAt), nextAttemptAt: row.nextAttemptAt ? String(row.nextAttemptAt) : null, final: row.attempts >= MAX_ATTEMPTS })),
   };
 }

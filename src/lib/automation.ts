@@ -353,7 +353,10 @@ export function missedJobs(
 }
 
 /** The outbox row a retry pass may pick up: due, attempts left, never a SENT/SKIPPED one. */
-export function outboxDue(row: { status: string; attempts: number; nextAttemptAt: string | null; createdAt: string }, now: Date, pendingGraceMinutes = 10) {
+/** A PENDING outbox row is left alone this long, so the run that wrote it can finish delivering it. */
+export const PENDING_GRACE_MINUTES = 10;
+
+export function outboxDue(row: { status: string; attempts: number; nextAttemptAt: string | null; createdAt: string }, now: Date, pendingGraceMinutes = PENDING_GRACE_MINUTES) {
   if (row.attempts >= MAX_ATTEMPTS) return false;
   if (row.status === "FAILED") return !row.nextAttemptAt || now.getTime() >= Date.parse(row.nextAttemptAt);
   // A PENDING row whose delivery was cut off: give the run time to finish first.

@@ -1,5 +1,7 @@
 import { createHmac } from "node:crypto";
 
+import { businessDay } from "../../src/lib/business-time";
+
 /**
  * Netlify Scheduled Function: the hourly automation pass. It retries a
  * switched-on job whose run today FAILED or was cut off (with backoff, at most
@@ -27,7 +29,7 @@ export default async function automationHourly(_request: Request, context?: Depl
     return;
   }
 
-  const day = new Date(Date.now() + 3 * 3_600_000).toISOString().slice(0, 10); // Baghdad, UTC+3
+  const day = businessDay(new Date()); // the same Baghdad day the endpoint verifies
   const token = createHmac("sha256", secret).update(`automation:maintenance:${day}`).digest("hex");
   const response = await fetch(`${site.replace(/\/$/, "")}/api/automation/run`, {
     method: "POST",

@@ -84,7 +84,9 @@ try {
     breakJob();
     const first = await runJob("daily-digest", { trigger: "SCHEDULE", now: t(`${D1}T03:00:00Z`) });
     assert.equal(first.ok && first.status, "FAILED");
-    assert.equal((first as { retryAt?: string }).retryAt, `${D1}T03:15:00.000Z`);
+    // 15 minutes after the failure (the run's own elapsed time is counted, so allow a second).
+    const retryAt = Date.parse(String((first as { retryAt?: string }).retryAt));
+    assert.ok(retryAt >= Date.parse(`${D1}T03:15:00.000Z`) && retryAt < Date.parse(`${D1}T03:15:01.000Z`), `retryAt ${retryAt}`);
     let row = await run(D1);
     assert.equal(row?.attempts, 1);
     assert.doesNotMatch(String(row?.error), /07701234567/, "the phone in the error is masked");
@@ -193,7 +195,7 @@ try {
     await setSettings({ "automation.enabled": "on" });
   });
 
-  await check("outbox retries never duplicate: a delivered-but-unmarked row is marked SENT, a lost one is created once, a broken one gives up after 3", async () => {
+  await check("outbox retries never duplicate: a delivered-but-unmarked row is marked SENT, a lost one is created once, a payload with no notification is closed as SKIPPED", async () => {
     const notification = { type: "RENEWAL_REMINDER", title: "retry test", body: "body", link: "/subscriptions" };
     const mk = (key: string, extra: Record<string, unknown>) =>
       db.orm.public.OutboxMessage.create({ channel: "IN_APP", template: "before-expiry", userId: customer.id, dedupeKey: `${key}:${R}`, status: "FAILED", attempts: 1, nextAttemptAt: "2031-04-01T00:00:00.000Z", payload: JSON.stringify({ notification }), ...extra });
@@ -216,10 +218,11 @@ try {
     assert.equal(await count(delivered.dedupeKey), 1, "no duplicate of an existing notification");
     assert.equal((await rowOf(lost.id))?.status, "SENT");
     assert.equal(await count(lost.dedupeKey), 1);
-    const gaveUp = await rowOf(broken.id);
-    assert.equal(gaveUp?.status, "FAILED");
-    assert.equal(gaveUp?.attempts, 3);
-    assert.equal(gaveUp?.nextAttemptAt ?? null, null);
+    // A pre-step-3 row has nothing to deliver: closed as SKIPPED, not a failure nobody can fix.
+    const closed = await rowOf(broken.id);
+    assert.equal(closed?.status, "SKIPPED");
+    assert.equal(closed?.nextAttemptAt ?? null, null);
+    assert.equal(await count(broken.dedupeKey), 0);
   });
 
   await check("two deliveries of the same row at once: one notification, and the row ends SENT", async () => {

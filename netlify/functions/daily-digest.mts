@@ -1,5 +1,7 @@
 import { createHmac } from "node:crypto";
 
+import { businessDay } from "../../src/lib/business-time";
+
 /**
  * Netlify Scheduled Function: the morning jobs — the owner's daily list and
  * the customers' in-app reminders — at 06:00 Baghdad
@@ -32,7 +34,7 @@ export default async function dailyDigest(_request: Request, context?: DeployCon
     return;
   }
 
-  const day = new Date(Date.now() + 3 * 3_600_000).toISOString().slice(0, 10); // Baghdad, UTC+3
+  const day = businessDay(new Date()); // the same Baghdad day the endpoint verifies
 
   for (const job of ["daily-digest", "customer-reminders"]) {
     const token = createHmac("sha256", secret).update(`automation:${job}:${day}`).digest("hex");

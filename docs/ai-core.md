@@ -46,10 +46,17 @@ The shared base for Shashtna's AI assistants. Step 1 builds the core and the fir
 
 | Agent | Step | Tools |
 |---|---|---|
-| `operations` («مساعد العمليات») | 1 (core), page in step 2 | `operations_today`, `automation_status`, `finance_facts` (owner/admin) |
+| `operations` («مساعد العمليات») | 1 (core), page in step 2: Admin → `/admin/assistant` (permission `insights`) | `operations_today`, `automation_status`, `finance_facts` (owner/admin) |
 
-## Not in step 1
+## The page (step 2)
 
-- No page yet: the Operations assistant's page in the admin console is step 2.
+`/admin/assistant` («مساعد العمليات», nav: Intelligence) — one question, one answer, with the tools it read shown
+under the answer. The question box is disabled, with a clear notice, while the switch is off or
+`ANTHROPIC_API_KEY` is missing. Suggested questions match the role's tools (the finance one only for owner/admin).
+Server action `askAssistantAction` (`app/admin/assistant/actions.ts`) checks the session and `insights`, then calls
+`runAgent`, which re-checks everything.
+
+## Not yet
+
 - No writes, no proposals, no customer-level data, no memory between questions.
 - No new database tables or migrations.

@@ -15,7 +15,7 @@ test("production state (marker bec797, ledger up to console_device) → exactly 
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
   assert.deepEqual(plan.pending, ["20261016T0559_package_duration_unit", "20261017T1832_package_renewal_price", "20261030T1021_package_options", "20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook"]);
-  assert.equal(plan.tip, byName["20261105T2208_automation_retries", "20261112T2336_playbook"].to);
+  assert.equal(plan.tip, byName["20261112T2336_playbook"].to);
 });
 
 test("package migrations already applied → only the package options migration is pending", () => {

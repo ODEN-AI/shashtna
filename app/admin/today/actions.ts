@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { JOBS, REMINDERS, type Job, type Reminder } from "@/src/lib/automation";
 import { isFullAccess } from "@/src/lib/system";
 import { assertStaff, getSessionUser } from "@/src/server/auth";
-import { markWhatsAppOpened, runJob } from "@/src/server/automation";
+import { markWhatsAppOpened, retryOutboxMessage, runJob } from "@/src/server/automation";
 
 /**
  * Admin → Today actions. Both are OWNER-only; the services check again.
@@ -44,6 +44,8 @@ const REASONS: Record<string, string> = {
   JOB_OFF: "قائمة اليوم الصباحية متوقفة من الإعدادات.",
   BUSY: "فيه تشغيل ثاني شغّال هسه.",
   DUPLICATE: "تم التشغيل اليوم.",
+  RETRY_LATER: "مو وقت إعادة المحاولة بعد.",
+  GAVE_UP: "خلصت المحاولات الثلاث لليوم. تنعاد بكرة الصبح.",
 };
 
 export async function runNowAction(_prev: TodayState, formData: FormData): Promise<TodayState> {
@@ -56,10 +58,11 @@ export async function runNowAction(_prev: TodayState, formData: FormData): Promi
     const result = await runJob(job as Job, { trigger: "MANUAL", actor: staff });
 
     revalidatePath("/admin/today");
+    revalidatePath("/admin/jobs");
 
     if (!result.ok) return { ok: false, message: result.error };
     if (result.status === "SKIPPED") return { ok: false, message: REASONS[result.reason ?? ""] ?? "ما تم التشغيل." };
-    if (result.status === "FAILED") return { ok: false, message: "فشل التشغيل. التفاصيل بسجل النشاط." };
+    if (result.status === "FAILED") return { ok: false, message: result.retryAt ? "فشل التشغيل، وراح ينعاد تلقائياً. التفاصيل بصفحة «المهام»." : "فشل التشغيل وخلصت المحاولات. التفاصيل بصفحة «المهام»." };
 
     if (job === "customer-reminders") {
       return { ok: true, message: result.stats?.dryRun ? `تشغيل تجريبي: ${result.stats?.due ?? 0} مستحق، ما انرسل شي للعملاء.` : `انرسل ${result.stats?.created ?? 0} تذكير للعملاء.` };
@@ -85,5 +88,25 @@ export async function markWhatsAppAction(subscriptionId: number, template: strin
     return result.ok ? { ok: true, message: "" } : { ok: false, message: result.error };
   } catch (error) {
     return fail(error, "تعذر تسجيل الرسالة.");
+  }
+}
+
+/** «إعادة المحاولة» on one failed outbox message (owner only; idempotent by the message's dedupe key). */
+export async function retryOutboxAction(_prev: TodayState, formData: FormData): Promise<TodayState> {
+  try {
+    const staff = await owner();
+    const id = Number(formData.get("outboxId"));
+
+    if (!Number.isInteger(id) || id <= 0) return { ok: false, message: "طلب غير صالح." };
+
+    const result = await retryOutboxMessage(staff, id);
+
+    revalidatePath("/admin/jobs");
+
+    if (!result.ok) return { ok: false, message: result.error };
+
+    return result.delivered ? { ok: true, message: "وصلت الرسالة." } : { ok: false, message: "ما وصلت هالمرة. جرّب بعدين." };
+  } catch (error) {
+    return fail(error, "تعذر إعادة المحاولة.");
   }
 }

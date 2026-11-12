@@ -14,7 +14,14 @@ export const JOBS = ["daily-digest", "customer-reminders"] as const;
 export type Job = (typeof JOBS)[number];
 
 export const RUN_STATUSES = ["RUNNING", "SUCCEEDED", "FAILED", "SKIPPED"] as const;
+export const TRIGGERS = ["SCHEDULE", "RETRY", "MANUAL"] as const;
+export type Trigger = (typeof TRIGGERS)[number];
 export type RunStatus = (typeof RUN_STATUSES)[number];
+
+/** The hourly maintenance pass signs this key: `maintenance:<Baghdad day>`. */
+export function maintenanceKey(now = new Date()) {
+  return `maintenance:${businessDay(now)}`;
+}
 
 /** One run per job per Baghdad day: a second trigger with the same key is a no-op. */
 export function runKey(job: Job, now = new Date()) {
@@ -241,6 +248,121 @@ export function reminderConversion(input: { sent: Record<Reminder, number>; star
     completedWithout: input.completedWithout,
     conversion: sent ? Math.round((input.completed / sent) * 1000) / 10 : null,
   };
+}
+
+// ------------------------------------------------------------------- retries and heartbeat (step 3)
+
+/** Every run and every outbox message gets at most this many attempts. */
+export const MAX_ATTEMPTS = 3;
+
+/** Minutes to wait after failed attempt 1 and 2 before the next one. */
+export const RETRY_BACKOFF_MINUTES = [15, 60] as const;
+
+/** A RUNNING row older than this was cut off (the function timed out or crashed) and may be re-claimed. */
+export const STALE_RUN_MINUTES = 30;
+
+/** When the next attempt is allowed after `attempts` failed ones; null = out of attempts. */
+export function nextRetryAt(attempts: number, failedAt: Date) {
+  if (attempts >= MAX_ATTEMPTS) return null;
+
+  const minutes = RETRY_BACKOFF_MINUTES[Math.max(0, attempts - 1)] ?? RETRY_BACKOFF_MINUTES[RETRY_BACKOFF_MINUTES.length - 1];
+
+  return new Date(failedAt.getTime() + minutes * 60_000);
+}
+
+export type RunRow = { status: string; attempts: number; startedAt: string; nextAttemptAt: string | null };
+
+export type RunDecision = "NEW" | "RETRY" | "RECLAIM" | "EXPIRE" | "DONE" | "BUSY" | "WAIT" | "GAVE_UP";
+
+/**
+ * What a trigger may do with today's run row. A SUCCEEDED run is never re-run;
+ * a FAILED one is retried once its backoff has passed (an owner's manual
+ * retry skips the wait) and while attempts remain.
+ */
+export function runDecision(row: RunRow | null, now: Date, manual = false): RunDecision {
+  if (!row) return "NEW";
+
+  const status = row.status.toUpperCase();
+
+  if (status === "SUCCEEDED") return "DONE";
+  if (status === "RUNNING") {
+    if (now.getTime() - Date.parse(row.startedAt) <= STALE_RUN_MINUTES * 60_000) return "BUSY";
+
+    // Cut off: re-claim it while attempts remain; the last one is closed as FAILED for good.
+    return row.attempts >= MAX_ATTEMPTS ? "EXPIRE" : "RECLAIM";
+  }
+  if (row.attempts >= MAX_ATTEMPTS) return "GAVE_UP";
+  if (status !== "FAILED") return "DONE";
+  if (manual || !row.nextAttemptAt || now.getTime() >= Date.parse(row.nextAttemptAt)) return "RETRY";
+
+  return "WAIT";
+}
+
+/** A failed attempt appended to the run's error history (kept short; error text only). */
+export function appendError(log: string | null | undefined, entry: { attempt: number; at: string; error: string }) {
+  let list: { attempt: number; at: string; error: string }[] = [];
+
+  try {
+    const parsed = JSON.parse(log ?? "[]");
+    if (Array.isArray(parsed)) list = parsed;
+  } catch {
+    list = [];
+  }
+
+  return JSON.stringify([...list, { ...entry, error: entry.error.slice(0, 300) }].slice(-MAX_ATTEMPTS * 2));
+}
+
+/** Error text for the run history and the jobs page: phone numbers and e-mails are masked; dates, ids and timings stay readable. */
+export function safeError(message: string) {
+  return message
+    .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "…@…")
+    .replace(/(?:\+|00)?964[\s-]?7\d{2}[\s-]?\d{3}[\s-]?\d{4}|\b0?7\d{2}[\s-]?\d{3}[\s-]?\d{4}\b|\+\d{8,15}\b/g, "…")
+    .slice(0, 300);
+}
+
+/** The morning jobs run at 06:00 Baghdad; by 09:00 a switched-on job should have succeeded. */
+export const HEARTBEAT_HOUR = 9;
+
+export function baghdadMinutes(now: Date) {
+  return (now.getUTCHours() * 60 + now.getUTCMinutes() + 3 * 60) % (24 * 60);
+}
+
+/** Today's 06:00 Baghdad, when the morning jobs are scheduled. */
+export function morningRunAt(now: Date) {
+  return new Date(`${businessDay(now)}T03:00:00.000Z`);
+}
+
+/**
+ * Switched-on jobs with no SUCCEEDED run today, once it is 09:00 Baghdad or
+ * later. A job (or automation) switched on after today's 06:00 run had nothing
+ * scheduled yet, so it is not reported until tomorrow.
+ */
+export function missedJobs(
+  input: { enabled: boolean; jobs: Record<Job, boolean>; succeededToday: Job[]; switchedOnAt?: Partial<Record<Job, string | null>> },
+  now: Date,
+): Job[] {
+  if (!input.enabled || baghdadMinutes(now) < HEARTBEAT_HOUR * 60) return [];
+
+  const morning = morningRunAt(now).getTime();
+
+  return JOBS.filter((job) => {
+    const since = input.switchedOnAt?.[job];
+
+    return input.jobs[job] && !input.succeededToday.includes(job) && !(since && Date.parse(since) > morning);
+  });
+}
+
+/** The outbox row a retry pass may pick up: due, attempts left, never a SENT/SKIPPED one. */
+/** A PENDING outbox row is left alone this long, so the run that wrote it can finish delivering it. */
+export const PENDING_GRACE_MINUTES = 10;
+
+export function outboxDue(row: { status: string; attempts: number; nextAttemptAt: string | null; createdAt: string }, now: Date, pendingGraceMinutes = PENDING_GRACE_MINUTES) {
+  if (row.attempts >= MAX_ATTEMPTS) return false;
+  if (row.status === "FAILED") return !row.nextAttemptAt || now.getTime() >= Date.parse(row.nextAttemptAt);
+  // A PENDING row whose delivery was cut off: give the run time to finish first.
+  if (row.status === "PENDING") return now.getTime() - Date.parse(row.createdAt) >= pendingGraceMinutes * 60_000;
+
+  return false;
 }
 
 // ------------------------------------------------------------------- settings

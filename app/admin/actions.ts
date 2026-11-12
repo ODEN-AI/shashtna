@@ -605,8 +605,19 @@ export async function saveSettingsAction(_prev: AdminState, formData: FormData):
       revalidatePath("/admin/loyalty");
     }
 
-    if (changes.some((change) => change.group === "automation")) {
+    const automationChanges = changes.filter((change) => change.group === "automation");
+
+    if (automationChanges.length) {
+      // Every switch change gets its own entry (the kill switch is the owner's main control).
+      await logActivity({
+        actor: staff,
+        entityType: "SETTING",
+        action: "AUTOMATION_SETTINGS_CHANGED",
+        summary: `تحديث إعدادات الأتمتة: ${automationChanges.map((change) => `${change.key} ${change.before || "—"} → ${change.after}`).join("، ")}`,
+        details: describeSettingChanges(automationChanges).join("\n"),
+      });
       revalidatePath("/admin/today");
+      revalidatePath("/admin/jobs");
     }
 
     revalidatePath("/admin/system", "layout");

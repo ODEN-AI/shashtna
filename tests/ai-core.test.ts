@@ -91,7 +91,8 @@ test("ai core: names, agents and the audit summary", () => {
   assert.equal(c.isValidToolName("Operations"), false);
   assert.equal(c.isValidToolName("x"), false);
   assert.equal(c.isAgentId("operations"), true);
-  assert.equal(c.isAgentId("finance"), false, "only built agents are valid");
+  assert.equal(c.isAgentId("finance"), true);
+  assert.equal(c.isAgentId("marketing"), false, "only built agents are valid");
   assert.equal(c.traceSummary([]), "بدون أدوات");
   assert.equal(c.traceSummary([{ tool: "a", input: {}, ok: true, ms: 1 }, { tool: "b", input: null, ok: false, error: "x", ms: 1 }]), "a، b ✗");
 });

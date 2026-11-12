@@ -41,16 +41,18 @@ The shared base for Shashtna's AI assistants. Step 1 builds the core and the fir
 | `operations_today` | `orders` | OPERATIONAL | Subscriptions to contact by type and service, open orders (waiting payment, proofs to review, paid not activated) with order ids and waiting time, data-health counters |
 | `automation_status` | `insights` | AGGREGATE | Automation switches, today's runs and attempts, masked last error, outbox rows needing attention |
 | `finance_facts` | `finance` | AGGREGATE | The analyst's fact pack for a period (`today` … `prevMonth`) |
+| `finance_trend` | `finance` | AGGREGATE | Revenue, sales, recorded expenses and profit per day (30), week (12) or month (12); reward orders excluded |
 
 ## Agents
 
 | Agent | Step | Tools |
 |---|---|---|
 | `operations` («مساعد العمليات») | 1 (core), page in step 2: Admin → `/admin/assistant` (permission `insights`) | `operations_today`, `automation_status`, `finance_facts` (owner/admin) |
+| `finance` («مساعد المالية») | 3: tab on `/admin/assistant?agent=finance`, shown only to roles with `finance` (owner/admin) | `finance_facts`, `finance_trend` |
 
-## The page (step 2)
+## The page (steps 2–3)
 
-`/admin/assistant` («مساعد العمليات», nav: Intelligence) — one question, one answer, with the tools it read shown
+`/admin/assistant` («المساعدين», nav: Intelligence) — one tab per agent the role can use (`?agent=`); one question, one answer, with the tools it read shown
 under the answer. The question box is disabled, with a clear notice, while the switch is off or
 `ANTHROPIC_API_KEY` is missing. Suggested questions match the role's tools (the finance one only for owner/admin).
 Server action `askAssistantAction` (`app/admin/assistant/actions.ts`) checks the session and `insights`, then calls

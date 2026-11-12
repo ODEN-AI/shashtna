@@ -7,51 +7,78 @@ import { Badge } from "@/app/ui/Badge";
 import { LinkButton } from "@/app/ui/Button";
 import { PageHeader } from "@/app/ui/Page";
 import { Notice } from "@/app/ui/States";
+import { LinkTabs } from "@/app/ui/Tabs";
+import { AGENTS, type AgentId } from "@/src/lib/ai-core";
 import { isFullAccess } from "@/src/lib/system";
 import { agentTools, aiAgentsEnabled } from "@/src/server/ai-core";
 import { requireStaffPage } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "مساعد العمليات" };
+export const metadata: Metadata = { title: "المساعدين" };
 
 const TOOL_LABELS: Record<string, { ar: string; en: string }> = {
   operations_today: { ar: "شغل اليوم", en: "Today's work" },
   automation_status: { ar: "حالة الأتمتة", en: "Automation status" },
   finance_facts: { ar: "أرقام المالية", en: "Finance figures" },
+  finance_trend: { ar: "اتجاه المبيعات", en: "Sales trend" },
+};
+
+const AGENT_COPY: Record<AgentId, { title: { ar: string; en: string }; description: { ar: string; en: string }; suggestions: { ar: string; en: string }[] }> = {
+  operations: {
+    title: { ar: "مساعد العمليات", en: "Operations assistant" },
+    description: {
+      ar: "اسأل عن شغل اليوم والطلبات والأتمتة، والمساعد يجاوبك من أرقام الموقع نفسها. يقرا بس: ما يغيّر شي ولا يراسل العملاء، وأسماء العملاء وأرقامهم ما توصله.",
+      en: "Ask about today's work, orders and automation; the assistant answers from the site's own numbers. It only reads: it changes nothing, messages no one, and never sees customer names or numbers.",
+    },
+    suggestions: [
+      { ar: "شنو أهم شي لازم أسويه اليوم؟", en: "What should I do first today?" },
+      { ar: "شكد طلب ينتظر تفعيل، ومن متى؟", en: "How many orders wait for activation, and since when?" },
+      { ar: "الأتمتة اشتغلت اليوم بدون مشاكل؟", en: "Did the automation run without problems today?" },
+    ],
+  },
+  finance: {
+    title: { ar: "مساعد المالية", en: "Finance assistant" },
+    description: {
+      ar: "اسأل عن الإيرادات والربح والباقات والخصومات، والمساعد يجاوبك من أرقام مجمّعة بس. للمالك والمدير. يقرا بس، وما يغيّر أي سعر أو خصم.",
+      en: "Ask about revenue, profit, packages and discounts; the assistant answers from aggregate figures only. Owner and admins. It only reads and never changes a price or discount.",
+    },
+    suggestions: [
+      { ar: "شلون المبيعات هالشهر مقارنة بالشهر الماضي؟", en: "How are sales this month compared with last month?" },
+      { ar: "ليش الربح تغيّر هالشهر؟", en: "Why did profit change this month?" },
+      { ar: "أي باقة تجيب أكثر إيراد؟", en: "Which package brings in the most revenue?" },
+      { ar: "شلون المبيعات بآخر 12 شهر؟", en: "How have sales gone over the last 12 months?" },
+      { ar: "الخصومات زادت المبيعات لو لا؟", en: "Did the discounts increase sales?" },
+    ],
+  },
 };
 
 /**
- * Admin → Operations assistant (phase 5, step 2): ask a question, get an
- * answer read from the site's own numbers. Read-only; the switch, the role
- * checks and the audit live in src/server/ai-core.ts.
+ * Admin → Assistants (phase 5): one tab per agent the role can use. Ask a
+ * question, get an answer read from the site's own numbers. Read-only; the
+ * switch, role checks and audit live in src/server/ai-core.ts.
  */
-export default async function AssistantPage() {
+export default async function AssistantPage({ searchParams }: { searchParams: Promise<{ agent?: string }> }) {
   const { user, allowed } = await requireStaffPage("/admin/assistant", "insights");
 
   if (!allowed) {
     return <Forbidden />;
   }
 
-  const [{ t, lang }, enabled] = await Promise.all([getI18n(), aiAgentsEnabled()]);
+  const [{ t, lang }, enabled, params] = await Promise.all([getI18n(), aiAgentsEnabled(), searchParams]);
+  const available = AGENTS.filter((id) => agentTools(id, user.role).length > 0);
+  const agent: AgentId = available.find((id) => id === params.agent) ?? available[0] ?? "operations";
   const configured = Boolean(process.env.ANTHROPIC_API_KEY);
-  const tools = agentTools("operations", user.role);
+  const tools = agentTools(agent, user.role);
   const isOwner = isFullAccess(user.role);
-  const suggestions = [
-    { ar: "شنو أهم شي لازم أسويه اليوم؟", en: "What should I do first today?" },
-    { ar: "شكد طلب ينتظر تفعيل، ومن متى؟", en: "How many orders wait for activation, and since when?" },
-    { ar: "الأتمتة اشتغلت اليوم بدون مشاكل؟", en: "Did the automation run without problems today?" },
-    ...(tools.some((tool) => tool.name === "finance_facts") ? [{ ar: "شلون المبيعات هالشهر مقارنة بالشهر الماضي؟", en: "How are sales this month compared with last month?" }] : []),
-  ];
+  const copy = AGENT_COPY[agent];
+  const pick = (value: { ar: string; en: string }) => (lang === "ar" ? value.ar : value.en);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t("مساعد العمليات", "Operations assistant")}
-        description={t(
-          "اسأل عن شغل اليوم والطلبات والأتمتة، والمساعد يجاوبك من أرقام الموقع نفسها. يقرا بس: ما يغيّر شي ولا يراسل العملاء، وأسماء العملاء وأرقامهم ما توصله.",
-          "Ask about today's work, orders and automation; the assistant answers from the site's own numbers. It only reads: it changes nothing, messages no one, and never sees customer names or numbers.",
-        )}
+        title={pick(copy.title)}
+        description={pick(copy.description)}
         actions={
           isOwner ? (
             <LinkButton href="/admin/settings#ai" variant="ghost" size="sm">
@@ -61,6 +88,10 @@ export default async function AssistantPage() {
           ) : null
         }
       />
+
+      {available.length > 1 ? (
+        <LinkTabs label={t("المساعدين", "Assistants")} active={agent} tabs={available.map((id) => ({ key: id, href: `/admin/assistant?agent=${id}`, label: pick(AGENT_COPY[id].title) }))} />
+      ) : null}
 
       {!enabled ? (
         <Notice tone="warning" title={t("المساعد متوقف", "The assistant is off")}>
@@ -74,13 +105,13 @@ export default async function AssistantPage() {
         </Notice>
       ) : null}
 
-      <AssistantPanel suggestions={suggestions} disabled={!enabled || !configured || !tools.length} />
+      <AssistantPanel key={agent} agent={agent} label={pick(copy.title)} suggestions={copy.suggestions} disabled={!enabled || !configured || !tools.length} />
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
         <span>{t("يقرا من:", "Reads from:")}</span>
         {tools.map((tool) => (
           <Badge key={tool.name} tone="neutral">
-            {lang === "ar" ? TOOL_LABELS[tool.name]?.ar ?? tool.name : TOOL_LABELS[tool.name]?.en ?? tool.name}
+            {TOOL_LABELS[tool.name] ? pick(TOOL_LABELS[tool.name]) : tool.name}
           </Badge>
         ))}
       </div>

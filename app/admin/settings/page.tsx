@@ -186,6 +186,26 @@ export default async function SettingsPage() {
           <SubmitButton pendingLabel={t("جاري الحفظ...", "Saving...")}>{t("حفظ", "Save")}</SubmitButton>
         </ActionForm>
       </Card>
+
+      <Card className="scroll-mt-24 p-6" as="section">
+        <div id="ai" className="scroll-mt-24" />
+        <CardHeader
+          title={t("مساعدي الذكاء الاصطناعي", "AI assistants")}
+          description={t(
+            "المساعدين يقرون بس: يجاوبون من أرقام الموقع، وما يغيّرون أي شي ولا يراسلون العملاء. أسماء العملاء وأرقامهم ما توصل للذكاء الاصطناعي. التغيير للمالك فقط.",
+            "The assistants only read: they answer from the site's numbers and never change anything or message customers. Customer names and numbers never reach the AI. Owner only.",
+          )}
+        />
+        <ActionForm action={saveSettingsAction} className="mt-5 space-y-5">
+          <Field label={lang === "ar" ? SETTING_DEFINITIONS["ai.agents.enabled"].labelAr : SETTING_DEFINITIONS["ai.agents.enabled"].labelEn} htmlFor="ai.agents.enabled">
+            <Select key={`ai.agents.enabled:${settings["ai.agents.enabled"]}`} id="ai.agents.enabled" name="ai.agents.enabled" defaultValue={settings["ai.agents.enabled"] === "on" ? "on" : "off"}>
+              <option value="off">{t("متوقف", "Off")}</option>
+              <option value="on">{t("مفعّل", "On")}</option>
+            </Select>
+          </Field>
+          <SubmitButton pendingLabel={t("جاري الحفظ...", "Saving...")}>{t("حفظ", "Save")}</SubmitButton>
+        </ActionForm>
+      </Card>
     </div>
   );
 }

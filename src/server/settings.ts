@@ -130,6 +130,8 @@ export const SETTING_DEFINITIONS = {
   "automation.job.customerReminders": { group: "automation", labelAr: "تذكير العملاء داخل الموقع", labelEn: "In-app customer reminders", default: "off", multiline: false },
   "automation.dryRun": { group: "automation", labelAr: "تشغيل تجريبي (ما يرسل شي)", labelEn: "Dry run (sends nothing)", default: "off", multiline: false },
   "automation.quietHours": { group: "automation", labelAr: "وقت الراحة (بتوقيت بغداد)", labelEn: "Quiet hours (Baghdad)", default: "22:00-09:00", multiline: false },
+  // SHASHTNA AI CORE (phase 5) — read-only agents; ships off, owner only (docs/ai-core.md).
+  "ai.agents.enabled": { group: "ai", labelAr: "مساعدي الذكاء الاصطناعي", labelEn: "AI assistants", default: "off", multiline: false },
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFINITIONS;

@@ -28,6 +28,10 @@ if (host !== "localhost" && host !== "127.0.0.1") {
 }
 
 const { db } = await import("@/src/prisma/db");
+const { saveSupportTicket } = await import("@/src/lib/support-store");
+const { readFile, writeFile } = await import("node:fs/promises");
+const path = await import("node:path");
+const R = Date.now().toString(36).toUpperCase();
 const { runAgent, agentTools } = await import("@/src/server/ai-core");
 const { MAX_TOOL_CALLS } = await import("@/src/lib/ai-core");
 
@@ -196,6 +200,54 @@ await check("finance agent: owner gets both finance tools and the trend runs; ot
   if (!refused.ok) assert.equal(refused.reason, "FORBIDDEN");
 });
 
+await check("customer agent: ticket scope only, whitelisted service status, no names/phones/credentials", async () => {
+  const ticketId = `ST-AITEST-${R}`;
+  const now = new Date().toISOString();
+  await saveSupportTicket({
+    id: ticketId,
+    userId: owner!.id,
+    userName: "اسم سري",
+    userPhone: "07701234567",
+    subject: "القنوات ما تشتغل",
+    category: "technical",
+    status: "OPEN",
+    createdAt: now,
+    updatedAt: now,
+    lastSender: "CUSTOMER",
+    messages: [{ id: `m-${R}`, sender: "CUSTOMER", senderName: "اسم سري", message: "القنوات توكف، رقمي 07701234567", createdAt: now }],
+  });
+
+  try {
+    assert.deepEqual(agentTools("customer", "SUPPORT").length, 1, "without a ticket only the help articles");
+    assert.deepEqual(agentTools("customer", "SUPPORT", { ticketId }).map((tool) => tool.name).sort(), ["customer_services", "help_articles", "ticket_thread"]);
+    assert.equal(agentTools("operations", "OWNER", { ticketId }).some((tool) => tool.dataClass === "CUSTOMER"), false);
+
+    const model = scripted([
+      { stopReason: "tool_use", model: "fake", content: [toolUse("t1", "ticket_thread", {}), toolUse("t2", "customer_services", {}), toolUse("t3", "help_articles", { topic: "playback" })] },
+      { stopReason: "end_turn", model: "fake", content: [text("هلا بيك، جرّب تعيد تشغيل الجهاز.")] },
+    ]);
+    const support = { id: owner!.id, role: "SUPPORT" };
+    const result = await runAgent(support, "customer", "اكتب مسودة رد على هذه التذكرة.", { callModel: model.callModel, skipSwitch: true, scope: { ticketId } });
+
+    assert.equal(result.ok, true, JSON.stringify(result));
+    if (!result.ok) return;
+    assert.deepEqual(result.trace.map((call) => [call.tool, call.ok]), [["ticket_thread", true], ["customer_services", true], ["help_articles", true]]);
+    const [thread, services] = lastToolResults(model.seen);
+    assert.match(thread.content, /القنوات ما تشتغل/);
+    assert.doesNotMatch(thread.content, /اسم سري|07701234567|userPhone|userName|senderName/);
+    assert.doesNotMatch(services.content, /"username"|"password"|accountEmail|macAddress|deviceId/);
+
+    const missing = await runAgent(support, "customer", "اكتب مسودة", { callModel: model.callModel, skipSwitch: true, scope: { ticketId: "ST-NOPE-0000" } });
+    assert.equal(missing.ok, false, "an unknown ticket is refused");
+    const noScope = await runAgent(support, "customer", "اكتب مسودة", { callModel: model.callModel, skipSwitch: true });
+    assert.equal(noScope.ok, false, "no ticket, no customer agent");
+  } finally {
+    const file = path.join(process.cwd(), ".data", "support-tickets.json");
+    const tickets = JSON.parse(await readFile(file, "utf8")) as { id: string }[];
+    await writeFile(file, JSON.stringify(tickets.filter((item) => item.id !== ticketId), null, 2), "utf8");
+  }
+});
+
 await check("bad requests: unknown agent, empty question", async () => {
   assert.equal((await runAgent(ownerActor, "marketing", "x", { skipSwitch: true })).ok, false);
   assert.equal((await runAgent(ownerActor, "operations", "   ", { skipSwitch: true })).ok, false);
@@ -204,10 +256,10 @@ await check("bad requests: unknown agent, empty question", async () => {
 await check("the activity log keeps tool names, never the question or the data", async () => {
   const rows = await db.orm.public.ActivityEvent.where((e) => e.action.in(["AI_AGENT_RUN", "AI_AGENT_FAILED"])).where((e) => e.createdAt.gte(start)).all();
 
-  assert.ok(rows.length >= 7, `expected the runs above to be logged, got ${rows.length}`);
+  assert.ok(rows.length >= 8, `expected the runs above to be logged, got ${rows.length}`);
   for (const row of rows) {
     const blob = `${row.summary} ${row.details ?? ""}`;
-    assert.doesNotMatch(blob, /07701234567|أهم شي|revenue|subscriptionsToContact/);
+    assert.doesNotMatch(blob, /07701234567|أهم شي|revenue|subscriptionsToContact|القنوات|اسم سري/);
   }
 });
 

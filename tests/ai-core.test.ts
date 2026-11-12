@@ -37,7 +37,11 @@ test("ai core: tools follow role permissions and data classes", () => {
   assert.equal(c.canUseTool("OPERATOR", finance), false, "money stays owner/admin");
   assert.equal(c.canUseTool("SUPPORT", orders), false);
   assert.equal(c.canUseTool("CUSTOMER", orders), false, "customers are never staff");
-  assert.equal(c.canUseTool("OWNER", customer), false, "CUSTOMER data is off in step 1, even for the owner");
+  assert.equal(c.canUseTool("OWNER", customer), false, "CUSTOMER data needs a ticket scope, even for the owner");
+  assert.equal(c.canUseTool("OWNER", customer, { ticketId: "ST-ABC123-1234ABCD" }), true);
+  assert.equal(c.canUseTool("SUPPORT", { permission: "support", dataClass: "CUSTOMER" }, { ticketId: "ST-ABC123-1234ABCD" }), true);
+  assert.equal(c.canUseTool("CONTENT", { permission: "support", dataClass: "CUSTOMER" }, { ticketId: "ST-ABC123-1234ABCD" }), false, "role still checked");
+  assert.equal(c.canUseTool("OWNER", customer, { ticketId: "../../etc" }), false, "a malformed ticket id is no scope");
   assert.deepEqual(c.toolsFor("OPERATOR", [orders, finance]), [orders]);
 });
 
@@ -92,7 +96,12 @@ test("ai core: names, agents and the audit summary", () => {
   assert.equal(c.isValidToolName("x"), false);
   assert.equal(c.isAgentId("operations"), true);
   assert.equal(c.isAgentId("finance"), true);
+  assert.equal(c.isAgentId("customer"), true);
   assert.equal(c.isAgentId("marketing"), false, "only built agents are valid");
+  assert.deepEqual([...c.TICKET_AGENTS], ["customer"]);
+  assert.equal(c.isTicketId("ST-MHX1Z2-AB12CD34"), true);
+  assert.equal(c.isTicketId("a b"), false);
+  assert.equal(c.isTicketId(42), false);
   assert.equal(c.traceSummary([]), "بدون أدوات");
   assert.equal(c.traceSummary([{ tool: "a", input: {}, ok: true, ms: 1 }, { tool: "b", input: null, ok: false, error: "x", ms: 1 }]), "a، b ✗");
 });

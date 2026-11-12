@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 
 import { replyTicketAdminAction } from "@/app/admin/actions";
 import { Forbidden } from "@/app/components/admin/Forbidden";
+import { TicketDraft } from "@/app/components/admin/TicketDraft";
 import { ActionForm } from "@/app/ui/ActionForm";
 import { Badge, StatusBadge } from "@/app/ui/Badge";
 import { LinkButton } from "@/app/ui/Button";
@@ -15,6 +16,7 @@ import { TicketThread } from "@/app/ui/TicketThread";
 import { formatDate } from "@/src/lib/i18n";
 import { formatOrderNumber } from "@/src/lib/order-status";
 import { getSupportTicket } from "@/src/lib/support-store";
+import { aiAgentsEnabled } from "@/src/server/ai-core";
 import { requireStaffPage } from "@/src/server/auth";
 import { getI18n } from "@/src/server/i18n";
 import { listSubscriptionsForUser } from "@/src/server/subscriptions";
@@ -38,7 +40,9 @@ export default async function AdminTicketPage({ params }: { params: Promise<{ id
     notFound();
   }
 
-  const [{ t, lang }, subscriptions] = await Promise.all([getI18n(), listSubscriptionsForUser(ticket.userId).catch(() => [])]);
+  const [{ t, lang }, subscriptions, aiOn] = await Promise.all([getI18n(), listSubscriptionsForUser(ticket.userId).catch(() => []), aiAgentsEnabled().catch(() => false)]);
+  // The reply-draft helper shows only when the assistants are on and the AI is configured.
+  const showDraft = aiOn && Boolean(process.env.ANTHROPIC_API_KEY) && ticket.status !== "CLOSED";
   const linked = ticket.context?.subscriptionId ? subscriptions.find((item) => item.id === ticket.context!.subscriptionId) : undefined;
 
   return (
@@ -65,6 +69,7 @@ export default async function AdminTicketPage({ params }: { params: Promise<{ id
           <Card className="p-5 sm:p-6">
             <TicketThread messages={ticket.messages} lang={lang} perspective="ADMIN" />
           </Card>
+          {showDraft ? <TicketDraft ticketId={ticket.id} replyFieldId="message" /> : null}
           <Card className="p-5 sm:p-6">
             <ActionForm action={replyTicketAdminAction} resetOnSuccess className="space-y-4">
               <input type="hidden" name="ticketId" value={ticket.id} />

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   Bot,
+  BookOpenCheck,
   Activity,
   AppWindow,
   BarChart3,
@@ -84,6 +85,7 @@ const ICONS: Record<string, typeof Inbox> = {
   insights: BarChart3,
   analyst: BrainCircuit,
   assistant: Bot,
+  playbook: BookOpenCheck,
   revenue: CircleDollarSign,
   finance: WalletCards,
   reports: FileSpreadsheet,

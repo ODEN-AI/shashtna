@@ -46,7 +46,18 @@ export type RunScope = { ticketId?: string | null };
 /** The subset of JSON Schema the core accepts for tool inputs (validated on the server). */
 export type InputProperty =
   | { type: "string"; enum: readonly string[]; description?: string }
+  | { type: "string"; maxLength: number; description?: string; enum?: undefined }
   | { type: "integer"; minimum: number; maximum: number; description?: string };
+
+/** The schema as sent to the model: length limits are enforced here, on the server, not by the API. */
+export function schemaForModel(schema: InputSchema) {
+  return {
+    ...schema,
+    properties: Object.fromEntries(
+      Object.entries(schema.properties).map(([key, property]) => [key, property.type === "string" && !property.enum ? { type: "string", ...(property.description ? { description: property.description } : {}) } : property]),
+    ),
+  };
+}
 
 export type InputSchema = {
   type: "object";
@@ -125,9 +136,14 @@ export function checkToolInput(schema: InputSchema, input: unknown): InputCheck 
 
     if (raw === undefined || raw === null) continue;
 
-    if (property.type === "string") {
+    if (property.type === "string" && property.enum) {
       if (typeof raw !== "string" || !property.enum.includes(raw)) return { ok: false, error: `${key} must be one of: ${property.enum.join(", ")}` };
       value[key] = raw;
+    } else if (property.type === "string") {
+      const text = typeof raw === "string" ? raw.replace(/\s+/g, " ").trim() : "";
+
+      if (!text || text.length > property.maxLength) return { ok: false, error: `${key} must be text of 1 to ${property.maxLength} characters` };
+      value[key] = text;
     } else {
       if (typeof raw !== "number" || !Number.isInteger(raw) || raw < property.minimum || raw > property.maximum) {
         return { ok: false, error: `${key} must be a whole number from ${property.minimum} to ${property.maximum}` };

@@ -68,6 +68,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     en: "Engagement",
     items: [
       { href: "/admin/support", ar: "تذاكر الدعم", en: "Tickets", icon: "tickets", permission: "support", badgeKey: "tickets" },
+      { href: "/admin/playbook", ar: "دليل الحلول", en: "Playbook", icon: "playbook", permission: "support" },
       { href: "/admin/status", ar: "حالة الخدمة", en: "Service status", icon: "status", permission: "content" },
       { href: "/admin/leads", ar: "طلبات الحلول الرقمية", en: "Digital leads", icon: "leads", permission: "orders", badgeKey: "leads" },
     ],

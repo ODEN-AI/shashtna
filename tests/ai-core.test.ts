@@ -111,3 +111,14 @@ test("ai core: the agents switch accepts on/off only", () => {
   assert.equal(settingProblem("ai.agents.enabled", "off"), null);
   assert.ok(settingProblem("ai.agents.enabled", "yes"));
 });
+
+test("ai core: free-text inputs are trimmed and length-checked; the model sees no maxLength", () => {
+  const free = { type: "object", properties: { query: { type: "string", maxLength: 20 } }, required: ["query"], additionalProperties: false } as const;
+
+  assert.deepEqual(c.checkToolInput(free, { query: "  تقطيع   قنوات " }), { ok: true, value: { query: "تقطيع قنوات" } });
+  assert.equal(c.checkToolInput(free, { query: "   " }).ok, false);
+  assert.equal(c.checkToolInput(free, { query: "x".repeat(21) }).ok, false);
+  assert.equal(c.checkToolInput(free, { query: 5 }).ok, false);
+  assert.deepEqual(c.schemaForModel(free).properties.query, { type: "string" });
+  assert.deepEqual(c.schemaForModel(schema).properties.period, schema.properties.period, "enum properties unchanged");
+});

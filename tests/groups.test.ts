@@ -114,5 +114,8 @@ test("plan groups migrations: additive, the data step only touches ungrouped IPT
   assert.equal(read("20261105T2208_automation_retries/migration.json").from, read("20261031T1123_customer_reminders/migration.json").to);
   const retries: { id: string; operationClass: string }[] = read("20261105T2208_automation_retries/ops.json");
   assert.deepEqual(retries.map((op) => [op.id, op.operationClass]).sort(), [["column.public.automationRun.errorLog", "additive"], ["column.public.automationRun.nextAttemptAt", "additive"]]);
-  assert.equal(read("20261105T2208_automation_retries/migration.json").to, read("refs/db.json").hash);
+  assert.equal(read("20261112T2336_playbook/migration.json").from, read("20261105T2208_automation_retries/migration.json").to);
+  const playbook: { id: string; operationClass: string }[] = read("20261112T2336_playbook/ops.json");
+  assert.ok(playbook.every((op) => op.operationClass === "additive"), "the playbook migration is additive only");
+  assert.equal(read("20261112T2336_playbook/migration.json").to, read("refs/db.json").hash);
 });

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
+  Bot,
   Activity,
   AppWindow,
   BarChart3,
@@ -82,6 +83,7 @@ const ICONS: Record<string, typeof Inbox> = {
   leads: Briefcase,
   insights: BarChart3,
   analyst: BrainCircuit,
+  assistant: Bot,
   revenue: CircleDollarSign,
   finance: WalletCards,
   reports: FileSpreadsheet,

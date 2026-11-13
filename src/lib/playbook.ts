@@ -61,51 +61,34 @@ export function checkPlaybookEntry(input: Record<string, unknown>): PlaybookChec
   return { ok: true, value: { kind: kind as PlaybookKind, service: service as PlaybookService, title, keywords, content, sortOrder, isActive: active === "on" } };
 }
 
-/** Arabic-aware normalisation for matching: drop tashkeel and tatweel, unify alef / yeh / teh marbuta forms. */
-export function normalizeForMatch(text: string) {
-  return String(text ?? "")
-    .toLowerCase()
-    .replace(/[ً-ْـ]/g, "")
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ة/g, "ه")
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 export type PlaybookRow = { id: number; kind: string; service: string; title: string; keywords: string; content: string; isActive: boolean; sortOrder: number };
 
+/** How much playbook text the agent reads in one go (inside the AI core's tool-result cap). */
+export const PLAYBOOK_READ_BUDGET = 9_000;
+
+export type PlaybookForModel =
+  | { mode: "full"; entries: { id: number; kind: string; service: string; problem: string; alsoCalled?: string; answer: string }[] }
+  | { mode: "index"; note: string; entries: { id: number; kind: string; service: string; problem: string; preview: string }[] };
+
 /**
- * Active entries that match a query, best first. A keyword hit counts most,
- * then title words, then content words; words shorter than 2 letters are
- * ignored. `service` keeps that service's entries and the ALL ones.
+ * The playbook as the agent reads it: every active entry for the customer's
+ * service (and ALL), in the owner's order. The agent matches the customer's
+ * own description to the right problem by meaning, not by shared words, so it
+ * gets the whole text. When the playbook outgrows `budget`, it gets an index
+ * (problem + a short preview) and opens entries by id.
  */
-export function searchPlaybook<T extends PlaybookRow>(rows: readonly T[], query: string, options: { service?: string | null; kind?: string | null; limit?: number } = {}): T[] {
-  const words = [...new Set(normalizeForMatch(query).split(" ").filter((word) => word.length >= 2))];
-  const service = options.service ? String(options.service).toUpperCase() : null;
-  const kind = options.kind ? String(options.kind).toUpperCase() : null;
-  const pool = rows.filter((row) => row.isActive && (!service || row.service === "ALL" || row.service === service) && (!kind || row.kind === kind));
+export function playbookForModel(rows: readonly PlaybookRow[], service: string | null = null, budget: number = PLAYBOOK_READ_BUDGET): PlaybookForModel {
+  const wanted = service ? service.toUpperCase() : null;
+  const pool = rows
+    .filter((row) => row.isActive && (!wanted || row.service === "ALL" || row.service === wanted))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+  const full = pool.map((row) => ({ id: row.id, kind: row.kind, service: row.service, problem: row.title, ...(row.keywords ? { alsoCalled: row.keywords } : {}), answer: row.content }));
 
-  if (!words.length) return [...pool].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id).slice(0, options.limit ?? 8);
+  if (JSON.stringify(full).length <= budget) return { mode: "full", entries: full };
 
-  const scored = pool
-    .map((row) => {
-      const keys = parseKeywords(row.keywords).map(normalizeForMatch);
-      const title = normalizeForMatch(row.title);
-      const content = normalizeForMatch(row.content);
-      let score = 0;
-
-      for (const word of words) {
-        if (keys.some((key) => key === word || key.includes(word) || (word.length >= 4 && word.includes(key) && key.length >= 3))) score += 5;
-        if (title.includes(word)) score += 3;
-        if (content.includes(word)) score += 1;
-      }
-
-      return { row, score };
-    })
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score || a.row.sortOrder - b.row.sortOrder || a.row.id - b.row.id);
-
-  return scored.slice(0, options.limit ?? 8).map((item) => item.row);
+  return {
+    mode: "index",
+    note: "The playbook is long: this is its index. Pick the entry (or entries) that describe the customer's problem, then read each with playbook_entry.",
+    entries: pool.map((row) => ({ id: row.id, kind: row.kind, service: row.service, problem: row.title, preview: row.content.replace(/\s+/g, " ").slice(0, 90) })),
+  };
 }

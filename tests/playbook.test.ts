@@ -34,26 +34,40 @@ test("playbook: keywords are split on commas, Arabic commas and lines", () => {
   assert.deepEqual(p.parseKeywords(""), []);
 });
 
-test("playbook: Arabic matching ignores tashkeel and letter forms", () => {
-  assert.equal(p.normalizeForMatch("الإشتِراك منتهيّة"), "الاشتراك منتهيه");
-  assert.equal(p.normalizeForMatch("مـــرحبا!"), "مرحبا");
-});
-
 const rows = [
-  { id: 1, kind: "PROBLEM", service: "IPTV", title: "القنوات توكف", keywords: "تقطيع، توكف", content: "أعد تشغيل الراوتر.", isActive: true, sortOrder: 0 },
-  { id: 2, kind: "PAYMENT", service: "ALL", title: "طريقة الدفع", keywords: "دفع، تحويل، حساب", content: "حوّل على حساب المصرف ثم ارفع الصورة.", isActive: true, sortOrder: 0 },
+  { id: 1, kind: "PROBLEM", service: "IPTV", title: "القنوات توكف", keywords: "تقطيع، توكف", content: "أعد تشغيل الراوتر.", isActive: true, sortOrder: 2 },
+  { id: 2, kind: "PAYMENT", service: "ALL", title: "طريقة الدفع", keywords: "", content: "حوّل على حساب المصرف ثم ارفع الصورة.", isActive: true, sortOrder: 1 },
   { id: 3, kind: "PROBLEM", service: "VIP", title: "جهاز VIP ما يشتغل", keywords: "جهاز", content: "افصل الكهرباء دقيقة.", isActive: true, sortOrder: 0 },
   { id: 4, kind: "FAQ", service: "IPTV", title: "قديم", keywords: "تقطيع", content: "معطل", isActive: false, sortOrder: 0 },
 ];
 
-test("playbook: search ranks keyword hits first and never returns disabled entries", () => {
-  assert.deepEqual(p.searchPlaybook(rows, "القنوات دا تقطّع عندي").map((row) => row.id), [1]);
-  assert.deepEqual(p.searchPlaybook(rows, "شلون أحوّل الفلوس؟ وين الحساب").map((row) => row.id), [2]);
-  assert.equal(p.searchPlaybook(rows, "تقطيع").some((row) => row.id === 4), false, "disabled entry hidden");
+test("playbook: the agent reads every active entry in full, in the owner's order", () => {
+  const read = p.playbookForModel(rows);
+
+  assert.equal(read.mode, "full");
+  if (read.mode !== "full") return;
+  assert.deepEqual(read.entries.map((entry) => entry.id), [3, 2, 1], "sortOrder, then id");
+  assert.equal(read.entries.some((entry) => entry.id === 4), false, "disabled entries never reach the agent");
+  assert.equal(read.entries.find((entry) => entry.id === 1)?.answer, "أعد تشغيل الراوتر.");
+  assert.equal(read.entries.find((entry) => entry.id === 1)?.alsoCalled, "تقطيع، توكف");
+  assert.equal("alsoCalled" in read.entries.find((entry) => entry.id === 2)!, false, "keywords are optional");
 });
 
-test("playbook: service filter keeps that service and ALL entries", () => {
-  assert.deepEqual(p.searchPlaybook(rows, "", { service: "VIP" }).map((row) => row.id).sort(), [2, 3]);
-  assert.deepEqual(p.searchPlaybook(rows, "جهاز", { service: "IPTV" }).map((row) => row.id), []);
-  assert.deepEqual(p.searchPlaybook(rows, "", { kind: "PAYMENT" }).map((row) => row.id), [2]);
+test("playbook: a service keeps its own entries and the ALL ones; IPTV and VIP never mix", () => {
+  const vip = p.playbookForModel(rows, "VIP");
+  const iptv = p.playbookForModel(rows, "iptv");
+
+  assert.deepEqual(vip.entries.map((entry) => entry.id).sort(), [2, 3]);
+  assert.deepEqual(iptv.entries.map((entry) => entry.id).sort(), [1, 2]);
+});
+
+test("playbook: a long playbook becomes an index the agent opens by id", () => {
+  const long = Array.from({ length: 40 }, (_, i) => ({ id: i + 1, kind: "PROBLEM", service: "ALL", title: `مشكلة ${i + 1}`, keywords: "", content: "خطوة ".repeat(80), isActive: true, sortOrder: i }));
+  const read = p.playbookForModel(long);
+
+  assert.equal(read.mode, "index");
+  if (read.mode !== "index") return;
+  assert.equal(read.entries.length, 40, "every problem is still listed");
+  assert.ok(read.entries.every((entry) => entry.preview.length <= 90));
+  assert.ok(JSON.stringify(read).length < 12_000, "fits the AI core's tool-result cap");
 });

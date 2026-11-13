@@ -16,7 +16,7 @@ Fill the playbook before switching it on: with an empty playbook the agent hands
 
 | | |
 |---|---|
-| Reads | `my_services`: this customer's subscriptions (service, package, state, dates, days left) and latest orders (number, type, status, service, stored price). Whitelisted fields: never usernames, passwords, account e-mail, MAC, device id, payment reference, proofs or notes. `playbook_search` (searched first), `help_articles` |
+| Reads | `my_services`: this customer's subscriptions (service, package, state, dates, days left) and latest orders (number, type, status, service, stored price). Whitelisted fields: never usernames, passwords, account e-mail, MAC, device id, payment reference, proofs or notes. `read_playbook` / `playbook_entry` (read before answering; matched to the customer's message by meaning — `docs/playbook.md`), `help_articles` |
 | Writes | `hand_over` only: sets the chat to HANDOVER with a reason and a one-line note for the team |
 | Never | Activates, confirms a payment, refunds, discounts, changes anything, quotes a price other than the customer's own order or the playbook, asks for passwords or card numbers, talks about other customers |
 | Hands over when | Not in the playbook (after one clarifying question); the customer asks for a person; is still unhappy; asks for a refund or to cancel; says they paid or asks to activate (PAYMENT, with the waiting order's number); the model fails (OTHER, with an apology); 25 agent replies to this customer today (LIMIT, without a model call) |

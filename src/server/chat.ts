@@ -7,10 +7,9 @@ import { traceSummary } from "@/src/lib/ai-core";
 import { isStaffRole } from "@/src/lib/roles";
 import { db } from "@/src/prisma/db";
 import { logActivity } from "@/src/server/activity";
-import { runToolLoop, type CallModel, type LoopTool } from "@/src/server/ai-core";
+import { PLAYBOOK_TOOLS, runToolLoop, type CallModel, type LoopTool } from "@/src/server/ai-core";
 import { notify } from "@/src/server/notifications";
 import { listOrdersForUser } from "@/src/server/orders";
-import { findPlaybook } from "@/src/server/playbook";
 import { getSettings } from "@/src/server/settings";
 import { listSubscriptionsForUser } from "@/src/server/subscriptions";
 
@@ -31,8 +30,9 @@ type Fail = { ok: false; status: number; error: string; code?: string };
 
 const SYSTEM = [
   "You are Shashtna's assistant (مساعد شاشتنا), chatting with a signed-in customer in My Shashtna. Shashtna sells IPTV and VIP subscriptions and digital-platform plans in Iraq. Your reply is sent to the customer as written.",
-  "Answer only from: the owner's playbook (playbook_search), this customer's own services and orders (my_services), and the public help centre (help_articles). For any problem or question, search the playbook first and follow its steps and wording.",
-  "If nothing covers it, do not invent a fix, a time or a policy: ask one short clarifying question; if it is still not covered, call hand_over with NOT_IN_PLAYBOOK.",
+  "Answer only from: the owner's playbook (read_playbook), this customer's own services and orders (my_services), and the public help centre (help_articles). Read the playbook before answering a problem or question.",
+  "Customers explain the same problem in many ways (dialect, typos, symptoms instead of names: \"الصورة تعلك\", \"يدور ويوكف\", \"ما يفتح\"). Work out what they mean and match it to the playbook entry that describes the same problem, even when no words are shared. Follow that entry's steps, explained simply in your own words.",
+  "If two entries could fit, ask the one short question that tells them apart. If no entry covers it, do not invent a fix, a time or a policy: ask one short clarifying question; if it is still not covered, call hand_over with NOT_IN_PLAYBOOK.",
   "Call hand_over, then tell the customer a team member will reply here soon, when: they ask for a person (ASKED_FOR_HUMAN); they are still unhappy after your answer (UNHAPPY); they ask for a refund or to cancel (REFUND); they say they paid, sent a transfer or ask to activate (PAYMENT; check my_services first and put the waiting order's number in the note).",
   "Never activate anything, confirm a payment, promise a time the playbook doesn't give, offer refunds or discounts, or change anything. Never quote a price except the stored price of this customer's own order or a price written in the playbook. You have no usernames or passwords; never ask for card numbers or passwords. Never talk about other customers.",
   "IPTV and VIP are separate services; never mix their rules.",
@@ -119,24 +119,8 @@ function customerTools(userId: number, handover: { reason: ChatHandoverReason | 
         };
       },
     },
-    {
-      name: "playbook_search",
-      description: "Search the owner's playbook — the approved answers, fixes, payment steps, policies and device help. Pass the customer's problem in a few words (Arabic is fine). Returns the best matching entries with their full text.",
-      input: {
-        type: "object",
-        properties: {
-          query: { type: "string", maxLength: 200, description: "The problem or question in a few words." },
-          service: { type: "string", enum: ["ANY", "IPTV", "VIP", "DIGITAL"], description: "The customer's service if known, else ANY." },
-        },
-        required: ["query", "service"],
-        additionalProperties: false,
-      },
-      run: async (input) => {
-        const entries = await findPlaybook(String(input.query), { service: input.service === "ANY" ? null : String(input.service), limit: 5 });
-
-        return entries.length ? entries.map((entry) => ({ kind: entry.kind, service: entry.service, title: entry.title, answer: entry.content })) : { none: "No playbook entry matches. Do not improvise: ask one clarifying question, or hand over." };
-      },
-    },
+    PLAYBOOK_TOOLS.read,
+    PLAYBOOK_TOOLS.entry,
     {
       name: "help_articles",
       description: "Shashtna's public help centre: FAQ answers and troubleshooting guides. Use only when the playbook has nothing.",

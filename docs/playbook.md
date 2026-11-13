@@ -30,6 +30,15 @@ This replaces the earlier phase-4 rule "customers are never messaged automatical
 never automated" for this agent only: the agent may answer customers itself, and it may pre-check a payment, but
 it still never activates, confirms payment by itself, refunds or changes prices.
 
+## How the agent finds the right entry (2026-11-13)
+
+The agent reads the **whole** playbook (`read_playbook`) and matches the customer's message to the entry that describes
+the same problem **by meaning**: dialect, typos and symptoms ("الصورة تعلك", "يدور ويوكف") instead of the owner's
+title. Keywords («طرق ثانية يوصفها الزبائن») are optional examples, not a lookup key. When two entries could fit, it
+asks the one question that tells them apart. When the playbook grows past `PLAYBOOK_READ_BUDGET` (9,000 characters),
+it gets an index (problem + a short preview) and opens entries with `playbook_entry`. This replaced the first
+version's keyword search (`playbook_search`), which missed problems described in other words.
+
 ## Data
 
 Table `playbookEntry` (migration `20261112T2336_playbook`, additive): `kind` (PROBLEM | FAQ | PAYMENT | POLICY |
@@ -41,10 +50,10 @@ timestamps. Entries are never deleted: switch them off to hide them from the age
 
 | File | Holds |
 |---|---|
-| `src/lib/playbook.ts` | Kinds, services, limits, `checkPlaybookEntry` (server validation), `parseKeywords`, Arabic-aware `normalizeForMatch`, `searchPlaybook` (keywords > title > content; service keeps its own and ALL entries; disabled never returned) — `tests/playbook.test.ts` |
-| `src/server/playbook.ts` | `listPlaybook`, `findPlaybook`, `savePlaybookEntry` (owner/admin only, audited `PLAYBOOK_CREATED` / `PLAYBOOK_UPDATED`) |
+| `src/lib/playbook.ts` | Kinds, services, limits, `checkPlaybookEntry` (server validation), `parseKeywords`, `playbookForModel` (every active entry for the service and ALL, in the owner's order; an index when longer than `PLAYBOOK_READ_BUDGET`) — `tests/playbook.test.ts` |
+| `src/server/playbook.ts` | `listPlaybook`, `readPlaybookForAgent`, `playbookEntryForAgent`, `savePlaybookEntry` (owner/admin only, audited `PLAYBOOK_CREATED` / `PLAYBOOK_UPDATED`) |
 | `app/admin/playbook/*` | The page: support can read it; owner/admin can add and edit |
-| `src/server/ai-core.ts` | Tool `playbook_search` (permission `support`, AGGREGATE): the customer agent searches it first; with no match it must not improvise a fix |
+| `src/server/ai-core.ts` | `PLAYBOOK_TOOLS`: `read_playbook` (the whole playbook for the customer's service, or its index) and `playbook_entry` (one entry by id), used by the ticket-draft assistant and the site chat. With no matching entry the agent must not improvise a fix |
 | `scripts/integration/playbook.mts` | Local-database check |
 
 ## Deploy order

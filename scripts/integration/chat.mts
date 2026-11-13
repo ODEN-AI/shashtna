@@ -88,7 +88,7 @@ await check("the switch and roles: off refuses without storing; staff can't chat
 
 await check("the agent answers with the customer's own services, masked; contacts never reach the model", async () => {
   const model = scripted([
-    { stopReason: "tool_use", model: "fake", content: [toolUse("a", "my_services", {}), toolUse("b", "playbook_search", { query: "القنوات توكف", service: "IPTV" })] },
+    { stopReason: "tool_use", model: "fake", content: [toolUse("a", "my_services", {}), toolUse("b", "read_playbook", { service: "IPTV" })] },
     { stopReason: "end_turn", model: "fake", content: [text("جرّب تعيد تشغيل الراوتر.")] },
   ]);
   const sent = await chat.sendCustomerMessage(customer, "القنوات توكف، رقمي 07701234567", { callModel: model.callModel, skipSwitch: true });

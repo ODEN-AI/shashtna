@@ -46,13 +46,13 @@ function EntryForm({ entry, lang, t }: { entry?: PlaybookEntryView; lang: "ar" |
           </Select>
         </Field>
       </div>
-      <Field label={t("العنوان", "Title")} htmlFor={`${key}-title`} hint={t("مثلاً: القنوات تقطّع بالليل", "e.g. Channels freeze at night")}>
+      <Field label={t("المشكلة أو السؤال", "Problem or question")} htmlFor={`${key}-title`} hint={t("اكتبها بكلماتك، مثلاً: القنوات تقطّع بالليل. المساعد يفهمها حتى لو الزبون شرحها بطريقة ثانية.", "In your own words, e.g. Channels freeze at night. The assistant recognises it however a customer describes it.")}>
         <Input id={`${key}-title`} name="title" maxLength={PLAYBOOK_LIMITS.title} defaultValue={entry?.title ?? ""} dir="auto" required />
       </Field>
-      <Field label={t("كلمات يكتبها الزبون", "Words customers use")} htmlFor={`${key}-keywords`} hint={t("افصلها بفاصلة: تقطيع، توكف، يعلك", "Separate with commas: freeze, buffering, stuck")}>
+      <Field label={t("طرق ثانية يوصفها الزبائن (اختياري)", "Other ways customers say it (optional)")} htmlFor={`${key}-keywords`} hint={t("مو ضروري. إذا عندك أمثلة من رسائل الزبائن، تساعد المساعد: يعلك، يدور ويوكف", "Not needed. Real examples from customer messages help the assistant: stuck, keeps loading")}>
         <Input id={`${key}-keywords`} name="keywords" maxLength={PLAYBOOK_LIMITS.keywords} defaultValue={entry?.keywords ?? ""} dir="auto" />
       </Field>
-      <Field label={t("الحل أو الجواب", "Fix or answer")} htmlFor={`${key}-content`} hint={t("اكتب الخطوات مثل ما تريد المساعد يشرحها للزبون.", "Write the steps the way you want the assistant to explain them.")}>
+      <Field label={t("الحل أو الجواب", "Fix or answer")} htmlFor={`${key}-content`} hint={t("اشرح الحل بالخطوات، وإذا تعرف السبب اكتبه. المساعد يشرحها للزبون بأسلوب بسيط.", "Explain the fix step by step, and the cause if you know it. The assistant explains it to the customer simply.")}>
         <Textarea id={`${key}-content`} name="content" rows={entry ? 5 : 6} maxLength={PLAYBOOK_LIMITS.content} defaultValue={entry?.content ?? ""} dir="auto" required />
       </Field>
       <div className="flex flex-wrap items-end gap-4">
@@ -92,8 +92,8 @@ export default async function PlaybookPage() {
       <PageHeader
         title={t("دليل الحلول", "Playbook")}
         description={t(
-          "كل شي يكدر المساعد يكوله للزبائن: المشاكل وحلولها، أجوبة الأسئلة، طريقة الدفع، القواعد، والأجهزة. المساعد يجاوب من هذا الدليل بس، فكل ما يكون أوضح وأكمل، يكون المساعد أحسن.",
-          "Everything the assistant may tell customers: problems and fixes, answers, how to pay, rules and devices. The assistant answers from this playbook only, so the clearer and fuller it is, the better it gets.",
+          "علّم المساعد مشاكل شغلك وحلولها، وأجوبة الأسئلة، وطريقة الدفع، والقواعد، والأجهزة. اكتب كل مشكلة مرة وحدة بكلماتك: المساعد يقرا الدليل كله ويفهم رسالة الزبون، فيربطها بالمشكلة الصحيحة حتى لو شرحها بأسلوب مختلف. المساعد يجاوب من هذا الدليل بس.",
+          "Teach the assistant your problems and fixes, answers, how to pay, rules and devices. Write each problem once, in your own words: the assistant reads the whole playbook and understands the customer's message, so it links it to the right problem however it's described. It answers from this playbook only.",
         )}
       />
 

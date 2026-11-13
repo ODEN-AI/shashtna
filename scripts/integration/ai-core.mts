@@ -218,8 +218,8 @@ await check("customer agent: ticket scope only, whitelisted service status, no n
   });
 
   try {
-    assert.deepEqual(agentTools("customer", "SUPPORT").map((tool) => tool.name).sort(), ["help_articles", "playbook_search"], "without a ticket only the public help and the playbook");
-    assert.deepEqual(agentTools("customer", "SUPPORT", { ticketId }).map((tool) => tool.name).sort(), ["customer_services", "help_articles", "playbook_search", "ticket_thread"]);
+    assert.deepEqual(agentTools("customer", "SUPPORT").map((tool) => tool.name).sort(), ["help_articles", "playbook_entry", "read_playbook"], "without a ticket only the public help and the playbook");
+    assert.deepEqual(agentTools("customer", "SUPPORT", { ticketId }).map((tool) => tool.name).sort(), ["customer_services", "help_articles", "playbook_entry", "read_playbook", "ticket_thread"]);
     assert.equal(agentTools("operations", "OWNER", { ticketId }).some((tool) => tool.dataClass === "CUSTOMER"), false);
 
     const model = scripted([

@@ -28,7 +28,7 @@ import { buildFactPack } from "@/src/server/analyst";
 import { dailyList, jobsOverview } from "@/src/server/automation";
 import { getFinanceSnapshot } from "@/src/server/finance";
 import { listOrdersForUser } from "@/src/server/orders";
-import { findPlaybook } from "@/src/server/playbook";
+import { playbookEntryForAgent, readPlaybookForAgent } from "@/src/server/playbook";
 import { listSubscriptionsForUser } from "@/src/server/subscriptions";
 import { getSettings } from "@/src/server/settings";
 
@@ -50,6 +50,37 @@ const PERIODS = ["today", "week", "month", "last7", "last30", "last90", "prevMon
 const TREND_VIEWS = ["day", "week", "month"] as const;
 
 // ------------------------------------------------------------------- tools (read-only)
+
+/**
+ * The owner's playbook, as the customer-facing agents read it. The agent
+ * reads the whole playbook (or its index, when long) and matches what the
+ * customer describes to the right problem by meaning — the customer's words
+ * don't have to match the owner's.
+ */
+export const PLAYBOOK_TOOLS = {
+  read: {
+    name: "read_playbook",
+    description:
+      "Read the owner's playbook: every approved problem with its answer or fix, payment steps, policies and device help, for the customer's service. Read it before answering any problem or question. Customers describe the same problem in many different ways: match what they mean to the entry that describes the same problem, even when no words are shared.",
+    input: {
+      type: "object",
+      properties: { service: { type: "string", enum: ["ANY", "IPTV", "VIP", "DIGITAL"], description: "The customer's service if known, else ANY." } },
+      required: ["service"],
+      additionalProperties: false,
+    },
+    run: async (input: ToolInput) => {
+      const playbook = await readPlaybookForAgent(input.service === "ANY" ? null : String(input.service));
+
+      return playbook.entries.length ? playbook : { empty: "The playbook has no entries yet. Do not improvise a fix: ask for details or hand over." };
+    },
+  },
+  entry: {
+    name: "playbook_entry",
+    description: "Open one playbook entry in full by its id (use when read_playbook returned an index).",
+    input: { type: "object", properties: { id: { type: "integer", minimum: 1, maximum: 1_000_000_000 } }, required: ["id"], additionalProperties: false },
+    run: async (input: ToolInput) => (await playbookEntryForAgent(Number(input.id))) ?? { missing: "No active entry with this id." },
+  },
+} satisfies Record<string, LoopTool>;
 
 const TOOLS: ServerTool[] = [
   {
@@ -181,27 +212,8 @@ const TOOLS: ServerTool[] = [
       };
     },
   },
-  {
-    name: "playbook_search",
-    description:
-      "Search the owner's playbook — the ONLY approved source of answers, fixes, payment steps, policies and device help. Pass the customer's problem in a few words (Arabic is fine). Returns the best matching entries with their full text. Prefer this over help_articles.",
-    permission: "support",
-    dataClass: "AGGREGATE",
-    input: {
-      type: "object",
-      properties: {
-        query: { type: "string", maxLength: 200, description: "The problem or question in a few words." },
-        service: { type: "string", enum: ["ANY", "IPTV", "VIP", "DIGITAL"], description: "The customer's service if known, else ANY." },
-      },
-      required: ["query", "service"],
-      additionalProperties: false,
-    },
-    run: async (input) => {
-      const entries = await findPlaybook(String(input.query), { service: input.service === "ANY" ? null : String(input.service), limit: 5 });
-
-      return entries.length ? entries.map((entry) => ({ kind: entry.kind, service: entry.service, title: entry.title, answer: entry.content })) : { none: "No playbook entry matches. Do not improvise a fix: ask the customer for details or hand over to the team." };
-    },
-  },
+  { ...PLAYBOOK_TOOLS.read, permission: "support", dataClass: "AGGREGATE" },
+  { ...PLAYBOOK_TOOLS.entry, permission: "support", dataClass: "AGGREGATE" },
   {
     name: "help_articles",
     description: "Shashtna's public help centre: FAQ answers and troubleshooting guides (playback, apps, subscriptions, devices), in Arabic and English. Base reply instructions on these.",
@@ -249,10 +261,10 @@ const AGENT_DEFS: Record<AgentId, { labelAr: string; tools: string[]; system: st
   },
   customer: {
     labelAr: "مساعد الزبائن",
-    tools: ["ticket_thread", "customer_services", "playbook_search", "help_articles"],
+    tools: ["ticket_thread", "customer_services", "read_playbook", "playbook_entry", "help_articles"],
     system: [
       "You draft replies to Shashtna customers' support tickets (an IPTV and VIP subscription business in Iraq). A staff member will read, edit and send your draft; you never send anything yourself.",
-      "Always read the ticket first (ticket_thread). Read the customer's service status (customer_services) when the ticket is about a subscription, order, renewal, payment or expiry. Then search the owner's playbook (playbook_search): its entries are the approved answers and fixes; follow them. Use help_articles only when the playbook has nothing.",
+      "Always read the ticket first (ticket_thread). Read the customer's service status (customer_services) when the ticket is about a subscription, order, renewal, payment or expiry. Then read the owner's playbook (read_playbook) and find the entry that describes the customer's problem by meaning — customers rarely use the owner's words. Its answer is the approved fix: follow it. If two entries could fit, ask the customer the one question that tells them apart. Use help_articles only when the playbook has nothing.",
       "Output ONLY the reply text addressed to the customer: warm, short, natural Iraqi-friendly Arabic (English only if the customer wrote in English). No greeting by name (you do not know it), no signature, no notes to staff.",
       "Never promise what only staff can do: no activation, refund, extension, discount, payment confirmation or a date for them. Say the team will check and follow up instead.",
       "Never include usernames, passwords, phone numbers, links you were not given, or prices; for prices point to the plans page. Never invent facts about the customer's account; if the tools don't answer it, ask the customer for the missing detail.",

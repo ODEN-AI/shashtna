@@ -5,7 +5,7 @@
  *
  * Only the owner/admin can add or edit entries (audited), bad input is refused,
  * disabled entries never reach the agent, and the customer agent's
- * playbook_search tool returns the owner's answer for a customer's words.
+ * read_playbook tool gives the agent the owner's full text to match by meaning.
  * Refuses any non-local DATABASE_URL. Removes the rows it creates.
  */
 import assert from "node:assert/strict";
@@ -26,7 +26,7 @@ if (host !== "localhost" && host !== "127.0.0.1") {
 }
 
 const { db } = await import("@/src/prisma/db");
-const { savePlaybookEntry, findPlaybook, listPlaybook } = await import("@/src/server/playbook");
+const { savePlaybookEntry, readPlaybookForAgent, playbookEntryForAgent, listPlaybook } = await import("@/src/server/playbook");
 const { runAgent } = await import("@/src/server/ai-core");
 const { saveSupportTicket } = await import("@/src/lib/support-store");
 const { readFile, writeFile } = await import("node:fs/promises");
@@ -78,18 +78,19 @@ await check("only the owner/admin can add or edit; bad input refused; changes au
   assert.equal(audit.length, 3);
 });
 
-await check("search finds the owner's fix by the customer's words; disabled entries never show", async () => {
-  const found = await findPlaybook(`القنوات دا توكف zz${R}`, { service: "IPTV" });
-  const mine = found.find((row) => row.title === `تقطيع القنوات ${R}`);
+await check("the agent reads the owner's full text; disabled entries never show; services never mix", async () => {
+  const read = await readPlaybookForAgent("IPTV");
+  const mine = read.entries.find((row) => row.problem === `تقطيع القنوات ${R}`);
 
-  assert.ok(mine, "the entry is found");
-  assert.equal(found.some((row) => row.title === `قديم ${R}`), false);
-  assert.match(mine!.content, /دقيقتين/, "the edited text is used");
-  assert.equal((await findPlaybook(`zz${R}`, { service: "VIP" })).some((row) => row.title.endsWith(R)), false, "an IPTV entry is not offered for VIP");
+  assert.ok(mine, "the entry is in the playbook the agent reads");
+  assert.equal(read.entries.some((row) => row.problem === `قديم ${R}`), false);
+  if (read.mode === "full") assert.match((mine as { answer: string }).answer, /دقيقتين/, "the edited text is used");
+  assert.match(JSON.stringify(await playbookEntryForAgent(mine!.id)), /دقيقتين/);
+  assert.equal((await readPlaybookForAgent("VIP")).entries.some((row) => row.problem.endsWith(R)), false, "an IPTV entry is not offered for VIP");
   assert.ok((await listPlaybook()).some((row) => row.title === `قديم ${R}`), "the admin list keeps disabled entries");
 });
 
-await check("the customer agent's playbook_search tool returns the entry; bad queries are refused", async () => {
+await check("the ticket agent's read_playbook tool returns the owner's text; a bad entry id is refused", async () => {
   const ticketId = `ST-PBTEST-${R}`;
   const now = new Date().toISOString();
 
@@ -114,8 +115,8 @@ await check("the customer agent's playbook_search tool returns the entry; bad qu
         stopReason: "tool_use",
         model: "fake",
         content: [
-          { type: "tool_use", id: "a", name: "playbook_search", input: { query: `توكف zz${R}`, service: "IPTV" } },
-          { type: "tool_use", id: "b", name: "playbook_search", input: { query: "   ", service: "IPTV" } },
+          { type: "tool_use", id: "a", name: "read_playbook", input: { service: "IPTV" } },
+          { type: "tool_use", id: "b", name: "playbook_entry", input: { id: 0 } },
         ],
       },
       { stopReason: "end_turn", model: "fake", content: [{ type: "text", text: "جرّب تعيد تشغيل الراوتر." }] },
@@ -134,7 +135,7 @@ await check("the customer agent's playbook_search tool returns the entry; bad qu
 
     assert.equal(result.ok, true, JSON.stringify(result));
     if (!result.ok) return;
-    assert.deepEqual(result.trace.map((call) => [call.tool, call.ok]), [["playbook_search", true], ["playbook_search", false]]);
+    assert.deepEqual(result.trace.map((call) => [call.tool, call.ok]), [["read_playbook", true], ["playbook_entry", false]]);
     const last = seen[seen.length - 1] as { content: { content: string }[] }[];
     assert.match(last[last.length - 1].content[0].content, /دقيقتين/);
   } finally {

@@ -1,4 +1,4 @@
-import { checkPlaybookEntry, searchPlaybook, type PlaybookRow } from "@/src/lib/playbook";
+import { checkPlaybookEntry, playbookForModel } from "@/src/lib/playbook";
 import { isFullAccess } from "@/src/lib/system";
 import { db } from "@/src/prisma/db";
 import { logActivity } from "@/src/server/activity";
@@ -34,11 +34,18 @@ export async function listPlaybook(): Promise<PlaybookEntryView[]> {
   return rows.map(toRow).sort((a, b) => Number(b.isActive) - Number(a.isActive));
 }
 
-/** Active entries matching a question (the AI tool). */
-export async function findPlaybook(query: string, options: { service?: string | null; kind?: string | null; limit?: number } = {}): Promise<PlaybookRow[]> {
+/** The playbook as the agent reads it (whole, or an index when long) — see playbookForModel. */
+export async function readPlaybookForAgent(service: string | null) {
   const rows = await db.orm.public.PlaybookEntry.where({ isActive: true }).all();
 
-  return searchPlaybook(rows.map(toRow), query, options);
+  return playbookForModel(rows.map(toRow), service);
+}
+
+/** One active entry in full (when the agent got the index). */
+export async function playbookEntryForAgent(id: number) {
+  const row = Number.isInteger(id) && id > 0 ? await db.orm.public.PlaybookEntry.first({ id, isActive: true }) : null;
+
+  return row ? { id: row.id, kind: row.kind, service: row.service, problem: row.title, ...(row.keywords ? { alsoCalled: row.keywords } : {}), answer: row.content } : null;
 }
 
 export async function savePlaybookEntry(actor: Actor, id: number | null, input: Record<string, unknown>): Promise<{ ok: true; id: number } | Fail> {

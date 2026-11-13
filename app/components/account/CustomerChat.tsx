@@ -19,7 +19,8 @@ import { CHAT_LIMITS } from "@/src/lib/chat";
  * action triggers. While the team has the chat, the page checks for replies
  * every 20 seconds.
  */
-export function CustomerChat({ messages, status, disabled }: { messages: ChatBubble[]; status: string | null; disabled: boolean }) {
+export function CustomerChat({ messages, status, lockedReason }: { messages: ChatBubble[]; status: string | null; lockedReason: string | null }) {
+  const disabled = Boolean(lockedReason);
   const { t, language } = useLanguage();
   const router = useRouter();
   const [state, formAction, pending] = useActionState<ChatActionState, FormData>(sendChatAction, null);
@@ -50,9 +51,9 @@ export function CustomerChat({ messages, status, disabled }: { messages: ChatBub
     <div className="space-y-4">
       {shown.length ? (
         <ChatThread messages={shown} lang={language} perspective="CUSTOMER" />
-      ) : (
+      ) : !disabled ? (
         <p className="py-6 text-center text-sm text-ink-3">{t("اكتب مشكلتك أو سؤالك، والمساعد يرد عليك هنا.", "Write your problem or question and the assistant replies here.")}</p>
-      )}
+      ) : null}
 
       {pending && status !== "HANDOVER" ? (
         <p className="text-sm text-ink-3" role="status" aria-live="polite">
@@ -75,7 +76,7 @@ export function CustomerChat({ messages, status, disabled }: { messages: ChatBub
           setDraft("");
           formAction(formData);
         }}
-        className="flex items-end gap-2 border-t border-line pt-4"
+        className={`flex items-end gap-2${shown.length || !disabled ? " border-t border-line pt-4" : ""}`}
       >
         <label htmlFor="chat-message" className="sr-only">
           {t("رسالتك", "Your message")}
@@ -96,13 +97,19 @@ export function CustomerChat({ messages, status, disabled }: { messages: ChatBub
               if (draft.trim()) formRef.current?.requestSubmit();
             }
           }}
-          placeholder={t("اكتب رسالتك…", "Write your message…")}
-          className="min-h-12 flex-1 resize-none"
+          placeholder={lockedReason ?? t("اكتب رسالتك…", "Write your message…")}
+          aria-describedby={lockedReason ? "chat-locked" : undefined}
+          className="min-h-12 flex-1 resize-none disabled:cursor-not-allowed"
         />
         <Button type="submit" disabled={disabled || pending || !draft.trim()} aria-label={t("إرسال", "Send")} className="shrink-0">
           <SendHorizontal size={18} className="rtl:rotate-180" aria-hidden />
         </Button>
       </form>
+      {lockedReason ? (
+        <p id="chat-locked" className="text-xs leading-6 text-ink-3">
+          {lockedReason}
+        </p>
+      ) : null}
     </div>
   );
 }

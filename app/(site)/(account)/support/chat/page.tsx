@@ -37,6 +37,12 @@ export default async function ChatPage() {
   const staff = isStaffRole(user.role);
   const available = enabled && chatConfigured() && !staff;
   const status = chat?.conversation.status ?? null;
+  // Why the message box is locked, shown inside it (null = open).
+  const lockedReason = staff
+    ? t("الدردشة للعملاء. ردّ على الزبائن من لوحة التحكم ← المحادثات.", "The chat is for customers. Reply to customers from the console → Chats.")
+    : !available
+      ? t("المساعد متوقف حالياً. افتح تذكرة دعم وفريق شاشتنا يرد عليك.", "The assistant is off right now. Open a support ticket and the team will reply.")
+      : null;
 
   return (
     <div className="space-y-6">
@@ -87,7 +93,7 @@ export default async function ChatPage() {
                 </form>
               </div>
             ) : null}
-            <CustomerChat messages={chat?.messages ?? []} status={status} disabled={!available} />
+            <CustomerChat messages={chat?.messages ?? []} status={status} lockedReason={lockedReason} />
           </Card>
 
           <p className="text-xs leading-6 text-ink-3">

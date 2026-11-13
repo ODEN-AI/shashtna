@@ -12,6 +12,7 @@ import { snapshotForOrder } from "@/src/server/costs";
 import { awardForOrder } from "@/src/server/loyalty";
 import { notify } from "@/src/server/notifications";
 import { completeOrderWithSubscription } from "@/src/server/orders";
+import { recordTerm } from "@/src/server/subscription-terms";
 
 /**
  * Fulfilling a digital platform order (staff with the "subscriptions"
@@ -117,7 +118,7 @@ export async function fulfilPlatformOrder(actor: Actor, orderId: number, input: 
 
   if (!expiry) return fail(400, "تعذر حساب تاريخ الانتهاء.");
 
-  const subscriptionId = await db.transaction(async (tx) => {
+  const { subscriptionId, receiptId } = await db.transaction(async (tx) => {
     const row = existing
       ? await tx.orm.public.Subscription.where({ id: existing.id }).update({
           status: "ACTIVE",
@@ -140,7 +141,7 @@ export async function fulfilPlatformOrder(actor: Actor, orderId: number, input: 
 
     if (!row) throw new Error("PLATFORM_SUBSCRIPTION_NOT_SAVED");
 
-    await tx.orm.public.Receipt.create({
+    const receipt = await tx.orm.public.Receipt.create({
       receiptNumber: receiptNumber(),
       userId: order.userId,
       orderId,
@@ -154,8 +155,11 @@ export async function fulfilPlatformOrder(actor: Actor, orderId: number, input: 
       status: "PAID",
     });
 
-    return row.id;
+    return { subscriptionId: row.id, receiptId: receipt.id };
   });
+
+  // Phase 6: keep this term (best effort, after the commit; never fails the fulfilment).
+  await recordTerm({ subscriptionId, userId: order.userId, serviceType: "DIGITAL", kind: existing ? "RENEW" : "NEW", startsOn: base, endsOn: expiry, months, receiptId, orderId });
 
   // Same completion as IPTV: cost snapshot, loyalty, activity and the customer's notification.
   await completeOrderWithSubscription(actor, orderId, subscriptionId, { price: order.price, durationMonths: months, durationLabel: order.durationLabel, bonusYears: 0 });

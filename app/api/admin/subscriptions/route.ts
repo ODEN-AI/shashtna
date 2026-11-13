@@ -4,6 +4,7 @@ import { maskedPassword } from "@/src/server/credentials";
 import { isOpen, normalizeOrderStatus } from "@/src/lib/order-status";
 import { logActivity } from "@/src/server/activity";
 import { completeOrderWithSubscription } from "@/src/server/orders";
+import { recordTerm } from "@/src/server/subscription-terms";
 import { addMonthsClamped, formatDurationAr, isValidDurationMonths } from "@/src/lib/subscription-duration";
 import {
   db,
@@ -1298,6 +1299,19 @@ export async function POST(
           }
         );
 
+      // Phase 6: keep this renewal's term (best effort; never fails the renewal).
+      await recordTerm({
+        subscriptionId: existingSubscription.id,
+        userId: existingSubscription.userId,
+        serviceType: existingSubscription.serviceType,
+        kind: "RENEW",
+        startsOn: baseDate,
+        endsOn: renewalExpiryDate,
+        months: renewalMonths,
+        receiptId: receipt.id,
+        orderId: requestId,
+      });
+
       const updatedRequest =
         await completeOrderWithSubscription(
           admin.user,
@@ -1723,6 +1737,19 @@ export async function POST(
             "PAID",
         }
       );
+
+    // Phase 6: keep this activation's term (best effort; never fails the activation).
+    await recordTerm({
+      subscriptionId: created.id,
+      userId,
+      serviceType,
+      kind: "NEW",
+      startsOn: normalizedStartDate,
+      endsOn: expiryDate,
+      months: finalDurationMonths,
+      receiptId: receipt.id,
+      orderId: requestId,
+    });
 
     const updatedRequest =
       await completeOrderWithSubscription(

@@ -516,6 +516,33 @@ model ChatMessage {
   @@index([conversationId])
 }
 
+// One subscription term (phase 6, step 2): every activation and renewal, kept
+// forever (append-only), so renewal rate, churn and retention can be measured
+// (a renewal moves the same subscription's expiry, so the subscription row
+// alone has no history). One row per receipt (`receiptId` unique, so a term is
+// never recorded twice). `startsOn` / `endsOn` are Baghdad dates (YYYY-MM-DD).
+// `kind` NEW | RENEW and `source` ACTIVATION | BACKFILL are validated in code
+// (src/lib/subscription-terms.ts). `matchesExpiry` is false for backfilled
+// terms whose replay didn't match the stored expiry (manual edits).
+model SubscriptionTerm {
+  id             Int      @id @default(autoincrement())
+  subscriptionId Int
+  userId         Int
+  serviceType    String
+  kind           String
+  startsOn       String
+  endsOn         String
+  months         Int
+  receiptId      Int?     @unique
+  orderId        Int?
+  source         String   @default("ACTIVATION")
+  matchesExpiry  Boolean  @default(true)
+  createdAt      TimestamptzString @default(now())
+
+  @@index([subscriptionId])
+  @@index([endsOn])
+}
+
 // A discount on one package option (a product at one length). `kind` is
 // validated in code: PERCENT (value 1–90) or AMOUNT (whole IQD). Active inside
 // [startsAt, endsAt) and until `endedAt`; at most one active per option at any

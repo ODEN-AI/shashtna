@@ -7,6 +7,7 @@ import { orderRef } from "@/src/lib/order-status";
 import { addMonthsClamped, formatDurationAr } from "@/src/lib/subscription-duration";
 import { logActivity } from "@/src/server/activity";
 import { notify } from "@/src/server/notifications";
+import { recordTerm } from "@/src/server/subscription-terms";
 import { isFullAccess } from "@/src/lib/system";
 
 /**
@@ -67,7 +68,7 @@ export async function createSupplierSubscription(actor: Actor, userId: number, r
   const label = formatDurationAr(input.months);
   const now = new Date().toISOString();
 
-  const { orderId, subscriptionId } = await db.transaction(async (tx) => {
+  const { orderId, subscriptionId, receiptId } = await db.transaction(async (tx) => {
     const subscription = existing
       ? await tx.orm.public.Subscription.where({ id: existing.id }).update({ status: "ACTIVE", expiryDate: expiry, packageName: SUPPLIER_SERVICE_NAME })
       : await tx.orm.public.Subscription.create({
@@ -111,7 +112,7 @@ export async function createSupplierSubscription(actor: Actor, userId: number, r
       updatedAt: now,
     });
 
-    await tx.orm.public.Receipt.create({
+    const receipt = await tx.orm.public.Receipt.create({
       receiptNumber: receiptNumber(),
       userId,
       orderId: order.id,
@@ -125,8 +126,11 @@ export async function createSupplierSubscription(actor: Actor, userId: number, r
       status: "PAID",
     });
 
-    return { orderId: order.id, subscriptionId: subscription.id };
+    return { orderId: order.id, subscriptionId: subscription.id, receiptId: receipt.id };
   });
+
+  // Phase 6: keep this term (best effort, after the commit; never fails the order).
+  await recordTerm({ subscriptionId, userId, serviceType: "IPTV", kind: existing ? "RENEW" : "NEW", startsOn: base, endsOn: expiry, months: input.months, receiptId, orderId });
 
   await logActivity({
     actor,

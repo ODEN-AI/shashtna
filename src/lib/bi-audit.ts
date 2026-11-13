@@ -1,5 +1,5 @@
 import { businessDay } from "@/src/lib/business-time";
-import { addMonthsClamped } from "@/src/lib/subscription-duration";
+import { daysBetween, termsFromReceipts } from "@/src/lib/subscription-terms";
 
 /**
  * Phase 6, step 1 — the subscription-history data audit (pure rules).
@@ -25,33 +25,20 @@ export type AuditEvent = { action: string; entityId: string | null };
 const day = (value: string) => String(value ?? "").slice(0, 10);
 const month = (value: string) => String(value ?? "").slice(0, 7);
 
-/** Whole days between two YYYY-MM-DD dates (absolute). */
-export function daysBetween(a: string, b: string) {
-  return Math.round(Math.abs(Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000);
-}
+export { daysBetween };
 
 /**
- * The expiry a subscription would have from its receipts alone, replayed in
- * date order with the activation rule: the first term starts on the stored
- * start date; a renewal extends the running expiry, or starts on the receipt's
- * Baghdad day when the subscription had already ended. Null without receipts.
+ * The expiry a subscription would have from its receipts alone — the end of
+ * the last replayed term (same rule as activation; see subscription-terms.ts).
+ * Null without receipts.
  */
 export function replayExpiry(startDate: string, receipts: readonly Pick<AuditReceipt, "durationMonths" | "createdAt">[]) {
-  const ordered = [...receipts].sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+  const terms = termsFromReceipts(
+    startDate,
+    receipts.map((receipt, index) => ({ id: index + 1, orderId: null, durationMonths: receipt.durationMonths, createdAt: receipt.createdAt })),
+  );
 
-  if (!ordered.length) return null;
-
-  let end = addMonthsClamped(day(startDate), ordered[0].durationMonths);
-
-  for (const receipt of ordered.slice(1)) {
-    if (!end) return null;
-
-    const paid = businessDay(new Date(receipt.createdAt));
-
-    end = addMonthsClamped(end >= paid ? end : paid, receipt.durationMonths);
-  }
-
-  return end;
+  return terms.length === receipts.length && terms.length ? terms[terms.length - 1].endsOn : null;
 }
 
 const SERVICES = ["IPTV", "VIP", "DIGITAL"] as const;

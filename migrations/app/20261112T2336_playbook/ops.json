@@ -1,0 +1,80 @@
+[
+  {
+    "id": "table.playbookEntry",
+    "label": "Create table \"playbookEntry\"",
+    "summary": "Creates table \"playbookEntry\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "playbookEntry"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"playbookEntry\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"playbookEntry\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"playbookEntry\"",
+        "sql": "CREATE TABLE \"public\".\"playbookEntry\" (\n  \"content\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"keywords\" text DEFAULT '' NOT NULL,\n  \"kind\" text NOT NULL,\n  \"service\" text DEFAULT 'ALL' NOT NULL,\n  \"sortOrder\" int4 DEFAULT 0 NOT NULL,\n  \"title\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"updatedBy\" int4,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"playbookEntry\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"playbookEntry\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.playbookEntry.playbookEntry_kind_idx_c9ca668f",
+    "label": "Create index \"playbookEntry_kind_idx_c9ca668f\" on \"playbookEntry\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "playbookEntry_kind_idx_c9ca668f",
+        "table": "playbookEntry"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"playbookEntry_kind_idx_c9ca668f\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"playbookEntry_kind_idx_c9ca668f\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"playbookEntry_kind_idx_c9ca668f\"",
+        "sql": "CREATE INDEX \"playbookEntry_kind_idx_c9ca668f\" ON \"public\".\"playbookEntry\" (\"kind\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"playbookEntry_kind_idx_c9ca668f\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"playbookEntry_kind_idx_c9ca668f\""
+        ]
+      }
+    ]
+  }
+]

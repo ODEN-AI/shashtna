@@ -9,6 +9,7 @@ import {
   cleanQuestion,
   isAgentId,
   isTicketId,
+  schemaForModel,
   TICKET_AGENTS,
   toolResultText,
   toolsFor,
@@ -27,6 +28,7 @@ import { buildFactPack } from "@/src/server/analyst";
 import { dailyList, jobsOverview } from "@/src/server/automation";
 import { getFinanceSnapshot } from "@/src/server/finance";
 import { listOrdersForUser } from "@/src/server/orders";
+import { findPlaybook } from "@/src/server/playbook";
 import { listSubscriptionsForUser } from "@/src/server/subscriptions";
 import { getSettings } from "@/src/server/settings";
 
@@ -180,6 +182,27 @@ const TOOLS: ServerTool[] = [
     },
   },
   {
+    name: "playbook_search",
+    description:
+      "Search the owner's playbook — the ONLY approved source of answers, fixes, payment steps, policies and device help. Pass the customer's problem in a few words (Arabic is fine). Returns the best matching entries with their full text. Prefer this over help_articles.",
+    permission: "support",
+    dataClass: "AGGREGATE",
+    input: {
+      type: "object",
+      properties: {
+        query: { type: "string", maxLength: 200, description: "The problem or question in a few words." },
+        service: { type: "string", enum: ["ANY", "IPTV", "VIP", "DIGITAL"], description: "The customer's service if known, else ANY." },
+      },
+      required: ["query", "service"],
+      additionalProperties: false,
+    },
+    run: async (input) => {
+      const entries = await findPlaybook(String(input.query), { service: input.service === "ANY" ? null : String(input.service), limit: 5 });
+
+      return entries.length ? entries.map((entry) => ({ kind: entry.kind, service: entry.service, title: entry.title, answer: entry.content })) : { none: "No playbook entry matches. Do not improvise a fix: ask the customer for details or hand over to the team." };
+    },
+  },
+  {
     name: "help_articles",
     description: "Shashtna's public help centre: FAQ answers and troubleshooting guides (playback, apps, subscriptions, devices), in Arabic and English. Base reply instructions on these.",
     permission: "support",
@@ -226,10 +249,10 @@ const AGENT_DEFS: Record<AgentId, { labelAr: string; tools: string[]; system: st
   },
   customer: {
     labelAr: "مساعد الزبائن",
-    tools: ["ticket_thread", "customer_services", "help_articles"],
+    tools: ["ticket_thread", "customer_services", "playbook_search", "help_articles"],
     system: [
       "You draft replies to Shashtna customers' support tickets (an IPTV and VIP subscription business in Iraq). A staff member will read, edit and send your draft; you never send anything yourself.",
-      "Always read the ticket first (ticket_thread). Read the customer's service status (customer_services) when the ticket is about a subscription, order, renewal, payment or expiry. Use help_articles for app, playback and device steps.",
+      "Always read the ticket first (ticket_thread). Read the customer's service status (customer_services) when the ticket is about a subscription, order, renewal, payment or expiry. Then search the owner's playbook (playbook_search): its entries are the approved answers and fixes; follow them. Use help_articles only when the playbook has nothing.",
       "Output ONLY the reply text addressed to the customer: warm, short, natural Iraqi-friendly Arabic (English only if the customer wrote in English). No greeting by name (you do not know it), no signature, no notes to staff.",
       "Never promise what only staff can do: no activation, refund, extension, discount, payment confirmation or a date for them. Say the team will check and follow up instead.",
       "Never include usernames, passwords, phone numbers, links you were not given, or prices; for prices point to the plans page. Never invent facts about the customer's account; if the tools don't answer it, ask the customer for the missing detail.",
@@ -301,7 +324,7 @@ export async function runAgent(actor: Actor, agent: unknown, rawQuestion: unknow
   if (!tools.length) return { ok: false, status: 403, error: "دورك ما يسمح بأي أداة لهذا المساعد.", reason: "FORBIDDEN" };
 
   const callModel = options.callModel ?? claude;
-  const definitions: Anthropic.Beta.BetaTool[] = tools.map((tool) => ({ name: tool.name, description: tool.description, input_schema: tool.input as unknown as Anthropic.Beta.BetaTool.InputSchema, strict: true }));
+  const definitions: Anthropic.Beta.BetaTool[] = tools.map((tool) => ({ name: tool.name, description: tool.description, input_schema: schemaForModel(tool.input) as unknown as Anthropic.Beta.BetaTool.InputSchema, strict: true }));
   const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: "user", content: question }];
   const trace: ToolTrace[] = [];
   const budget: RunBudget = { turns: 0, toolCalls: 0 };

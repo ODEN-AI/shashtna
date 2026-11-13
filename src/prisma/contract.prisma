@@ -459,6 +459,28 @@ model OutboxMessage {
   @@index([userId])
 }
 
+// The owner's playbook (phase 5, AI customer agent): every answer, fix and
+// rule the agent may give customers, written by the owner in Admin → Playbook.
+// `kind` is validated in code (src/lib/playbook.ts): PROBLEM | FAQ | PAYMENT |
+// POLICY | DEVICE. `service` is IPTV | VIP | DIGITAL | ALL. `keywords` is a
+// short comma list used for matching; `content` is the answer or the steps.
+// Disabled entries are kept (history) and never shown to the agent.
+model PlaybookEntry {
+  id        Int      @id @default(autoincrement())
+  kind      String
+  service   String   @default("ALL")
+  title     String
+  keywords  String   @default("")
+  content   String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  updatedBy Int?
+  createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([kind])
+}
+
 // A discount on one package option (a product at one length). `kind` is
 // validated in code: PERCENT (value 1–90) or AMOUNT (whole IQD). Active inside
 // [startsAt, endsAt) and until `endedAt`; at most one active per option at any

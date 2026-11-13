@@ -20,6 +20,7 @@ import {
   type Sale,
 } from "@/src/lib/finance";
 import { normalizeOrderStatus } from "@/src/lib/order-status";
+import { customerValue } from "@/src/lib/customer-value";
 import { mostProfitable, packagePerformance } from "@/src/lib/package-performance";
 import { isStaffRole } from "@/src/lib/roles";
 import { deriveSubscriptionState } from "@/src/lib/subscription-state";
@@ -332,3 +333,31 @@ export async function getPackagePerformance(selection: PeriodSelection, now = ne
 }
 
 export type PackagePerformanceView = Awaited<ReturnType<typeof getPackagePerformance>>;
+
+/**
+ * Customer value (phase 6, step 4) — finance permission only: what each paying
+ * customer actually paid, tiers, first-purchase cohorts and the top customers
+ * by name (staff accounts left out). All time; nothing projected.
+ */
+export async function getCustomerValue(top = 15) {
+  const sources = await loadFinanceSources();
+  const staffIds = new Set(sources.users.filter((user) => isStaffRole(user.role)).map((user) => user.id));
+  const activeUserIds = new Set(
+    sources.subscriptions
+      .filter((subscription) => ["ACTIVE", "EXPIRING"].includes(deriveSubscriptionState({ status: subscription.status, expiryDate: String(subscription.expiryDate) })))
+      .map((subscription) => subscription.userId),
+  );
+  const value = customerValue({ sales: sources.sales, staffIds, activeUserIds });
+  const leaders = value.rows.slice(0, top);
+  const names = leaders.length ? await db.orm.public.User.where((user) => user.id.in(leaders.map((row) => row.userId))).select("id", "name").all() : [];
+  const nameOf = new Map(names.map((user) => [user.id, user.name]));
+
+  return {
+    summary: value.summary,
+    tiers: value.tiers,
+    cohorts: value.cohorts,
+    top: leaders.map((row) => ({ ...row, name: nameOf.get(row.userId) ?? `#${row.userId}` })),
+  };
+}
+
+export type CustomerValueView = Awaited<ReturnType<typeof getCustomerValue>>;

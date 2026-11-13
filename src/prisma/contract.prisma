@@ -481,6 +481,41 @@ model PlaybookEntry {
   @@index([kind])
 }
 
+// Site chat with the AI customer agent (phase 5, customer agent phase B).
+// One conversation per customer at a time. `status` is validated in code
+// (src/lib/chat.ts): AI (the agent answers) | HANDOVER (waiting for staff;
+// the agent stays silent) | CLOSED. `handoverReason` is a code from
+// CHAT_HANDOVER_REASONS; `handoverNote` is the agent's short note for staff.
+model ChatConversation {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  status         String   @default("AI")
+  lastSender     String   @default("CUSTOMER")
+  handoverReason String?
+  handoverNote   String?
+  handedOverAt   TimestamptzString?
+  closedAt       TimestamptzString?
+  createdAt      TimestamptzString @default(now())
+  updatedAt      temporal.updatedAtString()
+
+  @@index([userId])
+  @@index([status])
+}
+
+// One message in a chat. `sender` is CUSTOMER | AI | STAFF (validated in
+// code); `staffId` is set for STAFF messages. Customer text is stored as
+// written and masked (phones, e-mails) before it is sent to the AI.
+model ChatMessage {
+  id             Int      @id @default(autoincrement())
+  conversationId Int
+  sender         String
+  body           String
+  staffId        Int?
+  createdAt      TimestamptzString @default(now())
+
+  @@index([conversationId])
+}
+
 // A discount on one package option (a product at one length). `kind` is
 // validated in code: PERCENT (value 1–90) or AMOUNT (whole IQD). Active inside
 // [startsAt, endsAt) and until `endedAt`; at most one active per option at any

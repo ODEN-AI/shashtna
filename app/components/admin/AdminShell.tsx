@@ -86,6 +86,7 @@ const ICONS: Record<string, typeof Inbox> = {
   analyst: BrainCircuit,
   assistant: Bot,
   playbook: BookOpenCheck,
+  chats: MessagesSquare,
   revenue: CircleDollarSign,
   finance: WalletCards,
   reports: FileSpreadsheet,

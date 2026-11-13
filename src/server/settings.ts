@@ -132,6 +132,8 @@ export const SETTING_DEFINITIONS = {
   "automation.quietHours": { group: "automation", labelAr: "وقت الراحة (بتوقيت بغداد)", labelEn: "Quiet hours (Baghdad)", default: "22:00-09:00", multiline: false },
   // SHASHTNA AI CORE (phase 5) — read-only agents; ships off, owner only (docs/ai-core.md).
   "ai.agents.enabled": { group: "ai", labelAr: "مساعدي الذكاء الاصطناعي", labelEn: "AI assistants", default: "off", multiline: false },
+  // Customer-facing AI chat (phase 5, customer agent phase B) — answers customers; ships off (docs/site-chat.md).
+  "ai.chat.enabled": { group: "ai", labelAr: "مساعد العملاء بالدردشة", labelEn: "Customer chat assistant", default: "off", multiline: false },
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFINITIONS;

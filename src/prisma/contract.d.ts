@@ -33,9 +33,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'e5c01d610ff75d1b39be58e62185b2cd18c8ac65d953ae1773ea2c58645451ab'>;
+  StorageHashBase<'aecfefce425c7089070c55e65decc0396065142c508f780f6c6e7fa6c785619f'>;
 export type ExecutionHash =
-  ExecutionHashBase<'5559b8e82647166fb9c51e1d48cb8320ea7fbe7f61681b3f037a241dfff26c9d'>;
+  ExecutionHashBase<'5410f86c6807ac2ee25ed95a043403e1ef7833a82bba2800b8eb6677d756ae3d'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -314,6 +314,26 @@ export type FieldOutputTypes = {
       readonly facts: CodecTypes['pg/text@1']['output'];
       readonly content: CodecTypes['pg/text@1']['output'];
       readonly createdBy: CodecTypes['pg/int4@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
+    readonly ChatConversation: {
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+      readonly status: CodecTypes['pg/text@1']['output'];
+      readonly lastSender: CodecTypes['pg/text@1']['output'];
+      readonly handoverReason: CodecTypes['pg/text@1']['output'] | null;
+      readonly handoverNote: CodecTypes['pg/text@1']['output'] | null;
+      readonly handedOverAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly closedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
+    readonly ChatMessage: {
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly conversationId: CodecTypes['pg/int4@1']['output'];
+      readonly sender: CodecTypes['pg/text@1']['output'];
+      readonly body: CodecTypes['pg/text@1']['output'];
+      readonly staffId: CodecTypes['pg/int4@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
     readonly ConsoleDevice: {
@@ -718,6 +738,26 @@ export type FieldInputTypes = {
       readonly createdBy: CodecTypes['pg/int4@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
+    readonly ChatConversation: {
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
+      readonly status: CodecTypes['pg/text@1']['input'];
+      readonly lastSender: CodecTypes['pg/text@1']['input'];
+      readonly handoverReason: CodecTypes['pg/text@1']['input'] | null;
+      readonly handoverNote: CodecTypes['pg/text@1']['input'] | null;
+      readonly handedOverAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly closedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+    };
+    readonly ChatMessage: {
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly conversationId: CodecTypes['pg/int4@1']['input'];
+      readonly sender: CodecTypes['pg/text@1']['input'];
+      readonly body: CodecTypes['pg/text@1']['input'];
+      readonly staffId: CodecTypes['pg/int4@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+    };
     readonly ConsoleDevice: {
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
@@ -1120,6 +1160,26 @@ export type StorageColumnTypes = {
       readonly rangeEnd: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly rangeStart: CodecTypes['pg/timestamptz-string@1']['output'];
     };
+    readonly chatConversation: {
+      readonly closedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly handedOverAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly handoverNote: CodecTypes['pg/text@1']['output'] | null;
+      readonly handoverReason: CodecTypes['pg/text@1']['output'] | null;
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly lastSender: CodecTypes['pg/text@1']['output'];
+      readonly status: CodecTypes['pg/text@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+    };
+    readonly chatMessage: {
+      readonly body: CodecTypes['pg/text@1']['output'];
+      readonly conversationId: CodecTypes['pg/int4@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly sender: CodecTypes['pg/text@1']['output'];
+      readonly staffId: CodecTypes['pg/int4@1']['output'] | null;
+    };
     readonly consoleDevice: {
       readonly appVersion: CodecTypes['pg/text@1']['output'] | null;
       readonly authenticatedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
@@ -1521,6 +1581,26 @@ export type StorageColumnInputTypes = {
       readonly period: CodecTypes['pg/text@1']['input'];
       readonly rangeEnd: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly rangeStart: CodecTypes['pg/timestamptz-string@1']['input'];
+    };
+    readonly chatConversation: {
+      readonly closedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly handedOverAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly handoverNote: CodecTypes['pg/text@1']['input'] | null;
+      readonly handoverReason: CodecTypes['pg/text@1']['input'] | null;
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly lastSender: CodecTypes['pg/text@1']['input'];
+      readonly status: CodecTypes['pg/text@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
+    };
+    readonly chatMessage: {
+      readonly body: CodecTypes['pg/text@1']['input'];
+      readonly conversationId: CodecTypes['pg/int4@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly sender: CodecTypes['pg/text@1']['input'];
+      readonly staffId: CodecTypes['pg/int4@1']['input'] | null;
     };
     readonly consoleDevice: {
       readonly appVersion: CodecTypes['pg/text@1']['input'] | null;
@@ -2335,6 +2415,140 @@ type ContractBase = Omit<
                   readonly name: 'businessReport_createdAt_idx_9575dbd7';
                   readonly prefix: 'businessReport_createdAt_idx';
                   readonly columns: readonly ['createdAt'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [];
+            };
+            readonly chatConversation: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly userId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly status: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'AI'>;
+                  };
+                };
+                readonly lastSender: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'CUSTOMER'>;
+                  };
+                };
+                readonly handoverReason: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly handoverNote: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly handedOverAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
+                };
+                readonly closedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly updatedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'chatConversation_userId_idx_a489d58a';
+                  readonly prefix: 'chatConversation_userId_idx';
+                  readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'chatConversation_status_idx_e98638ab';
+                  readonly prefix: 'chatConversation_status_idx';
+                  readonly columns: readonly ['status'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [];
+            };
+            readonly chatMessage: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly conversationId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly sender: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly body: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly staffId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'chatMessage_conversationId_idx_669215a6';
+                  readonly prefix: 'chatMessage_conversationId_idx';
+                  readonly columns: readonly ['conversationId'];
                   readonly unique: false;
                 },
               ];
@@ -4472,6 +4686,14 @@ type ContractBase = Omit<
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'PlaybookEntry';
     };
+    readonly chatConversation: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'ChatConversation';
+    };
+    readonly chatMessage: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'ChatMessage';
+    };
     readonly discount: { readonly namespace: 'public' & NamespaceId; readonly model: 'Discount' };
     readonly creditPurchase: {
       readonly namespace: 'public' & NamespaceId;
@@ -4909,6 +5131,123 @@ type ContractBase = Omit<
                 readonly facts: { readonly column: 'facts' };
                 readonly content: { readonly column: 'content' };
                 readonly createdBy: { readonly column: 'createdBy' };
+                readonly createdAt: { readonly column: 'createdAt' };
+              };
+            };
+          };
+          readonly ChatConversation: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly status: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly lastSender: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly handoverReason: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly handoverNote: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly handedOverAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly closedAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'chatConversation';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly userId: { readonly column: 'userId' };
+                readonly status: { readonly column: 'status' };
+                readonly lastSender: { readonly column: 'lastSender' };
+                readonly handoverReason: { readonly column: 'handoverReason' };
+                readonly handoverNote: { readonly column: 'handoverNote' };
+                readonly handedOverAt: { readonly column: 'handedOverAt' };
+                readonly closedAt: { readonly column: 'closedAt' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
+              };
+            };
+          };
+          readonly ChatMessage: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly conversationId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly sender: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly body: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly staffId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'chatMessage';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly conversationId: { readonly column: 'conversationId' };
+                readonly sender: { readonly column: 'sender' };
+                readonly body: { readonly column: 'body' };
+                readonly staffId: { readonly column: 'staffId' };
                 readonly createdAt: { readonly column: 'createdAt' };
               };
             };
@@ -6883,6 +7222,15 @@ type ContractBase = Omit<
           readonly ref: {
             readonly namespace: 'public';
             readonly table: 'app';
+            readonly column: 'updatedAt';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'timestampNow' };
+          readonly onUpdate: { readonly kind: 'generator'; readonly id: 'timestampNow' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
+            readonly table: 'chatConversation';
             readonly column: 'updatedAt';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'timestampNow' };

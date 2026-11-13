@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Headphones, MessageSquarePlus } from "lucide-react";
+import { Bot, Headphones, MessageSquarePlus } from "lucide-react";
 
 import { StatusBadge } from "@/app/ui/Badge";
 import { LinkButton } from "@/app/ui/Button";
@@ -33,10 +33,16 @@ export default async function SupportPage() {
         title={t("الدعم الفني", "Support")}
         description={t("تذاكرك وردود فريق الدعم. توصلك إشعارات عند كل رد.", "Your tickets and replies from our team. You're notified of every reply.")}
         actions={
-          <LinkButton href="/support/new">
-            <MessageSquarePlus size={16} aria-hidden />
-            {t("تذكرة جديدة", "New ticket")}
-          </LinkButton>
+          <div className="flex flex-wrap gap-2">
+            <LinkButton href="/support/chat" variant="secondary">
+              <Bot size={16} aria-hidden />
+              {t("اسأل المساعد", "Ask the assistant")}
+            </LinkButton>
+            <LinkButton href="/support/new">
+              <MessageSquarePlus size={16} aria-hidden />
+              {t("تذكرة جديدة", "New ticket")}
+            </LinkButton>
+          </div>
         }
       />
 

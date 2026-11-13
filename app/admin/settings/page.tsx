@@ -203,6 +203,19 @@ export default async function SettingsPage() {
               <option value="on">{t("مفعّل", "On")}</option>
             </Select>
           </Field>
+          <Field
+            label={lang === "ar" ? SETTING_DEFINITIONS["ai.chat.enabled"].labelAr : SETTING_DEFINITIONS["ai.chat.enabled"].labelEn}
+            htmlFor="ai.chat.enabled"
+            hint={t(
+              "يرد على العملاء بنفسه بصفحة «المساعد» بحسابهم، من «دليل الحلول» وحالة اشتراكاتهم بس. ما يفعّل ولا يأكد دفع: يحوّل المحادثة إلك. شغّله بعد ما تملأ الدليل.",
+              "Answers customers itself on the “Assistant” page in their account, from the Playbook and their own subscriptions only. It never activates or confirms payment: it hands the chat to you. Switch it on after filling the Playbook.",
+            )}
+          >
+            <Select key={`ai.chat.enabled:${settings["ai.chat.enabled"]}`} id="ai.chat.enabled" name="ai.chat.enabled" defaultValue={settings["ai.chat.enabled"] === "on" ? "on" : "off"}>
+              <option value="off">{t("متوقف", "Off")}</option>
+              <option value="on">{t("مفعّل", "On")}</option>
+            </Select>
+          </Field>
           <SubmitButton pendingLabel={t("جاري الحفظ...", "Saving...")}>{t("حفظ", "Save")}</SubmitButton>
         </ActionForm>
       </Card>

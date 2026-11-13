@@ -1,0 +1,197 @@
+[
+  {
+    "id": "table.chatConversation",
+    "label": "Create table \"chatConversation\"",
+    "summary": "Creates table \"chatConversation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "chatConversation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"chatConversation\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"chatConversation\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"chatConversation\"",
+        "sql": "CREATE TABLE \"public\".\"chatConversation\" (\n  \"closedAt\" timestamptz,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"handedOverAt\" timestamptz,\n  \"handoverNote\" text,\n  \"handoverReason\" text,\n  \"id\" SERIAL NOT NULL,\n  \"lastSender\" text DEFAULT 'CUSTOMER' NOT NULL,\n  \"status\" text DEFAULT 'AI' NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"chatConversation\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"chatConversation\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.chatMessage",
+    "label": "Create table \"chatMessage\"",
+    "summary": "Creates table \"chatMessage\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "chatMessage"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"chatMessage\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"chatMessage\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"chatMessage\"",
+        "sql": "CREATE TABLE \"public\".\"chatMessage\" (\n  \"body\" text NOT NULL,\n  \"conversationId\" int4 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"sender\" text NOT NULL,\n  \"staffId\" int4,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"chatMessage\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"chatMessage\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.chatConversation.chatConversation_status_idx_e98638ab",
+    "label": "Create index \"chatConversation_status_idx_e98638ab\" on \"chatConversation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "chatConversation_status_idx_e98638ab",
+        "table": "chatConversation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"chatConversation_status_idx_e98638ab\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"chatConversation_status_idx_e98638ab\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"chatConversation_status_idx_e98638ab\"",
+        "sql": "CREATE INDEX \"chatConversation_status_idx_e98638ab\" ON \"public\".\"chatConversation\" (\"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"chatConversation_status_idx_e98638ab\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"chatConversation_status_idx_e98638ab\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.chatConversation.chatConversation_userId_idx_a489d58a",
+    "label": "Create index \"chatConversation_userId_idx_a489d58a\" on \"chatConversation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "chatConversation_userId_idx_a489d58a",
+        "table": "chatConversation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"chatConversation_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"chatConversation_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"chatConversation_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"chatConversation_userId_idx_a489d58a\" ON \"public\".\"chatConversation\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"chatConversation_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"chatConversation_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.chatMessage.chatMessage_conversationId_idx_669215a6",
+    "label": "Create index \"chatMessage_conversationId_idx_669215a6\" on \"chatMessage\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "chatMessage_conversationId_idx_669215a6",
+        "table": "chatMessage"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"chatMessage_conversationId_idx_669215a6\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"chatMessage_conversationId_idx_669215a6\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"chatMessage_conversationId_idx_669215a6\"",
+        "sql": "CREATE INDEX \"chatMessage_conversationId_idx_669215a6\" ON \"public\".\"chatMessage\" (\"conversationId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"chatMessage_conversationId_idx_669215a6\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"chatMessage_conversationId_idx_669215a6\""
+        ]
+      }
+    ]
+  }
+]

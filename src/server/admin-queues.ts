@@ -2,6 +2,7 @@ import { cache } from "react";
 
 import { db } from "@/src/prisma/db";
 import { getAllSupportTickets } from "@/src/lib/support-store";
+import { countWaitingChats } from "@/src/server/chat";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -36,7 +37,7 @@ export async function listRenewalsDue() {
 export const getQueueCounts = cache(async () => {
   const { from, to } = renewalWindow();
 
-  const [newOrders, activations, renewals, resets, leads, tickets] = await Promise.all([
+  const [newOrders, activations, renewals, resets, leads, tickets, chats] = await Promise.all([
     countOrders(["SUBMITTED", "AWAITING_PAYMENT", "PENDING"]),
     countOrders(["PAID", "FULFILLING"]),
     db.orm.public.Subscription.where((subscription) => subscription.expiryDate.gte(from))
@@ -46,6 +47,7 @@ export const getQueueCounts = cache(async () => {
     db.orm.public.PasswordReset.where({ status: "REQUESTED" }).aggregate((aggregate) => ({ count: aggregate.count() })),
     db.orm.public.ServiceLead.where({ status: "NEW" }).aggregate((aggregate) => ({ count: aggregate.count() })),
     getAllSupportTickets().catch(() => []),
+    countWaitingChats().catch(() => 0),
   ]);
 
   return {
@@ -56,5 +58,7 @@ export const getQueueCounts = cache(async () => {
     leads: leads.count,
     // Tickets waiting on the team: open and last message from the customer.
     tickets: tickets.filter((ticket) => ticket.status !== "CLOSED" && ticket.lastSender === "CUSTOMER").length,
+    // AI chats handed over to the team and not answered yet.
+    chats,
   };
 });

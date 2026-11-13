@@ -43,7 +43,7 @@ import { getSettings } from "@/src/server/settings";
  */
 
 type Actor = { id: number; role: string };
-type ToolInput = Record<string, string | number>;
+export type ToolInput = Record<string, string | number>;
 type ServerTool = ToolSpec & { run: (input: ToolInput, scope: RunScope) => Promise<unknown> };
 
 const PERIODS = ["today", "week", "month", "last7", "last30", "last90", "prevMonth"] as const;
@@ -323,38 +323,76 @@ export async function runAgent(actor: Actor, agent: unknown, rawQuestion: unknow
 
   if (!tools.length) return { ok: false, status: 403, error: "دورك ما يسمح بأي أداة لهذا المساعد.", reason: "FORBIDDEN" };
 
-  const callModel = options.callModel ?? claude;
-  const definitions: Anthropic.Beta.BetaTool[] = tools.map((tool) => ({ name: tool.name, description: tool.description, input_schema: schemaForModel(tool.input) as unknown as Anthropic.Beta.BetaTool.InputSchema, strict: true }));
-  const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: "user", content: question }];
-  const trace: ToolTrace[] = [];
-  const budget: RunBudget = { turns: 0, toolCalls: 0 };
   const startedAt = Date.now();
-  let model: string = AI_MODEL;
-  let answer = "";
-  let stopped: "DONE" | "LIMIT" = "LIMIT";
-
-  const finish = async (result: AgentResult) => {
+  const finish = async (result: AgentResult, loop: Pick<LoopOutcome, "model" | "trace" | "turns">) => {
     await logActivity({
       actor,
       entityType: "SETTING",
       action: result.ok ? "AI_AGENT_RUN" : "AI_AGENT_FAILED",
-      summary: `${AGENT_DEFS[agent].labelAr}: ${traceSummary(trace)}${result.ok ? "" : ` (${result.reason})`}`,
+      summary: `${AGENT_DEFS[agent].labelAr}: ${traceSummary(loop.trace)}${result.ok ? "" : ` (${result.reason})`}`,
       // The question's length and the tool names/inputs only: never the question text or any tool result.
-      details: JSON.stringify({ agent, model, ticketId: scope.ticketId ?? undefined, questionChars: question.length, turns: budget.turns, stopped: result.ok ? result.stopped : result.reason, trace, ms: Date.now() - startedAt }),
+      details: JSON.stringify({ agent, model: loop.model, ticketId: scope.ticketId ?? undefined, questionChars: question.length, turns: loop.turns, stopped: result.ok ? result.stopped : result.reason, trace: loop.trace, ms: Date.now() - startedAt }),
     });
 
     return result;
   };
 
+  const loop = await runToolLoop({
+    system: AGENT_DEFS[agent].system,
+    tools: tools.map((tool) => ({ ...tool, run: (input: ToolInput) => tool.run(input, scope) })),
+    messages: [{ role: "user", content: question }],
+    callModel: options.callModel,
+    // The model is only shown the tools this role may use; check again on every call anyway.
+    mayRun: (tool) => canUseTool(actor.role, tool, scope),
+    toolError: "the tool failed; tell the staff member the data is unavailable right now",
+  });
+
+  if (loop.status === "REFUSED") return finish({ ok: false, status: 422, error: "المساعد ما كدر يجاوب على هذا السؤال.", reason: "REFUSED", trace: loop.trace }, loop);
+  if (loop.status === "ERROR") return finish({ ok: false, status: 502, error: "تعذر الاتصال بالذكاء الاصطناعي. جرّب بعد شوية.", reason: "MODEL_ERROR", trace: loop.trace }, loop);
+
+  const answer = loop.answer || (loop.status === "LIMIT" ? "ما كدرت أكمّل الجواب ضمن الحد المسموح. جرّب سؤال أقصر أو أوضح." : "ما عندي جواب.");
+
+  return finish({ ok: true, answer, model: loop.model, trace: loop.trace, stopped: loop.status }, loop);
+}
+
+// ------------------------------------------------------------------- the shared tool loop
+
+/** A tool as the loop runs it: its spec plus a runner that already knows its scope. */
+export type LoopTool = Omit<ToolSpec, "permission" | "dataClass"> & Partial<Pick<ToolSpec, "permission" | "dataClass">> & { run: (input: ToolInput) => Promise<unknown> };
+
+export type LoopOutcome = { status: "DONE" | "LIMIT" | "REFUSED" | "ERROR"; answer: string; model: string; trace: ToolTrace[]; turns: number };
+
+/**
+ * The bounded tool loop every agent runs (staff assistants and the customer
+ * chat): at most MAX_TURNS model turns and MAX_TOOL_CALLS tool calls, a
+ * wall-clock deadline, every input checked against the tool's schema, every
+ * result masked and capped. `mayRun` re-checks each call. Never throws.
+ */
+export async function runToolLoop<T extends LoopTool>(options: {
+  system: string;
+  tools: readonly T[];
+  messages: Anthropic.Beta.BetaMessageParam[];
+  callModel?: CallModel;
+  mayRun?: (tool: T) => boolean;
+  toolError: string;
+}): Promise<LoopOutcome> {
+  const callModel = options.callModel ?? claude;
+  const definitions: Anthropic.Beta.BetaTool[] = options.tools.map((tool) => ({ name: tool.name, description: tool.description, input_schema: schemaForModel(tool.input) as unknown as Anthropic.Beta.BetaTool.InputSchema, strict: true }));
+  const messages = [...options.messages];
+  const trace: ToolTrace[] = [];
+  const budget: RunBudget = { turns: 0, toolCalls: 0 };
+  const startedAt = Date.now();
+  let model: string = AI_MODEL;
+
   try {
     while (canContinue(budget) && Date.now() - startedAt < RUN_DEADLINE_MS) {
       budget.turns += 1;
 
-      const turn = await callModel({ system: AGENT_DEFS[agent].system, tools: definitions, messages });
+      const turn = await callModel({ system: options.system, tools: definitions, messages });
 
       model = turn.model;
 
-      if (turn.stopReason === "refusal") return finish({ ok: false, status: 422, error: "المساعد ما كدر يجاوب على هذا السؤال.", reason: "REFUSED", trace });
+      if (turn.stopReason === "refusal") return { status: "REFUSED", answer: "", model, trace, turns: budget.turns };
 
       // Keep the whole assistant turn (thinking and tool_use blocks) so the next request is valid.
       messages.push({ role: "assistant", content: turn.content as Anthropic.Beta.BetaContentBlockParam[] });
@@ -362,11 +400,7 @@ export async function runAgent(actor: Actor, agent: unknown, rawQuestion: unknow
       const calls = turn.content.filter((block): block is Anthropic.Beta.BetaToolUseBlock => block.type === "tool_use");
       const text = turn.content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("").trim();
 
-      if (!calls.length || turn.stopReason !== "tool_use") {
-        answer = text;
-        stopped = "DONE";
-        break;
-      }
+      if (!calls.length || turn.stopReason !== "tool_use") return { status: "DONE", answer: text, model, trace, turns: budget.turns };
 
       const allowed = allowedCalls(budget, calls.length);
       // Calls run in parallel; their traces are kept in call order.
@@ -382,17 +416,16 @@ export async function runAgent(actor: Actor, agent: unknown, rawQuestion: unknow
 
           if (index >= allowed) return fail("tool call limit reached for this question");
 
-          const tool = tools.find((item) => item.name === call.name);
+          const tool = options.tools.find((item) => item.name === call.name);
 
-          // The model is only shown the tools this role may use; check again anyway.
-          if (!tool || !canUseTool(actor.role, tool, scope)) return fail("tool not available");
+          if (!tool || (options.mayRun && !options.mayRun(tool))) return fail("tool not available");
 
           const checked = checkToolInput(tool.input, call.input);
 
           if (!checked.ok) return fail(checked.error);
 
           try {
-            const content = toolResultText(await tool.run(checked.value, scope));
+            const content = toolResultText(await tool.run(checked.value));
 
             turnTrace[index] = { tool: tool.name, input: checked.value, ok: true, ms: Date.now() - started };
 
@@ -400,7 +433,7 @@ export async function runAgent(actor: Actor, agent: unknown, rawQuestion: unknow
           } catch (error) {
             console.error("AI_TOOL_ERROR:", tool.name, error instanceof Error ? error.message : error);
 
-            return fail("the tool failed; tell the staff member the data is unavailable right now", checked.value);
+            return fail(options.toolError, checked.value);
           }
         }),
       );
@@ -410,13 +443,11 @@ export async function runAgent(actor: Actor, agent: unknown, rawQuestion: unknow
       messages.push({ role: "user", content: results });
     }
 
-    if (!answer) answer = stopped === "LIMIT" ? "ما كدرت أكمّل الجواب ضمن الحد المسموح. جرّب سؤال أقصر أو أوضح." : "ما عندي جواب.";
-
-    return finish({ ok: true, answer, model, trace, stopped });
+    return { status: "LIMIT", answer: "", model, trace, turns: budget.turns };
   } catch (error) {
     console.error("AI_AGENT_ERROR:", error instanceof Error ? error.message : error);
 
-    return finish({ ok: false, status: 502, error: "تعذر الاتصال بالذكاء الاصطناعي. جرّب بعد شوية.", reason: "MODEL_ERROR", trace });
+    return { status: "ERROR", answer: "", model, trace, turns: budget.turns };
   }
 }
 

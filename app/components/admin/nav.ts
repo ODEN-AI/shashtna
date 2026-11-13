@@ -9,7 +9,7 @@ export type AdminNavItem = {
   permission?: Permission;
   /** Visible when the role holds ANY of these (e.g. the Operations Center). */
   anyOf?: Permission[];
-  badgeKey?: "orders" | "activations" | "renewals" | "tickets" | "resets" | "leads";
+  badgeKey?: "orders" | "activations" | "renewals" | "tickets" | "resets" | "leads" | "chats";
 };
 
 export type AdminNavGroup = { ar: string; en: string; items: AdminNavItem[] };
@@ -68,6 +68,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     en: "Engagement",
     items: [
       { href: "/admin/support", ar: "تذاكر الدعم", en: "Tickets", icon: "tickets", permission: "support", badgeKey: "tickets" },
+      { href: "/admin/chats", ar: "المحادثات", en: "Chats", icon: "chats", permission: "support", badgeKey: "chats" },
       { href: "/admin/playbook", ar: "دليل الحلول", en: "Playbook", icon: "playbook", permission: "support" },
       { href: "/admin/status", ar: "حالة الخدمة", en: "Service status", icon: "status", permission: "content" },
       { href: "/admin/leads", ar: "طلبات الحلول الرقمية", en: "Digital leads", icon: "leads", permission: "orders", badgeKey: "leads" },

@@ -17,7 +17,8 @@ export type EntityType =
   | "NOTIFICATION"
   | "FINANCE"
   | "INTELLIGENCE"
-  | "LOYALTY";
+  | "LOYALTY"
+  | "CHAT";
 
 export type ActivityInput = {
   actor?: { id: number; role?: string | null } | null;

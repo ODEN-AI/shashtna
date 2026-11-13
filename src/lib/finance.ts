@@ -46,6 +46,8 @@ export type OrderInput = {
   supplierShareIqd?: number | null;
   /** Discount given on the order (null / 0 = none). */
   discountIqd?: number | null;
+  /** Length bought, in months (snapshot on the order). */
+  durationMonths?: number | null;
 };
 
 export type ReceiptInput = {
@@ -56,6 +58,8 @@ export type ReceiptInput = {
   serviceName: string;
   serviceType: string;
   createdAt: string;
+  /** Length on the receipt, in months (bonus included). */
+  durationMonths?: number | null;
 };
 
 export type ExpenseInput = { id: number; amount: number; category: string; spentOn: string };
@@ -67,6 +71,8 @@ export type SaleLine = {
   kind: "package" | "device";
   serviceType: string;
   amount: number;
+  /** Packages: the length bought, in months (null = unknown). */
+  durationMonths?: number | null;
 };
 
 export type Sale = {
@@ -144,7 +150,7 @@ export function recognizeSales(input: {
     } else {
       const packageAmount = receipts.length ? receipts.reduce((sum, receipt) => sum + receipt.price, 0) : order.price;
       const name = input.packageNames?.get(order.planSlug) ?? order.serviceName;
-      lines.push({ product: `package:${order.planSlug || name}`, name, kind: "package", serviceType: String(order.serviceType).toUpperCase(), amount: Math.max(0, packageAmount) });
+      lines.push({ product: `package:${order.planSlug || name}`, name, kind: "package", serviceType: String(order.serviceType).toUpperCase(), amount: Math.max(0, packageAmount), durationMonths: positiveMonths(order.durationMonths) });
 
       if (order.devicePrice && order.devicePrice > 0) {
         const deviceName = order.deviceName || "Device";
@@ -181,7 +187,7 @@ export function recognizeSales(input: {
       at,
       amount: receipt.price,
       requestType: "UNKNOWN",
-      lines: [{ product: `package:${receipt.serviceName}`, name: receipt.serviceName, kind: "package", serviceType: String(receipt.serviceType).toUpperCase(), amount: receipt.price }],
+      lines: [{ product: `package:${receipt.serviceName}`, name: receipt.serviceName, kind: "package", serviceType: String(receipt.serviceType).toUpperCase(), amount: receipt.price, durationMonths: positiveMonths(receipt.durationMonths) }],
       channel: "SITE",
       costIqd: null,
       supplierShareIqd: null,
@@ -190,6 +196,10 @@ export function recognizeSales(input: {
   }
 
   return sales.sort((a, b) => a.at.getTime() - b.at.getTime());
+}
+
+function positiveMonths(value: unknown) {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
 }
 
 export function inRange(date: Date | null, range: Range) {

@@ -20,6 +20,7 @@ import {
   type Sale,
 } from "@/src/lib/finance";
 import { normalizeOrderStatus } from "@/src/lib/order-status";
+import { mostProfitable, packagePerformance } from "@/src/lib/package-performance";
 import { isStaffRole } from "@/src/lib/roles";
 import { deriveSubscriptionState } from "@/src/lib/subscription-state";
 import { db } from "@/src/prisma/db";
@@ -59,8 +60,9 @@ export const loadFinanceSources = cache(async () => {
       "creditCostIqd",
       "supplierShareIqd",
       "discountIqd",
+      "durationMonths",
     ).all(),
-    db.orm.public.Receipt.select("id", "orderId", "userId", "price", "serviceName", "serviceType", "createdAt").all(),
+    db.orm.public.Receipt.select("id", "orderId", "userId", "price", "serviceName", "serviceType", "createdAt", "durationMonths").all(),
     db.orm.public.ActivityEvent.where({ entityType: "ORDER" })
       .where((item) => item.action.in(PAID_ACTIONS))
       .select("entityId", "createdAt")
@@ -314,3 +316,19 @@ export async function getSalesVolume(selection: PeriodSelection, now = new Date(
 }
 
 export type SalesVolume = Awaited<ReturnType<typeof getSalesVolume>>;
+
+/**
+ * Package performance (phase 6, step 5) — finance permission only: revenue,
+ * cost, profit and margin per package and length, from the same sales engine.
+ * Profit counts known costs only; unknown costs are reported apart.
+ */
+export async function getPackagePerformance(selection: PeriodSelection, now = new Date()) {
+  const sources = await loadFinanceSources();
+  const { current, previous } = resolveRange(selection.period, now, { from: selection.from, to: selection.to });
+  const inPeriod = packagePerformance(sources.sales, current);
+  const before = packagePerformance(sources.sales, previous);
+
+  return { ...inPeriod, previousTotal: before.total, leader: mostProfitable(inPeriod.rows) };
+}
+
+export type PackagePerformanceView = Awaited<ReturnType<typeof getPackagePerformance>>;

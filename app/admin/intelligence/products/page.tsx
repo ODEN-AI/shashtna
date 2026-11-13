@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Boxes, Package } from "lucide-react";
+import { Boxes, CircleDollarSign, Package } from "lucide-react";
 
 import { money } from "@/app/components/admin/finance/FinanceUI";
 import { KpiTile, SectionCard, SectionError } from "@/app/components/admin/dashboard/DashboardUI";
@@ -8,7 +8,9 @@ import { Forbidden } from "@/app/components/admin/Forbidden";
 import { DataTable } from "@/app/ui/DataTable";
 import { EmptyState } from "@/app/ui/States";
 import { INTEL_PAGES, canSection, compare } from "@/src/lib/intelligence";
+import { formatDuration } from "@/src/lib/subscription-duration";
 import { requireStaffPage } from "@/src/server/auth";
+import { getPackagePerformance } from "@/src/server/finance";
 import { getI18n } from "@/src/server/i18n";
 import { loadCatalogueCounts, loadIntelligence, parseIntelSelection } from "@/src/server/intelligence";
 
@@ -30,7 +32,20 @@ export default async function IntelligenceProducts({ searchParams }: { searchPar
   const { t, lang } = await getI18n();
   const selection = parseIntelSelection(params);
   const withMoney = canSection(user.role, "finance");
-  const [data, catalogue] = await Promise.all([loadIntelligence(user.role, selection, withMoney ? ["sales", "finance"] : ["sales"]), loadCatalogueCounts(user.role)]);
+  const [data, catalogue, performance] = await Promise.all([
+    loadIntelligence(user.role, selection, withMoney ? ["sales", "finance"] : ["sales"]),
+    loadCatalogueCounts(user.role),
+    // Profit per package and length: finance only, never computed for other roles.
+    withMoney
+      ? getPackagePerformance(selection).then(
+          (value) => ({ ok: true as const, data: value }),
+          (error) => {
+            console.error("PACKAGE_PERFORMANCE_ERROR:", error instanceof Error ? error.message : error);
+            return { ok: false as const };
+          },
+        )
+      : null,
+  ]);
   const sales = data.sales;
   const finance = data.finance;
   const previous = new Map(sales?.ok ? sales.data.volume.productsPrevious.map((row) => [row.product, row.units]) : []);
@@ -92,6 +107,90 @@ export default async function IntelligenceProducts({ searchParams }: { searchPar
               { key: "aov", header: t("متوسط البيع", "Average sale"), hideOnMobile: true, cell: (row) => <span className="nums">{money(row.averageOrderValue, lang)}</span> },
             ]}
           />
+        </SectionCard>
+      )}
+
+      {performance === null ? null : !performance.ok ? (
+        <SectionError label={t("تعذر تحميل ربح الباقات — غير متاح الآن، وليس صفرًا.", "Package profit couldn't be loaded — unavailable right now, not zero.")} />
+      ) : (
+        <SectionCard title={t("الربح حسب الباقة والمدة (للمالية فقط)", "Profit by package and length (finance only)")} icon={<CircleDollarSign size={14} aria-hidden />} testId="intel-products-profit">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <KpiTile
+              href="/admin/finance"
+              testId="intel-profit-total"
+              label={t("الربح (بالتكاليف المعروفة)", "Profit (known costs)")}
+              value={performance.data.total.knownCostUnits ? <span className="nums">{money(performance.data.total.profit, lang)}</span> : <span className="text-base text-ink-3">{t("غير معروف", "Unknown")}</span>}
+              chip={performance.data.total.knownCostUnits ? <ChangeLine value={compare(performance.data.total.profit, performance.data.previousTotal.profit)} lang={lang} /> : undefined}
+              hint={performance.data.total.knownCostUnits ? undefined : t("ماكو مبيعات معروفة تكلفتها بهذه الفترة", "no sales with a known cost in this period")}
+            />
+            <KpiTile
+              href="/admin/finance"
+              testId="intel-profit-margin"
+              label={t("هامش الربح", "Margin")}
+              value={performance.data.total.marginPct === null ? <span className="text-base text-ink-3">{t("غير معروف", "Unknown")}</span> : <span className="nums">{performance.data.total.marginPct}%</span>}
+              hint={t("من المبيعات المعروفة تكلفتها", "of sales with a known cost")}
+            />
+            <KpiTile
+              href="/admin/catalogue/packages"
+              testId="intel-profit-leader"
+              label={t("الأكثر ربحًا", "Most profitable")}
+              value={
+                performance.data.leader ? (
+                  <span className="text-xl">
+                    {performance.data.leader.name}
+                    {performance.data.leader.durationMonths ? ` · ${formatDuration(performance.data.leader.durationMonths, lang)}` : ""}
+                  </span>
+                ) : (
+                  <span className="text-base text-ink-3">{t("لا يوجد متصدر واضح", "No clear leader")}</span>
+                )
+              }
+              hint={performance.data.leader ? money(performance.data.leader.profit, lang) : t("يحتاج عمليتين معروفة تكلفتها وبدون تعادل", "needs 2 known-cost sales and no tie")}
+            />
+            <KpiTile
+              href="/admin/finance/credits"
+              testId="intel-profit-unknown"
+              label={t("مبيعات تكلفتها غير معروفة", "Sales with unknown cost")}
+              value={<span className="nums">{fmt(performance.data.total.unknownCostUnits)}</span>}
+              hint={performance.data.total.unknownCostUnits ? money(performance.data.total.unknownCostRevenue, lang) : t("كل المبيعات تكلفتها معروفة", "every sale has a known cost")}
+            />
+          </div>
+          <div className="mt-5">
+            <DataTable
+              caption={t("الربح حسب الباقة والمدة", "Profit by package and length")}
+              rows={performance.data.rows}
+              rowKey={(row) => row.key}
+              empty={<EmptyState title={t("لا توجد مبيعات باقات بهذه الفترة", "No package sales in this period")} />}
+              columns={[
+                { key: "name", header: t("الباقة", "Package"), cell: (row) => <span className="font-semibold text-ink" data-testid="intel-profit-row" data-units={row.units}>{row.name}</span> },
+                { key: "length", header: t("المدة", "Length"), cell: (row) => (row.durationMonths ? formatDuration(row.durationMonths, lang) : <span className="text-ink-3">—</span>) },
+                { key: "units", header: t("المبيعات", "Sales"), cell: (row) => <span className="nums">{row.units}</span> },
+                { key: "revenue", header: t("الإيرادات", "Revenue"), cell: (row) => <span className="nums">{money(row.revenue, lang)}</span> },
+                { key: "average", header: t("متوسط السعر", "Average price"), hideOnMobile: true, cell: (row) => <span className="nums">{money(row.averagePrice, lang)}</span> },
+                { key: "cost", header: t("التكلفة", "Cost"), hideOnMobile: true, cell: (row) => (row.knownCostUnits ? <span className="nums">{money(row.creditCost + row.supplierShare, lang)}</span> : <span className="text-ink-3">{t("غير معروفة", "Unknown")}</span>) },
+                {
+                  key: "profit",
+                  header: t("الربح", "Profit"),
+                  cell: (row) =>
+                    row.knownCostUnits ? (
+                      <span className="nums">
+                        {money(row.profit, lang)}
+                        {row.marginPct !== null ? <span className="ms-1 text-xs text-ink-3">({row.marginPct}%)</span> : null}
+                      </span>
+                    ) : (
+                      <span className="text-ink-3">{t("غير معروف", "Unknown")}</span>
+                    ),
+                },
+                { key: "unknown", header: t("تكلفة غير معروفة", "Unknown cost"), hideOnMobile: true, cell: (row) => <span className="nums">{row.unknownCostUnits}</span> },
+                { key: "discount", header: t("الخصم", "Discount"), hideOnMobile: true, cell: (row) => (row.discount ? <span className="nums">{money(row.discount, lang)} · {row.discountedUnits}</span> : <span className="text-ink-3">—</span>) },
+              ]}
+            />
+          </div>
+          <p className="mt-4 text-xs leading-6 text-ink-3">
+            {t(
+              "الربح = الإيراد − تكلفة الرصيد − حصة المورّد، للمبيعات المعروفة تكلفتها فقط. المبيعات بدون تكلفة تنعرض لحالها وما تنحسب صفر. الإيراد هو المدفوع فعلًا بعد الخصم. أجهزة VIP مو ضمن الباقات، ومكافآت النقاط مو مبيعات.",
+              "Profit = revenue − credit cost − supplier share, on known-cost sales only. Sales without a cost are shown apart and never counted as zero. Revenue is what was paid, after discounts. VIP devices aren't packages, and points rewards aren't sales.",
+            )}
+          </p>
         </SectionCard>
       )}
 

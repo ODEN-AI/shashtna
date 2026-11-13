@@ -61,4 +61,19 @@ with `DATABASE_URL` set to the production link in that shell. Paste back the sum
 | Date | Database | Result |
 |---|---|---|
 | 2026-11-13 | local dev database (3 test subscriptions) | Script runs; `FORWARD_ONLY` (test data only, not meaningful) |
-| — | production | ⏳ waiting for the owner's run |
+| 2026-11-13 | **production** (run by the owner) | **`FULL`**, coverage 92.3% — see below |
+
+### Production, 2026-11-13
+
+- 65 subscriptions, **all IPTV** (no VIP or DIGITAL yet), created 2026-09 to 2026-11; 1 has expired so far; 3 customers
+  hold more than one IPTV subscription.
+- 63 receipts (52 linked to an order, 11 without — direct staff activations), none for a missing subscription.
+- History: 63 subscriptions with receipts, 2 without; **every subscription has exactly one receipt**; replay exact for
+  60, off for 3; 2 manual edits on 2 subscriptions.
+- 52 completed orders, **all NEW** — no renewal has happened yet; no supplier or reward orders; none without a
+  subscription or a receipt.
+
+**What it means.** The receipts are a reliable history (step 2 can rebuild it), but the business is young: almost
+no term has ended, so renewal rate, churn and retention have nothing to measure yet. They become meaningful as the
+first terms end (3-month packages bought in September end in December). Revenue, profit per package and value per
+customer can be measured now.

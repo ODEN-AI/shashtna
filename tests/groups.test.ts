@@ -120,5 +120,8 @@ test("plan groups migrations: additive, the data step only touches ungrouped IPT
   assert.equal(read("20261113T1126_site_chat/migration.json").from, read("20261112T2336_playbook/migration.json").to);
   const siteChat: { id: string; operationClass: string }[] = read("20261113T1126_site_chat/ops.json");
   assert.ok(siteChat.every((op) => op.operationClass === "additive"), "the site chat migration is additive only");
-  assert.equal(read("20261113T1126_site_chat/migration.json").to, read("refs/db.json").hash);
+  assert.equal(read("20261113T1517_subscription_terms/migration.json").from, read("20261113T1126_site_chat/migration.json").to);
+  const terms: { id: string; operationClass: string }[] = read("20261113T1517_subscription_terms/ops.json");
+  assert.ok(terms.every((op) => op.operationClass === "additive"), "the subscription terms migration is additive only");
+  assert.equal(read("20261113T1517_subscription_terms/migration.json").to, read("refs/db.json").hash);
 });

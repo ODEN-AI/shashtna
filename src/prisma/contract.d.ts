@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'aecfefce425c7089070c55e65decc0396065142c508f780f6c6e7fa6c785619f'>;
+  StorageHashBase<'925d49f5ab874d5f0eb183337be5531d07d3676fbc8020f2ee52bb602bb545e6'>;
 export type ExecutionHash =
   ExecutionHashBase<'5410f86c6807ac2ee25ed95a043403e1ef7833a82bba2800b8eb6677d756ae3d'>;
 export type ProfileHash =
@@ -646,6 +646,21 @@ export type FieldOutputTypes = {
       readonly reminderOutboxId: CodecTypes['pg/int4@1']['output'] | null;
       readonly deliveryCode: CodecTypes['pg/text@1']['output'] | null;
     };
+    readonly SubscriptionTerm: {
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly subscriptionId: CodecTypes['pg/int4@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+      readonly serviceType: CodecTypes['pg/text@1']['output'];
+      readonly kind: CodecTypes['pg/text@1']['output'];
+      readonly startsOn: CodecTypes['pg/text@1']['output'];
+      readonly endsOn: CodecTypes['pg/text@1']['output'];
+      readonly months: CodecTypes['pg/int4@1']['output'];
+      readonly receiptId: CodecTypes['pg/int4@1']['output'] | null;
+      readonly orderId: CodecTypes['pg/int4@1']['output'] | null;
+      readonly source: CodecTypes['pg/text@1']['output'];
+      readonly matchesExpiry: CodecTypes['pg/bool@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
     readonly User: {
       readonly id: CodecTypes['pg/int4@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
@@ -1067,6 +1082,21 @@ export type FieldInputTypes = {
       readonly deliveryEmail: CodecTypes['pg/text@1']['input'] | null;
       readonly reminderOutboxId: CodecTypes['pg/int4@1']['input'] | null;
       readonly deliveryCode: CodecTypes['pg/text@1']['input'] | null;
+    };
+    readonly SubscriptionTerm: {
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly subscriptionId: CodecTypes['pg/int4@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
+      readonly serviceType: CodecTypes['pg/text@1']['input'];
+      readonly kind: CodecTypes['pg/text@1']['input'];
+      readonly startsOn: CodecTypes['pg/text@1']['input'];
+      readonly endsOn: CodecTypes['pg/text@1']['input'];
+      readonly months: CodecTypes['pg/int4@1']['input'];
+      readonly receiptId: CodecTypes['pg/int4@1']['input'] | null;
+      readonly orderId: CodecTypes['pg/int4@1']['input'] | null;
+      readonly source: CodecTypes['pg/text@1']['input'];
+      readonly matchesExpiry: CodecTypes['pg/bool@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
     readonly User: {
       readonly id: CodecTypes['pg/int4@1']['input'];
@@ -1490,6 +1520,21 @@ export type StorageColumnTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'];
     };
+    readonly subscriptionTerm: {
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly endsOn: CodecTypes['pg/text@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly kind: CodecTypes['pg/text@1']['output'];
+      readonly matchesExpiry: CodecTypes['pg/bool@1']['output'];
+      readonly months: CodecTypes['pg/int4@1']['output'];
+      readonly orderId: CodecTypes['pg/int4@1']['output'] | null;
+      readonly receiptId: CodecTypes['pg/int4@1']['output'] | null;
+      readonly serviceType: CodecTypes['pg/text@1']['output'];
+      readonly source: CodecTypes['pg/text@1']['output'];
+      readonly startsOn: CodecTypes['pg/text@1']['output'];
+      readonly subscriptionId: CodecTypes['pg/int4@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+    };
     readonly user: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly email: CodecTypes['pg/text@1']['output'] | null;
@@ -1910,6 +1955,21 @@ export type StorageColumnInputTypes = {
       readonly subscriptionId: CodecTypes['pg/int4@1']['input'] | null;
       readonly supplierShareIqd: CodecTypes['pg/int4@1']['input'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
+    };
+    readonly subscriptionTerm: {
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly endsOn: CodecTypes['pg/text@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly kind: CodecTypes['pg/text@1']['input'];
+      readonly matchesExpiry: CodecTypes['pg/bool@1']['input'];
+      readonly months: CodecTypes['pg/int4@1']['input'];
+      readonly orderId: CodecTypes['pg/int4@1']['input'] | null;
+      readonly receiptId: CodecTypes['pg/int4@1']['input'] | null;
+      readonly serviceType: CodecTypes['pg/text@1']['input'];
+      readonly source: CodecTypes['pg/text@1']['input'];
+      readonly startsOn: CodecTypes['pg/text@1']['input'];
+      readonly subscriptionId: CodecTypes['pg/int4@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'];
     };
     readonly user: {
@@ -4514,6 +4574,105 @@ type ContractBase = Omit<
                 },
               ];
             };
+            readonly subscriptionTerm: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly subscriptionId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly userId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly serviceType: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly kind: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly startsOn: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly endsOn: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly months: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly receiptId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly orderId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly source: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'ACTIVATION'>;
+                  };
+                };
+                readonly matchesExpiry: {
+                  readonly nativeType: 'bool';
+                  readonly codecId: 'pg/bool@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/bool@1', true>;
+                  };
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['receiptId'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'subscriptionTerm_subscriptionId_idx_edbe96bf';
+                  readonly prefix: 'subscriptionTerm_subscriptionId_idx';
+                  readonly columns: readonly ['subscriptionId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'subscriptionTerm_endsOn_idx_e3aee019';
+                  readonly prefix: 'subscriptionTerm_endsOn_idx';
+                  readonly columns: readonly ['endsOn'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [];
+            };
             readonly user: {
               columns: {
                 readonly id: {
@@ -4693,6 +4852,10 @@ type ContractBase = Omit<
     readonly chatMessage: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'ChatMessage';
+    };
+    readonly subscriptionTerm: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'SubscriptionTerm';
     };
     readonly discount: { readonly namespace: 'public' & NamespaceId; readonly model: 'Discount' };
     readonly creditPurchase: {
@@ -7084,6 +7247,85 @@ type ContractBase = Omit<
                 readonly deliveryEmail: { readonly column: 'deliveryEmail' };
                 readonly reminderOutboxId: { readonly column: 'reminderOutboxId' };
                 readonly deliveryCode: { readonly column: 'deliveryCode' };
+              };
+            };
+          };
+          readonly SubscriptionTerm: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly subscriptionId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly serviceType: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly kind: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly startsOn: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly endsOn: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly months: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly receiptId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly orderId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly source: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly matchesExpiry: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'subscriptionTerm';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly subscriptionId: { readonly column: 'subscriptionId' };
+                readonly userId: { readonly column: 'userId' };
+                readonly serviceType: { readonly column: 'serviceType' };
+                readonly kind: { readonly column: 'kind' };
+                readonly startsOn: { readonly column: 'startsOn' };
+                readonly endsOn: { readonly column: 'endsOn' };
+                readonly months: { readonly column: 'months' };
+                readonly receiptId: { readonly column: 'receiptId' };
+                readonly orderId: { readonly column: 'orderId' };
+                readonly source: { readonly column: 'source' };
+                readonly matchesExpiry: { readonly column: 'matchesExpiry' };
+                readonly createdAt: { readonly column: 'createdAt' };
               };
             };
           };

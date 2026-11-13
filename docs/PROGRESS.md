@@ -6,14 +6,15 @@ this file links to them instead of copying them.
 
 Status marks: ✅ done (with evidence) · 🔄 in progress · ⏳ planned · ⏸️ paused · ❓ needs verification.
 
-## Status now (2026-10-31)
+## Status now (2026-11-13)
 
-- **`main`** is at `9df0d7e` (PRs #6–#18 merged; checked with `git log origin/main`).
-- **Production database** marker `da91640c9eaf` with the latest migration `20261031T1123_customer_reminders`
-  (owner-reported production check and apply, 2026-10-31; not re-read here). ❓
-- **Automation step 1** runs on production in dry run (owner, 2026-10-31, per the planning session).
-- **«نقاط شاشتنا» (loyalty points)** is **live** (switched on by the owner 2026-10-31). Reward options are set
-  (Star10 3 months / 6 months). The launch seed ran on 2026-10-31: 40 customers × 10 points = 400 points.
+- **`main`** is at `bbe3d16` (PRs #6–#27 merged; checked with `git log`).
+- **Production database** marker `aecfefce425c` with the latest migration `20261113T1126_site_chat`
+  (applied by the owner 2026-11-13, `db verify` passed).
+- **Phases 1–4 done** (4 provisionally); **phase 5 paused** by the owner after steps 1–4 and the customer chat
+  (A, B); **phase 6 (business intelligence) starting**.
+- **«نقاط شاشتنا» (loyalty points)** is live since 2026-10-31; not yet announced to customers.
+- **AI:** staff assistants on; customer chat assistant built, switched off (`ai.chat.enabled`).
 - **Deploy Previews use production** (database, `AUTH_SECRET`, Blobs; an owner decision recorded in
   PR #6). Treat any preview as production.
 
@@ -27,8 +28,8 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | 2 | Reliable business data (customers, subscriptions, orders, payments, supplier costs, events) | ✅ | Real costs live (PR #9 + #10, migration `20261030T2329_real_costs` applied 2026-10-31, marker `76e80bbd5844`); data audit 2026-10-31 clean apart from accepted owner/test items — `docs/costs.md` |
 | 3 | Complete the customer and admin experience | ✅ | Redesign (PR #6); loyalty (PR #7) live since 2026-10-31; discounts (PR #12); plan groups and digital platforms (PR #13) — `docs/plan-groups.md` |
 | 4 | Operational automation (reminders, follow-ups, alerts; idempotent, observable, human approval) | ✅ (provisional) | Step 1 ✅ PR #14 + fixes #15/#16; step 2 in-app customer reminders ✅ PR #17 merged (`510640a`), migration `20261031T1123_customer_reminders` applied on production (marker `da91640c9eaf`, per owner report); owner dry-run validation done (owner, per the planning session); step 3 hardening (run retries, outbox retries, «المهام», 09:00 heartbeat) PR #19 merged 2026-11-13 (`d5f71ce`, owner-approved, deploy preview passed), migration `20261105T2208_automation_retries` applied on production 2026-11-13 (owner-approved, marker `ee3176d3c328`, `db verify` passed) — `docs/automation.md`. Closed provisionally by the owner (2026-11-13); ❓ still to confirm on «المهام» after a morning run (today's runs SUCCEEDED, no failed messages) |
-| 5 | SHASHTNA AI CORE and agents (Customer, Operations, Finance, Marketing) with scoped tools | 🔄 | Step 1 (AI core) PR #20 and step 2 (Operations assistant page `/admin/assistant`) PR #21 merged 2026-11-13 (`f4377a5`); owner switched the assistant on and reported it works on production (2026-11-13); step 3 (Finance assistant) PR #22 merged (`e37ba51`), owner reported it works on production; step 4 (Customer assistant: ticket reply drafts) PR #23 merged (`1532166`), owner reported it works on production; customer-facing agent phase A (owner's playbook) PR #24 merged (`7a15434`), migration applied to production; phase B (site chat) PR #25 merged (`f7fc09a`), migration applied to production; playbook matching by meaning PR #26 merged (`5f6c1c0`); chat box lock reason on `fix/chat-locked-reason`, not merged — `docs/playbook.md`, `docs/site-chat.md` — `docs/ai-core.md`. Plan (owner-approved 2026-11-13): 1 core, 2 Operations, 3 Finance, 4 Customers, 5 Marketing. An AI business analyst exists (aggregates only) |
-| 6 | Business intelligence and data-driven growth | ⏳ | Finance/BI dashboard exists (PR #4) |
+| 5 | SHASHTNA AI CORE and agents (Customer, Operations, Finance, Marketing) with scoped tools | ⏸️ paused by the owner (2026-11-13) | Step 1 (AI core) PR #20 and step 2 (Operations assistant page `/admin/assistant`) PR #21 merged 2026-11-13 (`f4377a5`); owner switched the assistant on and reported it works on production (2026-11-13); step 3 (Finance assistant) PR #22 merged (`e37ba51`), owner reported it works on production; step 4 (Customer assistant: ticket reply drafts) PR #23 merged (`1532166`), owner reported it works on production; customer-facing agent phase A (owner's playbook) PR #24 merged (`7a15434`), migration applied to production; phase B (site chat) PR #25 merged (`f7fc09a`), migration applied to production; playbook matching by meaning PR #26 merged (`5f6c1c0`); chat box lock reason PR #27 merged (`bbe3d16`). Paused here by the owner; later: Marketing suggestions, B2 transfer-screenshot pre-check (needs approval to send proofs to the AI), C WhatsApp, D Telegram/Instagram — `docs/playbook.md`, `docs/site-chat.md` — `docs/ai-core.md`. Plan (owner-approved 2026-11-13): 1 core, 2 Operations, 3 Finance, 4 Customers, 5 Marketing. An AI business analyst exists (aggregates only) |
+| 6 | Business intelligence and data-driven growth | 🔄 starting (2026-11-13) | Finance/BI dashboard exists (PR #4) |
 | 7 | Integrated AI-powered operations, desktop and mobile admin clients on the shared backend | ⏳ | Android console shell exists (`shells/mobile`) |
 
 ## In progress
@@ -43,12 +44,13 @@ Long-term direction, in order. A phase is marked done only with evidence.
 | Plan groups and digital platforms (phase 3, part 3) | ✅ | PR #13 merged (`c11eac5`) |
 | Automation step 1 (phase 4) | ✅ | PR #14 merged (`9a302ff`), fixes #15 / #16 (`0d1699c`); the owner runs it in dry run |
 | Automation step 2 (phase 4): job `customer-reminders` (own switch, off) — in-app notifications at T-5 / T-0 / T+3 with points, renewal discount and a renewal link tagged `?r=`; open unpaid renewal orders linked instead; opted-out / suspended skipped; `subscriptionRequest.reminderOutboxId`; 30 / 90-day conversion card on «اليوم» | ✅ PR #17 merged and reported deployed; owner dry-run validated; the shared automation dry-run switch also controls the morning list | `docs/automation.md` |
-| Automation step 3 (phase 4): a FAILED run is retried the same day on its own row (3 attempts, +15 / +60 min, masked error history), a cut-off run re-claimed; in-app outbox rows retried with the same backoff and never duplicated; hourly scheduled function; «المهام» page with owner retry; 09:00 heartbeat alert; switch changes logged | 🔄 built and tested locally; waiting for review, the production migration and merge | `feat/automation-hardening`; `docs/automation.md` |
+| Automation step 3 (phase 4): a FAILED run is retried the same day on its own row (3 attempts, +15 / +60 min, masked error history), a cut-off run re-claimed; in-app outbox rows retried with the same backoff and never duplicated; hourly scheduled function; «المهام» page with owner retry; 09:00 heartbeat alert; switch changes logged | ✅ PR #19 merged (`d5f71ce`), migration applied on production (marker `ee3176d3c328`) | `feat/automation-hardening`; `docs/automation.md` |
 
 ## Known risks
 
-- **Accepted by the owner (2026-10-31), kept as known risks:** the production database password was shared in
-  a chat on 2026-10-30 and has not been rotated; Deploy Previews write to production.
+- **Accepted by the owner (2026-10-31, confirmed 2026-11-13), kept as known risks:** the production database
+  password was shared in chats (2026-10-30, and three more times on 2026-11-13) and will not be rotated (owner:
+  "ما عندي مشكلة وما راح اغيره"); Deploy Previews write to production.
 - **`scripts/db/production-migrate.mjs` does not run on Windows:** the entry check
   (`import.meta.url === file://${argv[1]}`) never matches, and `node_modules/.bin/prisma` needs
   `prisma.cmd`. On Netlify (Linux) it is fine. The 2026-10-30 loyalty migration was applied by hand with
@@ -74,7 +76,24 @@ Long-term direction, in order. A phase is marked done only with evidence.
 Phase 4 is closed provisionally: PR #19 merged and the migration applied (2026-11-13). Still to confirm:
 after a morning run, «المهام» shows today's runs SUCCEEDED and no failed messages.
 
-Phase 5: steps 1–4 are live and owner-verified; the customer agent's playbook (A) and site chat (B) are live, chat switched off. On `feat/ai-playbook-understanding` (no migration): the agents read the whole playbook and match the customer's message by meaning instead of keywords. Next: PR and merge (owner approval); the owner fills the playbook, tests the chat with a customer account and sends real replies; then B2 (transfer-screenshot pre-check — needs the owner's approval to send proofs to the AI) and C (WhatsApp). Marketing suggestions wait. ⏳
+Phase 5: paused by the owner (2026-11-13) after steps 1–4, the playbook (A) and the site chat (B, switched off). To resume later: Marketing suggestions, B2, C, D. ⏸️
+
+Phase 6 (business intelligence), plan proposed 2026-11-13, waiting for the owner's approval ⏳. The Intelligence
+pages already show revenue, products, new/returning customers, subscription states and operations, and say
+outright that renewal rate, churn, retention and CLV are **not** computed: a renewal moves the same
+subscription's expiry, so there is no history of terms. Receipts (one per activation / renewal, with
+`subscriptionId`, `durationMonths`, date) may rebuild that history. Proposed steps:
+1. Read-only data audit on production (counts only, owner runs it): how much term history receipts and
+   completed orders hold, and the gaps (manual subscriptions, supplier orders, legacy rows).
+2. Subscription terms: an append-only record of every activation / renewal from now on, plus a guarded
+   backfill from receipts where reliable (migration).
+3. Renewals and churn: renewal rate per month, service and package (renewed within 30 days of expiry, the
+   same window as «التجديدات المستحقة»), churned customers, and an explainable at-risk list (rules, no
+   prediction).
+4. Customer value: revenue actually paid per customer, lifetime in months, value tiers, monthly cohorts.
+5. Package performance: profit per package and length (known costs only), renewal rate per package,
+   discount periods compared honestly.
+6. Weekly business summary for the owner inside the console.
 
 ## Chapter 2 (after the 7 phases)
 
@@ -88,6 +107,7 @@ Newest first. Details are in the linked documents.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-11-13 | Pause phase 5 here (Marketing suggestions, transfer-screenshot pre-check and other channels later); start phase 6; keep the production database password (accepted risk, not rotated) | Owner in chat: "ما عندي مشكلة وما راح اغيره"، "نوكفه ومستقبلاً نكمله"، "نبدأ" |
 | 2026-11-13 | The playbook is matched by meaning: the agent reads the whole playbook and links the customer's description to the right problem; keywords are optional | Owner in chat: "مو اني انطي الردود للكلمات المفتاحية… افهمه المشاكل وهو يفهمها… بأسلوب شرح مختلف" |
 | 2026-11-13 | Site chat (phase B) is for signed-in customers only (the agent needs their orders; limits abuse and cost); one open chat per customer; up to 25 agent replies per customer per day, then handover; reading transfer screenshots is left to phase B2 because CLAUDE.md forbids sending payment proofs to the AI without the owner's explicit approval — until then "I paid" hands over with the order number | Defaults chosen while building phase B (owner said "كمل"); the screenshot rule needs its own approval |
 | 2026-11-13 | Customer-facing AI agent (owner's request): answers customers on all channels (site chat first, then WhatsApp Business API, Telegram, Instagram) from the owner's playbook only; pre-checks bank/card transfer screenshots (amount, receiving account, date, unused reference) and alerts the owner, who checks the bank and activates; tries once then hands over. This changes the phase-4 rule "never message customers automatically / never automate payment confirmation" for this agent only; activation, refunds and prices stay the owner's | Owner in chat: "يرد على رسائل الناس بشكل كامل بمكاني … كل طرق الحل من قبلي"; channels, payment and escalation picked in chat; screenshot-only risk explained and the pre-check-plus-owner-confirmation flow accepted ("يلا") |

@@ -43,7 +43,7 @@ node --experimental-strip-types --import ./tests/register-alias.mjs scripts/bi/b
 node --experimental-strip-types --import ./tests/register-alias.mjs scripts/bi/backfill-terms.mts --apply
 ```
 
-Expected from the 2026-11-13 audit: about 63 terms, 60 matching and 3 flagged.
+Expected from the 2026-11-13 audit: about 63 terms, 60 matching and 3 flagged. **Done on production 2026-11-13** (by the owner, before the merge): 63 terms added, 60 matching, 3 flagged. After the merge, run it once more (check, then `--apply` if it plans anything) to catch activations made in between.
 
 ## Code
 

@@ -1,4 +1,5 @@
 import { db } from "@/src/prisma/db";
+import { sendPushForNotification } from "@/src/server/push";
 import { daysRemaining, deriveSubscriptionState } from "@/src/lib/subscription-state";
 
 export type NotificationInput = {
@@ -23,7 +24,7 @@ export async function notify(input: NotificationInput) {
       }
     }
 
-    return await db.orm.public.Notification.create({
+    const created = await db.orm.public.Notification.create({
       userId: input.userId,
       type: input.type,
       title: input.title,
@@ -31,6 +32,11 @@ export async function notify(input: NotificationInput) {
       link: input.link ?? null,
       dedupeKey: input.dedupeKey ?? null,
     });
+
+    // Also to the customer's phones when the owner has push on (best effort, never throws).
+    await sendPushForNotification(created.userId, { id: created.id, type: created.type, title: created.title, body: created.body, link: created.link ?? null });
+
+    return created;
   } catch (error) {
     console.error("NOTIFY_ERROR:", error);
     return null;

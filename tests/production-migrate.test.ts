@@ -14,8 +14,8 @@ test("production state (marker bec797, ledger up to console_device) → exactly 
   const plan = planMigration({ chain, ledger: ledgerOf(before), marker: byName["20261001T2236_console_device"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261016T0559_package_duration_unit", "20261017T1832_package_renewal_price", "20261030T1021_package_options", "20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms"]);
-  assert.equal(plan.tip, byName["20261113T1517_subscription_terms"].to);
+  assert.deepEqual(plan.pending, ["20261016T0559_package_duration_unit", "20261017T1832_package_renewal_price", "20261030T1021_package_options", "20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms", "20261114T0009_push_devices"]);
+  assert.equal(plan.tip, byName["20261114T0009_push_devices"].to);
 });
 
 test("package migrations already applied → only the package options migration is pending", () => {
@@ -23,7 +23,7 @@ test("package migrations already applied → only the package options migration 
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261017T1832_package_renewal_price"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261030T1021_package_options", "20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms"]);
+  assert.deepEqual(plan.pending, ["20261030T1021_package_options", "20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms", "20261114T0009_push_devices"]);
 });
 
 test("package options applied (production after PR #6) → the loyalty, cost and discount migrations are pending", () => {
@@ -31,7 +31,7 @@ test("package options applied (production after PR #6) → the loyalty, cost and
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261030T1021_package_options"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms"]);
+  assert.deepEqual(plan.pending, ["20261030T1747_loyalty_points", "20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms", "20261114T0009_push_devices"]);
 });
 
 test("loyalty applied (marker 0395c5) → the real costs and discount migrations are pending", () => {
@@ -39,7 +39,7 @@ test("loyalty applied (marker 0395c5) → the real costs and discount migrations
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261030T1747_loyalty_points"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms"]);
+  assert.deepEqual(plan.pending, ["20261030T2329_real_costs", "20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms", "20261114T0009_push_devices"]);
 });
 
 test("real costs applied (production now, marker 76e80b) → only the discounts migration is pending", () => {
@@ -47,7 +47,7 @@ test("real costs applied (production now, marker 76e80b) → only the discounts 
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261030T2329_real_costs"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms"]);
+  assert.deepEqual(plan.pending, ["20261031T0021_discounts", "20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms", "20261114T0009_push_devices"]);
 });
 
 test("discounts applied (production now, marker eb9bf3) → only the plan group migrations are pending", () => {
@@ -55,7 +55,7 @@ test("discounts applied (production now, marker eb9bf3) → only the plan group 
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261031T0021_discounts"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms"]);
+  assert.deepEqual(plan.pending, ["20261031T0738_plan_groups", "20261031T0742_platform_account_email", "20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms", "20261114T0009_push_devices"]);
 });
 
 test("plan groups applied (marker of platform_account_email) → only the automation migration is pending", () => {
@@ -63,7 +63,7 @@ test("plan groups applied (marker of platform_account_email) → only the automa
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261031T0742_platform_account_email"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms"]);
+  assert.deepEqual(plan.pending, ["20261031T1006_automation_core", "20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms", "20261114T0009_push_devices"]);
 });
 
 test("automation applied (production now, marker 0102955a) → only the customer reminders migration is pending", () => {
@@ -71,7 +71,7 @@ test("automation applied (production now, marker 0102955a) → only the customer
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261031T1006_automation_core"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms"]);
+  assert.deepEqual(plan.pending, ["20261031T1123_customer_reminders", "20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms", "20261114T0009_push_devices"]);
 });
 
 test("customer reminders applied (production now, marker da91640c) → only the automation retries migration is pending", () => {
@@ -79,7 +79,7 @@ test("customer reminders applied (production now, marker da91640c) → only the 
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261031T1123_customer_reminders"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms"]);
+  assert.deepEqual(plan.pending, ["20261105T2208_automation_retries", "20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms", "20261114T0009_push_devices"]);
 });
 
 test("automation retries applied (production now, marker ee3176d3) → only the playbook migration is pending", () => {
@@ -87,7 +87,7 @@ test("automation retries applied (production now, marker ee3176d3) → only the 
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261105T2208_automation_retries"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms"]);
+  assert.deepEqual(plan.pending, ["20261112T2336_playbook", "20261113T1126_site_chat", "20261113T1517_subscription_terms", "20261114T0009_push_devices"]);
 });
 
 test("playbook applied (production now, marker e5c01d61) → only the site chat migration is pending", () => {
@@ -95,7 +95,7 @@ test("playbook applied (production now, marker e5c01d61) → only the site chat 
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261112T2336_playbook"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261113T1126_site_chat", "20261113T1517_subscription_terms"]);
+  assert.deepEqual(plan.pending, ["20261113T1126_site_chat", "20261113T1517_subscription_terms", "20261114T0009_push_devices"]);
 });
 
 test("site chat applied (production now, marker aecfefce) → only the subscription terms migration is pending", () => {
@@ -103,11 +103,19 @@ test("site chat applied (production now, marker aecfefce) → only the subscript
   const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261113T1126_site_chat"].to });
 
   assert.equal(plan.ok, true, plan.problems.join("; "));
-  assert.deepEqual(plan.pending, ["20261113T1517_subscription_terms"]);
+  assert.deepEqual(plan.pending, ["20261113T1517_subscription_terms", "20261114T0009_push_devices"]);
+});
+
+test("subscription terms applied (production now, marker 925d49f5) → only the push devices migration is pending", () => {
+  const applied = chain.filter((m) => m.name <= "20261113T1517_subscription_terms");
+  const plan = planMigration({ chain, ledger: ledgerOf(applied), marker: byName["20261113T1517_subscription_terms"].to });
+
+  assert.equal(plan.ok, true, plan.problems.join("; "));
+  assert.deepEqual(plan.pending, ["20261114T0009_push_devices"]);
 });
 
 test("up to date → nothing pending", () => {
-  const plan = planMigration({ chain, ledger: ledgerOf(chain), marker: byName["20261113T1517_subscription_terms"].to });
+  const plan = planMigration({ chain, ledger: ledgerOf(chain), marker: byName["20261114T0009_push_devices"].to });
   assert.equal(plan.ok, true);
   assert.deepEqual(plan.pending, []);
 });

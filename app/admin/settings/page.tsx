@@ -58,6 +58,11 @@ export default async function SettingsPage() {
 
   const [{ t, lang }, settings, loyaltyRules, rewardChoices] = await Promise.all([getI18n(), getSettings(), getLoyaltyRules(), iptvOptions()]);
   const [reward3m, reward6m] = await Promise.all([rewardOption(loyaltyRules, "3m"), rewardOption(loyaltyRules, "6m")]);
+  // Phones registered for push (counts only; tokens are never shown).
+  const pushPhones = await db.orm.public.PushDevice.where({ isActive: true })
+    .aggregate((a) => ({ count: a.count() }))
+    .then((row) => row.count)
+    .catch(() => null);
 
   return (
     <div className="space-y-6">
@@ -212,6 +217,31 @@ export default async function SettingsPage() {
             )}
           >
             <Select key={`ai.chat.enabled:${settings["ai.chat.enabled"]}`} id="ai.chat.enabled" name="ai.chat.enabled" defaultValue={settings["ai.chat.enabled"] === "on" ? "on" : "off"}>
+              <option value="off">{t("متوقف", "Off")}</option>
+              <option value="on">{t("مفعّل", "On")}</option>
+            </Select>
+          </Field>
+          <SubmitButton pendingLabel={t("جاري الحفظ...", "Saving...")}>{t("حفظ", "Save")}</SubmitButton>
+        </ActionForm>
+      </Card>
+
+      <Card className="scroll-mt-24 p-6" as="section">
+        <div id="push" className="scroll-mt-24" />
+        <CardHeader
+          title={t("إشعارات الهواتف", "Phone push notifications")}
+          description={t(
+            "لما يكون مفعّل، كل إشعار ينطلع للزبون داخل حسابه (تأكيد الدفع، التفعيل، تذكير التجديد، رد الدعم…) يوصله هم على تلفونه إذا نزّل تطبيق شاشتنا وسمح بالإشعارات. نفس العنوان والنص والرابط، ما يصير شي جديد. التغيير للمالك فقط.",
+            "When on, every notification a customer gets in their account (payment confirmed, activation, renewal reminder, support reply…) also reaches their phone if they installed the Shashtna app and allowed notifications. Same title, text and link — nothing new is sent. Owner only.",
+          )}
+        />
+        <p className="mt-3 text-sm text-ink-3">
+          {pushPhones === null
+            ? t("تعذر عدّ الهواتف المسجّلة.", "Couldn't count registered phones.")
+            : t(`هواتف مسجّلة الآن: ${pushPhones}`, `Phones registered now: ${pushPhones}`)}
+        </p>
+        <ActionForm action={saveSettingsAction} className="mt-5 space-y-5">
+          <Field label={lang === "ar" ? SETTING_DEFINITIONS["push.enabled"].labelAr : SETTING_DEFINITIONS["push.enabled"].labelEn} htmlFor="push.enabled">
+            <Select key={`push.enabled:${settings["push.enabled"]}`} id="push.enabled" name="push.enabled" defaultValue={settings["push.enabled"] === "on" ? "on" : "off"}>
               <option value="off">{t("متوقف", "Off")}</option>
               <option value="on">{t("مفعّل", "On")}</option>
             </Select>

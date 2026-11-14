@@ -97,6 +97,15 @@ subscription's expiry, so there is no history of terms. Receipts (one per activa
 
 ## Chapter 2 (after the 7 phases)
 
+**Started 2026-11-14 with the customer app** (owner: start with the mobile app; full authority to rebuild after a
+council review). Inspection: `ODEN-AI/shashtna-mobile` (Expo 57, ~10k lines) — newest work on the unmerged
+`feat/shashtna-mobile-uiux-redesign`, never released; ~7 weeks behind the site (no package lengths, discounts,
+platforms, points, chat); push tokens accepted but not stored. Council verdict: a **thin native app** (sign-in, «اشتراكي»
+home with renew and order status, proof upload, push, link to the Player) with the rest of My Shashtna shown inside
+the app, website tokens, a clear name (e.g. «شاشتنا – حسابي»). Step 1, push on the website (`docs/push.md`), is
+built on `feat/mobile-push` with migration `20261114T0009_push_devices` (local only). 🔄
+
+
 Rebuild the Shashtna apps (the site's customer app, Shashtna Player, Shashtna Player Lite) and connect them
 to the site. Site notifications reach all apps; packages, renewals and subscription follow-up stay in the
 site's customer app. ⏳
@@ -107,6 +116,7 @@ Newest first. Details are in the linked documents.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-11-14 | Customer app: thin native app (sign-in, «اشتراكي» home + renew + order status, proof upload, push, Player link); everything else from My Shashtna inside the app so it never drifts again; website colours; push on the website first; the Liquid Glass branch is not merged | LLM council (5 advisors, 5 anonymous reviews: 4 of 5 picked the thin option strongest); owner: "يلا بينا" |
 | 2026-11-13 | Phase 6 order changed: step 5 (package performance), then 4 (customer value), then 2 (subscription terms, before December), then 3 (renewals and churn) when the first terms end | Production audit: 65 subscriptions, all new, no renewal yet; owner: "Yes, go ahead" |
 | 2026-11-13 | Phase 6 plan approved: 1 data audit, 2 subscription terms, 3 renewals and churn, 4 customer value, 5 package performance, 6 weekly summary; metrics are measured, not predicted (at-risk lists use explainable rules) | Owner in chat: "Yes, start step 1"; the Intelligence pages already refuse to estimate what the data can't support |
 | 2026-11-13 | Pause phase 5 here (Marketing suggestions, transfer-screenshot pre-check and other channels later); start phase 6; keep the production database password (accepted risk, not rotated) | Owner in chat: "ما عندي مشكلة وما راح اغيره"، "نوكفه ومستقبلاً نكمله"، "نبدأ" |
@@ -150,6 +160,8 @@ Newest first.
 
 | Date | PR / commit | Change | Checks |
 |---|---|---|---|
+| 2026-11-14 | `feat/mobile-push` (chapter 2, apps step 1) | Phone push: `pushDevice` table; `POST/DELETE /api/mobile/devices` store and switch off tokens (additive: `deviceId` now a number, `push` ACTIVE / OFF); `notify()` mirrors every new in-app notification to the customer's active phones through Expo (batches of 100, 5 s timeout, gone tokens switched off, never throws); owner switch «إشعارات الهواتف» (`push.enabled`, off, audited) with a registered-phones count | `TZ=UTC npm test` 307/307 (`tests/push.test.ts` 6/6, migration-order tests updated); tsc, ESLint (changed files), build clean; `scripts/integration/push.mts` 5/5 with a fake Expo sender (store/move token, switch off sends nothing, switch on pushes same title/text/link to that customer only, dedupe repeat sends nothing, DeviceNotRegistered and network failure, sign-out); `chat` 6/6, `ai-core` 11/11, `subscription-terms` 3/3. Not checked: a real phone (needs an app build with EAS project id) |
+| 2026-11-14 | migration `20261114T0009_push_devices` | Applied on the local database only (table, unique token, index; additive) | `migration check`, `db migrate`, `db verify` (local); ref `db` advanced |
 | 2026-11-13 | `feat/bi-subscription-terms` (phase 6 step 2) | Append-only `subscriptionTerm` table (one term per receipt, `receiptId` unique); `recordTerm` after every activation and renewal (site route POST new and renew, supplier orders, digital platforms — best effort, never fails an activation); `scripts/bi/backfill-terms.mts` (check / `--apply`, idempotent, flags replays that don't match the stored expiry); the audit reuses the same replay (`src/lib/subscription-terms.ts`) | `TZ=UTC npm test` 300/300 (`tests/subscription-terms.test.ts` 5/5, migration-order tests updated); tsc, ESLint (changed files), build clean; `scripts/integration/subscription-terms.mts` 3/3 (real supplier order NEW + early RENEW, idempotent recording, backfill check/apply/re-run), `ai-core` 11/11, `chat` 6/6, `playbook` 3/3. Not exercised end to end: the site activation route (HTTP); covered by types and the shared `recordTerm` |
 | 2026-11-13 | migration `20261113T1517_subscription_terms` | Applied on the local database only (table, unique receiptId, 2 indexes; additive) | `migration check`, `db migrate`, `db verify` (local); ref `db` advanced |
 | 2026-11-13 | backfill `scripts/bi/backfill-terms.mts` → **production** (run by the owner, before the merge) | Check: 65 subscriptions, 63 receipts, 63 terms to add (60 matching the stored expiry, 3 subscriptions flagged as manually edited), 0 unreplayable, 0 orphan receipts. `--apply`: 63 added | Script output pasted by the owner. Activations between the backfill and the merge record no term; re-running the backfill (idempotent) fills them |

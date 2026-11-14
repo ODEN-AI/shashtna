@@ -585,6 +585,11 @@ export async function saveSettingsAction(_prev: AdminState, formData: FormData):
       return { ok: false, code: "FORBIDDEN", message: "إعدادات الذكاء الاصطناعي للمالك فقط." };
     }
 
+    // So is sending push notifications to customers' phones.
+    if (changes.some((change) => change.group === "push") && !isFullAccess(staff.role)) {
+      return { ok: false, code: "FORBIDDEN", message: "إشعارات الهواتف للمالك فقط." };
+    }
+
     for (const change of changes) {
       await saveSetting(change.key, change.after, staff.id);
     }
@@ -619,6 +624,18 @@ export async function saveSettingsAction(_prev: AdminState, formData: FormData):
         action: "AI_SETTINGS_CHANGED",
         summary: `تحديث إعدادات الذكاء الاصطناعي: ${aiChanges.map((change) => `${change.key} ${change.before || "—"} → ${change.after}`).join("، ")}`,
         details: describeSettingChanges(aiChanges).join("\n"),
+      });
+    }
+
+    const pushChanges = changes.filter((change) => change.group === "push");
+
+    if (pushChanges.length) {
+      await logActivity({
+        actor: staff,
+        entityType: "SETTING",
+        action: "PUSH_SETTINGS_CHANGED",
+        summary: `إشعارات الهواتف: ${pushChanges.map((change) => `${change.before || "—"} → ${change.after}`).join("، ")}`,
+        details: describeSettingChanges(pushChanges).join("\n"),
       });
     }
 

@@ -543,6 +543,28 @@ model SubscriptionTerm {
   @@index([endsOn])
 }
 
+// A phone that can receive push notifications from the Shashtna customer app
+// (chapter 2, apps). One row per Expo push token (`token` unique); the token
+// moves to whoever signs in on that phone last. `platform` ANDROID | IOS is
+// validated in code (src/lib/push.ts). `isActive` false once the app signs
+// out or Expo says the token is gone (DeviceNotRegistered); rows are kept,
+// never deleted. Tokens are never logged or shown in full.
+model PushDevice {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  token       String   @unique
+  platform    String
+  deviceName  String?
+  appVersion  String?
+  isActive    Boolean  @default(true)
+  lastSeenAt  TimestamptzString @default(now())
+  lastError   String?
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
+
+  @@index([userId])
+}
+
 // A discount on one package option (a product at one length). `kind` is
 // validated in code: PERCENT (value 1–90) or AMOUNT (whole IQD). Active inside
 // [startsAt, endsAt) and until `endedAt`; at most one active per option at any

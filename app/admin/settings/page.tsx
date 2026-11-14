@@ -249,6 +249,30 @@ export default async function SettingsPage() {
           <SubmitButton pendingLabel={t("جاري الحفظ...", "Saving...")}>{t("حفظ", "Save")}</SubmitButton>
         </ActionForm>
       </Card>
+
+      <Card className="scroll-mt-24 p-6" as="section">
+        <div id="app" className="scroll-mt-24" />
+        <CardHeader
+          title={t("تطبيق شاشتنا للموبايل", "Shashtna mobile app")}
+          description={t(
+            "التطبيق ينزل كملف APK وما يحدّث نفسه. لما تطلّع نسخة جديدة اكتب رقمها ورابط تنزيلها هنا، والتطبيق يكول للزبون أكو تحديث. إذا النسخة القديمة لازم توكف، ارفع «أقل إصدار مسموح».",
+            "The app ships as an APK and never updates itself. When you release a new build, enter its version and download link here and the app tells customers. Raise the minimum version when an old build must stop.",
+          )}
+        />
+        <ActionForm action={saveSettingsAction} className="mt-5 grid gap-5 sm:grid-cols-2">
+          {(["app.latestVersion", "app.minVersion"] as const).map((key) => (
+            <Field key={key} label={lang === "ar" ? SETTING_DEFINITIONS[key].labelAr : SETTING_DEFINITIONS[key].labelEn} htmlFor={key} hint={t("مثلاً 2.1.0", "e.g. 2.1.0")}>
+              <Input id={key} name={key} defaultValue={settings[key]} dir="ltr" className="nums" />
+            </Field>
+          ))}
+          <Field label={lang === "ar" ? SETTING_DEFINITIONS["app.downloadUrl"].labelAr : SETTING_DEFINITIONS["app.downloadUrl"].labelEn} htmlFor="app.downloadUrl" className="sm:col-span-2">
+            <Input id="app.downloadUrl" name="app.downloadUrl" defaultValue={settings["app.downloadUrl"]} dir="ltr" placeholder="https://" />
+          </Field>
+          <div className="sm:col-span-2">
+            <SubmitButton pendingLabel={t("جاري الحفظ...", "Saving...")}>{t("حفظ", "Save")}</SubmitButton>
+          </div>
+        </ActionForm>
+      </Card>
     </div>
   );
 }

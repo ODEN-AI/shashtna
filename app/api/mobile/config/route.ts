@@ -30,6 +30,12 @@ export async function GET() {
           help: `${SITE}/help`,
           status: `${SITE}/status`,
         },
+        // Additive (customer app, chapter 2): the update check for APK builds.
+        customerApp: {
+          latestVersion: settings["app.latestVersion"] || null,
+          minVersion: settings["app.minVersion"] || null,
+          downloadUrl: safeExternalUrl(settings["app.downloadUrl"]),
+        },
         support: {
           hours: { ar: settings["support.hours"], en: settings["support.hoursEn"] },
           telegram: safeExternalUrl(settings["contact.telegram"]),

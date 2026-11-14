@@ -99,7 +99,7 @@ export const LONG_SETTING_GROUPS = ["legal"] as const;
 export function settingProblem(key: string, value: string): string | null {
   if (key.startsWith("loyalty.")) return loyaltySettingProblem(key, value);
   if (key.startsWith("automation.")) return automationSettingProblem(key, value);
-  if (key === "ai.agents.enabled" || key === "ai.chat.enabled") return value === "on" || value === "off" ? null : "القيمة مفعّل أو متوقف.";
+  if (key === "ai.agents.enabled" || key === "ai.chat.enabled" || key === "push.enabled") return value === "on" || value === "off" ? null : "القيمة مفعّل أو متوقف.";
   if (!value) return null;
   if (key === "contact.telegram" && !/^https:\/\/t\.me\//.test(value)) return "رابط تيليجرام يجب أن يبدأ بـ https://t.me/";
   if ((key === "contact.facebook" || key === "player.downloadUrl") && !/^https:\/\//.test(value)) return "الروابط يجب أن تبدأ بـ https://";

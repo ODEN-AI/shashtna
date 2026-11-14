@@ -134,6 +134,8 @@ export const SETTING_DEFINITIONS = {
   "ai.agents.enabled": { group: "ai", labelAr: "مساعدي الذكاء الاصطناعي", labelEn: "AI assistants", default: "off", multiline: false },
   // Customer-facing AI chat (phase 5, customer agent phase B) — answers customers; ships off (docs/site-chat.md).
   "ai.chat.enabled": { group: "ai", labelAr: "مساعد العملاء بالدردشة", labelEn: "Customer chat assistant", default: "off", multiline: false },
+  // Push to the customer app (chapter 2) — mirrors in-app notifications to phones; ships off, owner only (docs/push.md).
+  "push.enabled": { group: "push", labelAr: "إشعارات الهواتف", labelEn: "Phone push notifications", default: "off", multiline: false },
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFINITIONS;

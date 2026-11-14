@@ -6,6 +6,7 @@ import { AccountMobileTabs } from "@/app/components/account/AccountMobileTabs";
 import { AccountNav } from "@/app/components/account/AccountNav";
 import s from "@/app/components/home/home.module.css";
 import { ToneShell } from "@/app/components/site/ToneShell";
+import { isAppMode } from "@/src/server/app-mode";
 import { getSessionUser } from "@/src/server/auth";
 import { getLoyaltyRules } from "@/src/server/loyalty";
 import { countUnreadNotifications } from "@/src/server/notifications";
@@ -24,7 +25,18 @@ export default async function AccountLayout({ children }: { children: React.Reac
     redirect("/login?redirect=/dashboard");
   }
 
-  const [unread, loyalty] = await Promise.all([countUnreadNotifications(user.id).catch(() => 0), getLoyaltyRules()]);
+  const [unread, loyalty, appMode] = await Promise.all([countUnreadNotifications(user.id).catch(() => 0), getLoyaltyRules(), isAppMode()]);
+
+  // Inside the customer app: no account menu (the app has its own tabs).
+  if (appMode) {
+    return (
+      <ToneShell>
+        <div className={`${s.wrap} ${a.area}`}>
+          <div className="min-w-0">{children}</div>
+        </div>
+      </ToneShell>
+    );
+  }
 
   return (
     <ToneShell>

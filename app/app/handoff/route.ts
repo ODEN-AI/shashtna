@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
  * signed in to the website, then sent to `next` (an allow-listed customer
  * page). The code comes in the body, never the URL. App mode is switched on
  * for this browser so pages render without the site's header, footer and
- * menus. A bad or expired code lands on the login page instead.
+ * menus. A bad or expired code lands on the login page instead; no code at all
+ * (a guest browsing the store) gets app mode without a session.
  */
 export async function POST(request: Request) {
   let code: unknown = null;
@@ -35,6 +36,11 @@ export async function POST(request: Request) {
 
     return response;
   };
+
+  // A guest (no code at all) browses in app mode without a session, e.g. the store before signing in.
+  if (code === null || code === "") {
+    return appMode(NextResponse.redirect(new URL(target, request.url), 303));
+  }
 
   const userId = verifyHandoffCode(code);
   const user = userId ? await db.orm.public.User.first({ id: userId }) : null;

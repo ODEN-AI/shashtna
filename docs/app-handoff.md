@@ -10,7 +10,7 @@ app ask customers to update (an APK never updates itself).
 1. The app calls `POST /api/mobile/web-session` with its Bearer session → `{ code, expiresIn: 60 }`. Customers only
    (staff → 403).
 2. The app's in-app browser **POSTs** a form `{ code, next }` to `/app/handoff` (the code is never in a URL).
-3. `/app/handoff` checks the code, sets the normal website session cookie (`createAuthToken` + `setSessionCookie`,
+3. `/app/handoff` checks the code (no code at all = a guest: app mode on, no session, straight to `next`), sets the normal website session cookie (`createAuthToken` + `setSessionCookie`,
    the same as a password sign-in), switches app mode on, and answers `303` to `next`. A bad or expired code, or a
    staff account, lands on `/login?redirect=<next>`.
 

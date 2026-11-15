@@ -2,6 +2,7 @@ import { CustomerBottomNav } from "@/app/components/site/CustomerBottomNav";
 import { EntryExperience } from "@/app/components/site/EntryExperience";
 import { SiteFooter } from "@/app/components/site/SiteFooter";
 import { SiteHeader } from "@/app/components/site/SiteHeader";
+import { isAppMode } from "@/src/server/app-mode";
 import { getSessionUser } from "@/src/server/auth";
 import { countUnreadNotifications } from "@/src/server/notifications";
 
@@ -10,7 +11,19 @@ export default async function SiteLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await getSessionUser().catch(() => null);
+  const [user, appMode] = await Promise.all([getSessionUser().catch(() => null), isAppMode()]);
+
+  // Inside the customer app: the app has its own navigation, so only the page itself shows.
+  if (appMode) {
+    return (
+      <div className="flex min-h-screen flex-col overflow-x-clip">
+        <main id="main" className="flex-1">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   // Feeds the header bell (Notifications is not a bottom-nav tab).
   const unread = user ? await countUnreadNotifications(user.id).catch(() => 0) : 0;
 

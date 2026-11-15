@@ -136,6 +136,10 @@ export const SETTING_DEFINITIONS = {
   "ai.chat.enabled": { group: "ai", labelAr: "مساعد العملاء بالدردشة", labelEn: "Customer chat assistant", default: "off", multiline: false },
   // Push to the customer app (chapter 2) — mirrors in-app notifications to phones; ships off, owner only (docs/push.md).
   "push.enabled": { group: "push", labelAr: "إشعارات الهواتف", labelEn: "Phone push notifications", default: "off", multiline: false },
+  // The customer app's update check (APK builds never update themselves) — docs/app-handoff.md.
+  "app.latestVersion": { group: "app", labelAr: "آخر إصدار للتطبيق", labelEn: "Latest app version", default: "", multiline: false },
+  "app.minVersion": { group: "app", labelAr: "أقل إصدار مسموح", labelEn: "Minimum app version", default: "", multiline: false },
+  "app.downloadUrl": { group: "app", labelAr: "رابط تنزيل التطبيق", labelEn: "App download link", default: "", multiline: false },
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFINITIONS;

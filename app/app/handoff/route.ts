@@ -30,6 +30,11 @@ export async function POST(request: Request) {
   }
 
   const target = safeNext(next);
+  // A relative Location keeps the browser on the host it called (shashtna.netlify.app).
+  // Building an absolute URL from request.url would point at Netlify's internal
+  // deploy host (main--…), which the app treats as an outside site and where the
+  // session cookie just set does not apply.
+  const seeOther = (location: string) => new NextResponse(null, { status: 303, headers: { Location: location } });
   const appMode = (response: NextResponse) => {
     response.cookies.set(APP_MODE_COOKIE, "1", { httpOnly: false, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 365 });
     response.headers.set("Cache-Control", "no-store");
@@ -39,18 +44,18 @@ export async function POST(request: Request) {
 
   // A guest (no code at all) browses in app mode without a session, e.g. the store before signing in.
   if (code === null || code === "") {
-    return appMode(NextResponse.redirect(new URL(target, request.url), 303));
+    return appMode(seeOther(target));
   }
 
   const userId = verifyHandoffCode(code);
   const user = userId ? await db.orm.public.User.first({ id: userId }) : null;
 
   if (!user || isStaffRole(user.role)) {
-    return appMode(NextResponse.redirect(new URL(`/login?redirect=${encodeURIComponent(target)}`, request.url), 303));
+    return appMode(seeOther(`/login?redirect=${encodeURIComponent(target)}`));
   }
 
   const session = createAuthToken(user.id, user.role);
-  const response = appMode(NextResponse.redirect(new URL(target, request.url), 303));
+  const response = appMode(seeOther(target));
 
   setSessionCookie(response, session.token, session.expiresAt);
 
